@@ -1,5 +1,5 @@
 ---
-description: Bump patch version (x.x.Z) + changelog auto + commit + push
+description: Bump patch version (x.x.Z) + changelog auto + commit + tag + push (project)
 allowed-tools: Read, Edit, Grep, Bash(npm:*), Bash(git:*), Bash(cat:*), Bash(grep:*)
 ---
 
@@ -76,9 +76,8 @@ Pour chaque fichier trouvé, remplacer l'ancienne version par la nouvelle.
 
 **Changelogs** :
 - `CHANGELOG.md` : Nouvelle entrée
-- `CHANGELOG_LITE.md` : Nouvelle ligne sous le bloc courant
 
-## Étape 5: Commit et Push
+## Étape 5: Commit, Tag et Push
 
 ```bash
 git add -A
@@ -87,7 +86,9 @@ git commit -m "fix: [titre] (vX.Y.Z)
 🐛 Generated with Claude Code
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
 git push
+git push origin vX.Y.Z
 ```
 
 ## Étape 6: Compte-rendu

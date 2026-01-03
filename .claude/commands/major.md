@@ -1,5 +1,5 @@
 ---
-description: Bump major version (X.0.0) + changelog auto + commit + push
+description: Bump major version (X.0.0) + changelog auto + commit + tag + push (project)
 allowed-tools: Read, Edit, Grep, Bash(npm:*), Bash(git:*), Bash(cat:*), Bash(grep:*)
 ---
 
@@ -87,9 +87,8 @@ Pour chaque fichier trouvé, remplacer l'ancienne version par la nouvelle.
 
 **Changelogs** :
 - `CHANGELOG.md` : Nouvelle entrée MAJOR avec breaking changes
-- `CHANGELOG_LITE.md` : Nouveau bloc MAJOR
 
-## Étape 6: Commit et Push
+## Étape 6: Commit, Tag et Push
 
 ```bash
 git add -A
@@ -100,7 +99,9 @@ git commit -m "feat!: [nom] (vX.0.0)
 Generated with Claude Code
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
+git tag -a vX.0.0 -m "Release vX.0.0 - [nom]"
 git push
+git push origin vX.0.0
 ```
 
 ## Étape 7: Compte-rendu
