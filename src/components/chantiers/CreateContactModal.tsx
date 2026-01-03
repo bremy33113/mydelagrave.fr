@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { X, User, Phone, Mail, Building2, MapPin, Briefcase, Map } from 'lucide-react';
+import { X, User, Phone, Mail, Building2, MapPin, Briefcase, Map, Search } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Tables } from '../../lib/database.types';
 import { AddressSelectorModal } from './AddressSelectorModal';
@@ -9,6 +9,12 @@ interface CreateContactModalProps {
     onClose: () => void;
     onSuccess: (newClient: Tables<'clients'>) => void;
     initialName?: string;
+}
+
+interface AddressResult {
+    display_name: string;
+    lat: string;
+    lon: string;
 }
 
 // Parse a full address to extract only street, postal code, and city
@@ -46,6 +52,8 @@ export function CreateContactModal({
     const [jobs, setJobs] = useState<Tables<'ref_job'>[]>([]);
     const [showAddressModal, setShowAddressModal] = useState(false);
     const [addressCoords, setAddressCoords] = useState<{ lat: number; lng: number } | undefined>();
+    const [addressResults, setAddressResults] = useState<AddressResult[]>([]);
+    const [isSearchingAddress, setIsSearchingAddress] = useState(false);
 
     const [formData, setFormData] = useState({
         nom: initialName,
@@ -72,6 +80,7 @@ export function CreateContactModal({
                 client_categorie: 'contact_client',
             });
             setAddressCoords(undefined);
+            setAddressResults([]);
         }
     }, [isOpen, initialName]);
 
@@ -84,10 +93,42 @@ export function CreateContactModal({
         setJobs((jobResult.data as Tables<'ref_job'>[]) || []);
     };
 
+    // Search addresses with Nominatim API
+    const searchAddress = async (query: string) => {
+        setFormData(prev => ({ ...prev, adresse: query }));
+
+        if (query.length < 3) {
+            setAddressResults([]);
+            return;
+        }
+
+        setIsSearchingAddress(true);
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=fr`
+            );
+            const data: AddressResult[] = await response.json();
+            setAddressResults(data);
+        } catch {
+            setAddressResults([]);
+        } finally {
+            setIsSearchingAddress(false);
+        }
+    };
+
+    // Select an address from suggestions
+    const selectAddressSuggestion = (result: AddressResult) => {
+        const shortAddress = parseAddress(result.display_name);
+        setFormData({ ...formData, adresse: shortAddress });
+        setAddressCoords({ lat: parseFloat(result.lat), lng: parseFloat(result.lon) });
+        setAddressResults([]);
+    };
+
     const handleAddressSelect = (address: string, coords?: { lat: number; lng: number }) => {
         const shortAddress = parseAddress(address);
         setFormData({ ...formData, adresse: shortAddress });
         setAddressCoords(coords);
+        setAddressResults([]);
     };
 
     const handleSubmit = async (e: FormEvent) => {
@@ -221,16 +262,41 @@ export function CreateContactModal({
                             </div>
 
                             {/* Row 4: Adresse (full width) */}
-                            <div className="col-span-2">
+                            <div className="col-span-2 relative">
                                 <label className="input-label"><MapPin className="w-4 h-4 inline mr-1 opacity-70" />Adresse</label>
                                 <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={formData.adresse}
-                                        onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                                        className="input-field flex-1"
-                                        placeholder="Ex: 1 Place Alexis-Ricordeau, 44093 Nantes"
-                                    />
+                                    <div className="flex-1 relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                        <input
+                                            type="text"
+                                            value={formData.adresse}
+                                            onChange={(e) => searchAddress(e.target.value)}
+                                            className="input-field w-full"
+                                            style={{ paddingLeft: '2.5rem' }}
+                                            placeholder="Tapez une adresse..."
+                                        />
+                                        {isSearchingAddress && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                            </div>
+                                        )}
+
+                                        {/* Suggestions dropdown */}
+                                        {addressResults.length > 0 && (
+                                            <div className="absolute z-50 w-full mt-1 max-h-48 overflow-auto rounded-lg bg-slate-800 border border-slate-600 shadow-xl">
+                                                {addressResults.map((result, index) => (
+                                                    <button
+                                                        key={index}
+                                                        type="button"
+                                                        onClick={() => selectAddressSuggestion(result)}
+                                                        className="w-full text-left px-3 py-2 hover:bg-slate-700/50 text-sm text-white border-b border-slate-700/30 last:border-0"
+                                                    >
+                                                        <p className="line-clamp-2">{result.display_name}</p>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={() => setShowAddressModal(true)}
