@@ -478,7 +478,7 @@ class MockQueryBuilder {
 
     private applyRelations(data: Record<string, unknown>[]): Record<string, unknown>[] {
         // Parser le select pour trouver les relations
-        // Format: *, client:clients(*), ref_statuts_chantier(*)
+        // Format: *, client:clients(*), ref_statuts_chantier(*), phases_chantiers(*)
         const relations = this.parseSelectRelations();
 
         return data.map((item) => {
@@ -486,13 +486,20 @@ class MockQueryBuilder {
 
             relations.forEach((relation) => {
                 const foreignTable = getTable<Record<string, unknown>>(relation.table);
-                const foreignKey = item[relation.foreignKey];
 
-                if (foreignKey) {
-                    const related = foreignTable.find((r) => r[relation.primaryKey] === foreignKey);
-                    result[relation.alias] = related || null;
+                if (relation.type === 'one-to-many') {
+                    // One-to-many: find all related items where foreignKey matches this item's id
+                    const related = foreignTable.filter((r) => r[relation.foreignKey] === item.id);
+                    result[relation.alias] = related;
                 } else {
-                    result[relation.alias] = null;
+                    // Many-to-one: find single related item
+                    const foreignKey = item[relation.foreignKey];
+                    if (foreignKey) {
+                        const related = foreignTable.find((r) => r[relation.primaryKey] === foreignKey);
+                        result[relation.alias] = related || null;
+                    } else {
+                        result[relation.alias] = null;
+                    }
                 }
             });
 
@@ -505,12 +512,16 @@ class MockQueryBuilder {
         table: string;
         foreignKey: string;
         primaryKey: string;
+        type: 'many-to-one' | 'one-to-many';
     }> {
-        const relations: Array<{ alias: string; table: string; foreignKey: string; primaryKey: string }> = [];
+        const relations: Array<{ alias: string; table: string; foreignKey: string; primaryKey: string; type: 'many-to-one' | 'one-to-many' }> = [];
         const selectParts = this.state.selectColumns.split(',').map((s) => s.trim());
 
+        // One-to-many relations (child tables that reference parent via foreign key)
+        const oneToManyTables = ['phases_chantiers', 'notes_chantiers', 'chantiers_contacts'];
+
         selectParts.forEach((part) => {
-            // Format: client:clients(*) ou ref_statuts_chantier(*)
+            // Format: client:clients(*) ou ref_statuts_chantier(*) ou phases_chantiers(*)
             const colonMatch = part.match(/(\w+):(\w+)(?:!(\w+))?\(\*\)/);
             const simpleMatch = part.match(/(\w+)\(\*\)/);
 
@@ -522,18 +533,30 @@ class MockQueryBuilder {
                     table,
                     foreignKey: `${alias}_id`,
                     primaryKey: 'id',
+                    type: 'many-to-one',
                 });
             } else if (simpleMatch) {
-                // ref_statuts_chantier(*)
                 const [, table] = simpleMatch;
-                // Trouver la clé étrangère correspondante
-                if (table.startsWith('ref_')) {
+
+                // Check if it's a one-to-many relation
+                if (oneToManyTables.includes(table)) {
+                    // One-to-many: phases_chantiers(*), notes_chantiers(*), chantiers_contacts(*)
+                    relations.push({
+                        alias: table,
+                        table,
+                        foreignKey: `${this.state.tableName.replace(/s$/, '')}_id`, // chantiers -> chantier_id
+                        primaryKey: 'id',
+                        type: 'one-to-many',
+                    });
+                } else if (table.startsWith('ref_')) {
+                    // ref_statuts_chantier(*)
                     const fkName = table.replace('ref_', '').replace('_chantier', '').replace('s_', '_');
                     relations.push({
                         alias: table,
                         table,
                         foreignKey: fkName === 'statuts' ? 'statut' : fkName,
                         primaryKey: 'code',
+                        type: 'many-to-one',
                     });
                 }
             }

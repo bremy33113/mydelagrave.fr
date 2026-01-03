@@ -13,6 +13,7 @@ interface SelectClientModalProps {
     onSelect: (client: Client) => void;
     excludeIds?: string[];
     title?: string;
+    onCreateNew?: () => void;
 }
 
 export function SelectClientModal({
@@ -21,6 +22,7 @@ export function SelectClientModal({
     onSelect,
     excludeIds = [],
     title = 'Sélectionner un contact',
+    onCreateNew,
 }: SelectClientModalProps) {
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
@@ -85,13 +87,13 @@ export function SelectClientModal({
                 {/* Search */}
                 <div className="p-4 border-b border-slate-700/50">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Rechercher un contact..."
-                            className="input-field pl-12 py-2"
+                            className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             autoFocus
                         />
                     </div>
@@ -107,6 +109,18 @@ export function SelectClientModal({
                         <div className="text-center py-8 text-slate-400">
                             <User className="w-10 h-10 mx-auto mb-2 opacity-50" />
                             <p className="text-sm">Aucun contact trouvé</p>
+                            {onCreateNew && (
+                                <button
+                                    onClick={() => {
+                                        onClose();
+                                        onCreateNew();
+                                    }}
+                                    className="mt-4 btn-primary inline-flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Créer un nouveau contact
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-2">

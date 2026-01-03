@@ -16,6 +16,7 @@ type Chantier = Tables<'chantiers'> & {
     charge_affaire?: Tables<'users'> | null;
     ref_categories_chantier?: Tables<'ref_categories_chantier'> | null;
     ref_statuts_chantier?: Tables<'ref_statuts_chantier'> | null;
+    phases_chantiers?: Tables<'phases_chantiers'>[] | null;
 };
 
 export function DashboardPage() {
@@ -49,7 +50,8 @@ export function DashboardPage() {
           client:clients(*),
           charge_affaire:users(*),
           ref_categories_chantier(*),
-          ref_statuts_chantier(*)
+          ref_statuts_chantier(*),
+          phases_chantiers(*)
         `)
                 .is('deleted_at', null)
                 .order('updated_at', { ascending: false });

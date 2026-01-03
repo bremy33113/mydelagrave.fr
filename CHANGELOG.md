@@ -2,6 +2,17 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [0.3.1] - 2026-01-04
+
+### Corrections
+- Fix affichage loupe dans la barre de recherche contacts
+- Support des relations one-to-many dans le mock Supabase (phases_chantiers)
+- Ajout bouton "Créer un contact" quand aucun résultat trouvé
+
+### Améliorations
+- ChantierCard compact avec badges semaines des phases (S12, S13...)
+- Regroupement "Coordonnées chantier" (client + adresse) dans le détail
+
 ## [0.3.0] - 2026-01-03
 
 ### Nouvelles Fonctionnalités

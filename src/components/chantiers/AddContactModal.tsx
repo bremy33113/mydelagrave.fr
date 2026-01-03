@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, User, Building2, Phone, Mail } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { SelectClientModal } from './SelectClientModal';
+import { CreateContactModal } from './CreateContactModal';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import type { Tables } from '../../lib/database.types';
 
@@ -25,6 +26,7 @@ export function AddContactModal({
     const [contacts, setContacts] = useState<ChantierContact[]>([]);
     const [loading, setLoading] = useState(true);
     const [showSelectModal, setShowSelectModal] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Delete modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -225,6 +227,17 @@ export function AddContactModal({
                 onSelect={handleAddContact}
                 excludeIds={existingClientIds}
                 title="Ajouter un contact au chantier"
+                onCreateNew={() => setShowCreateModal(true)}
+            />
+
+            {/* Create Contact Modal */}
+            <CreateContactModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={(newClient) => {
+                    handleAddContact(newClient);
+                    setShowCreateModal(false);
+                }}
             />
 
             <ConfirmModal

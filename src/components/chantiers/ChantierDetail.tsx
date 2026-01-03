@@ -122,63 +122,66 @@ export function ChantierDetail({
                     </button>
                 </div>
 
-                {/* Client info */}
-                {chantier.client && (
+                {/* Coordonnées chantier */}
+                {(chantier.client || chantier.adresse_livraison) && (
                     <section className="glass-card p-4">
                         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
                             <Building2 className="w-4 h-4" />
-                            Client principal
+                            Coordonnées chantier
                         </h3>
-                        <div className="space-y-2">
-                            <p className="text-lg font-medium text-white">{chantier.client.nom}</p>
-                            {chantier.client.entreprise && (
-                                <p className="text-slate-400">{chantier.client.entreprise}</p>
-                            )}
-                            {chantier.client.email && (
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <Mail className="w-4 h-4" />
-                                    <a
-                                        href={`mailto:${chantier.client.email}`}
-                                        className="hover:text-blue-400 transition-colors"
-                                    >
-                                        {chantier.client.email}
-                                    </a>
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Client */}
+                            {chantier.client && (
+                                <div className="space-y-2">
+                                    <p className="text-xs text-slate-500 uppercase">Client principal</p>
+                                    <p className="text-base font-medium text-white">{chantier.client.nom}</p>
+                                    {chantier.client.entreprise && (
+                                        <p className="text-sm text-slate-400">{chantier.client.entreprise}</p>
+                                    )}
+                                    {chantier.client.email && (
+                                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                                            <Mail className="w-3 h-3" />
+                                            <a
+                                                href={`mailto:${chantier.client.email}`}
+                                                className="hover:text-blue-400 transition-colors truncate"
+                                            >
+                                                {chantier.client.email}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {chantier.client.telephone && (
+                                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                                            <Phone className="w-3 h-3" />
+                                            <a
+                                                href={`tel:${chantier.client.telephone}`}
+                                                className="hover:text-blue-400 transition-colors"
+                                            >
+                                                {chantier.client.telephone}
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                            {chantier.client.telephone && (
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <Phone className="w-4 h-4" />
-                                    <a
-                                        href={`tel:${chantier.client.telephone}`}
-                                        className="hover:text-blue-400 transition-colors"
-                                    >
-                                        {chantier.client.telephone}
-                                    </a>
+
+                            {/* Adresse livraison */}
+                            {chantier.adresse_livraison && (
+                                <div className="space-y-2">
+                                    <p className="text-xs text-slate-500 uppercase">Adresse de livraison</p>
+                                    <p className="text-sm text-white">{chantier.adresse_livraison}</p>
+                                    {chantier.adresse_livraison_latitude && chantier.adresse_livraison_longitude && (
+                                        <a
+                                            href={`https://www.google.com/maps?q=${chantier.adresse_livraison_latitude},${chantier.adresse_livraison_longitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                        >
+                                            <MapPin className="w-3 h-3" />
+                                            Voir sur Google Maps
+                                        </a>
+                                    )}
                                 </div>
                             )}
                         </div>
-                    </section>
-                )}
-
-                {/* Address */}
-                {chantier.adresse_livraison && (
-                    <section className="glass-card p-4">
-                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            Adresse de livraison
-                        </h3>
-                        <p className="text-white">{chantier.adresse_livraison}</p>
-                        {chantier.adresse_livraison_latitude && chantier.adresse_livraison_longitude && (
-                            <a
-                                href={`https://www.google.com/maps?q=${chantier.adresse_livraison_latitude},${chantier.adresse_livraison_longitude}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 mt-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                                <MapPin className="w-4 h-4" />
-                                Voir sur Google Maps
-                            </a>
-                        )}
                     </section>
                 )}
 
