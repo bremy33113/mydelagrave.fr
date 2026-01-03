@@ -275,7 +275,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
     if (!isOpen) return null;
 
     return (
-        <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal-backdrop">
             <div
                 className="glass-card w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-fadeIn"
                 onClick={(e) => e.stopPropagation()}

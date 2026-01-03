@@ -297,7 +297,7 @@ export function ContactsPage() {
 
             {/* Modal */}
             {showModal && (
-                <div className="modal-backdrop" onClick={() => setShowModal(false)}>
+                <div className="modal-backdrop">
                     <div
                         className="glass-card w-full max-w-lg p-6 animate-fadeIn"
                         onClick={(e) => e.stopPropagation()}

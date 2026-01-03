@@ -195,7 +195,7 @@ export function AddressSelectorModal({
     if (!isOpen) return null;
 
     return (
-        <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal-backdrop">
             <div
                 className="glass-card w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-fadeIn"
                 onClick={(e) => e.stopPropagation()}
@@ -222,7 +222,8 @@ export function AddressSelectorModal({
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                                 placeholder="Rechercher une adresse..."
-                                className="input-field pl-12 py-2"
+                                className="input-field py-2"
+                                style={{ paddingLeft: '2.5rem' }}
                             />
                         </div>
                         <button

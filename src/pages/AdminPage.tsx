@@ -285,8 +285,8 @@ export function AdminPage() {
                                                 <button
                                                     onClick={() => toggleSuspend(user)}
                                                     className={`p-2 rounded-lg transition-colors ${user.suspended
-                                                            ? 'hover:bg-green-500/20 text-slate-400 hover:text-green-400'
-                                                            : 'hover:bg-red-500/20 text-slate-400 hover:text-red-400'
+                                                        ? 'hover:bg-green-500/20 text-slate-400 hover:text-green-400'
+                                                        : 'hover:bg-red-500/20 text-slate-400 hover:text-red-400'
                                                         }`}
                                                     title={user.suspended ? 'Réactiver' : 'Suspendre'}
                                                 >
@@ -308,7 +308,7 @@ export function AdminPage() {
 
             {/* Modal */}
             {showModal && (
-                <div className="modal-backdrop" onClick={() => setShowModal(false)}>
+                <div className="modal-backdrop">
                     <div
                         className="glass-card w-full max-w-md p-6 animate-fadeIn"
                         onClick={(e) => e.stopPropagation()}

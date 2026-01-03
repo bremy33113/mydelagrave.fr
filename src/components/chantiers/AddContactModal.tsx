@@ -94,7 +94,7 @@ export function AddContactModal({
 
     return (
         <>
-            <div className="modal-backdrop" onClick={onClose}>
+            <div className="modal-backdrop">
                 <div
                     className="glass-card w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col animate-fadeIn"
                     onClick={(e) => e.stopPropagation()}

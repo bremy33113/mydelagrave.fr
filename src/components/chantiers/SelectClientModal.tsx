@@ -66,7 +66,7 @@ export function SelectClientModal({
     if (!isOpen) return null;
 
     return (
-        <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal-backdrop">
             <div
                 className="glass-card w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col animate-fadeIn"
                 onClick={(e) => e.stopPropagation()}

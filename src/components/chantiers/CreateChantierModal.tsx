@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent, useRef } from 'react';
-import { X, Building2, MapPin, User, Tag, Map, Plus, Search } from 'lucide-react';
+import { X, Building2, MapPin, User, Tag, Map, Plus, Search, Hash, Layers, Settings, Briefcase, Wrench } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { AddressSelectorModal } from './AddressSelectorModal';
 import { CreateContactModal } from './CreateContactModal';
@@ -167,7 +167,7 @@ export function CreateChantierModal({
     const poseurs = users.filter((u) => u.role === 'poseur' || u.role === 'admin');
 
     return (
-        <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal-backdrop">
             <div
                 className="glass-card w-full max-w-2xl max-h-[90vh] overflow-auto p-6 animate-fadeIn"
                 onClick={(e) => e.stopPropagation()}
@@ -199,7 +199,7 @@ export function CreateChantierModal({
                         </h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2">
-                                <label className="input-label">Nom du chantier *</label>
+                                <label className="input-label"><Building2 className="w-4 h-4 inline mr-1 opacity-70" />Nom du chantier *</label>
                                 <input
                                     type="text"
                                     value={formData.nom}
@@ -210,7 +210,7 @@ export function CreateChantierModal({
                                 />
                             </div>
                             <div>
-                                <label className="input-label">Référence</label>
+                                <label className="input-label"><Hash className="w-4 h-4 inline mr-1 opacity-70" />Référence</label>
                                 <input
                                     type="text"
                                     value={formData.reference}
@@ -220,7 +220,7 @@ export function CreateChantierModal({
                                 />
                             </div>
                             <div>
-                                <label className="input-label">Statut</label>
+                                <label className="input-label"><Tag className="w-4 h-4 inline mr-1 opacity-70" />Statut</label>
                                 {editingChantier ? (
                                     <select
                                         value={formData.statut}
@@ -240,7 +240,7 @@ export function CreateChantierModal({
                                 )}
                             </div>
                             <div>
-                                <label className="input-label">Catégorie</label>
+                                <label className="input-label"><Layers className="w-4 h-4 inline mr-1 opacity-70" />Catégorie</label>
                                 <select
                                     value={formData.categorie}
                                     onChange={(e) => setFormData({ ...formData, categorie: e.target.value })}
@@ -255,7 +255,7 @@ export function CreateChantierModal({
                                 </select>
                             </div>
                             <div>
-                                <label className="input-label">Type</label>
+                                <label className="input-label"><Settings className="w-4 h-4 inline mr-1 opacity-70" />Type</label>
                                 <select
                                     value={formData.type}
                                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -280,7 +280,7 @@ export function CreateChantierModal({
                         </h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2 relative">
-                                <label className="input-label">Client principal</label>
+                                <label className="input-label"><User className="w-4 h-4 inline mr-1 opacity-70" />Client principal</label>
 
                                 {/* Autocomplete input */}
                                 <div className="relative">
@@ -299,7 +299,8 @@ export function CreateChantierModal({
                                         onFocus={() => setShowClientDropdown(true)}
                                         onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
                                         placeholder="Rechercher ou créer un client..."
-                                        className="input-field pl-12"
+                                        className="input-field"
+                                        style={{ paddingLeft: '2.5rem' }}
                                     />
 
                                     {/* Dropdown */}
@@ -361,7 +362,7 @@ export function CreateChantierModal({
                                 </div>
                             </div>
                             <div className="col-span-2">
-                                <label className="input-label">Adresse de livraison</label>
+                                <label className="input-label"><MapPin className="w-4 h-4 inline mr-1 opacity-70" />Adresse de livraison</label>
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
@@ -393,7 +394,7 @@ export function CreateChantierModal({
                         </h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="input-label">Chargé d'affaires</label>
+                                <label className="input-label"><Briefcase className="w-4 h-4 inline mr-1 opacity-70" />Chargé d'affaires</label>
                                 <select
                                     value={formData.charge_affaire_id}
                                     onChange={(e) =>
@@ -410,7 +411,7 @@ export function CreateChantierModal({
                                 </select>
                             </div>
                             <div>
-                                <label className="input-label">Poseur principal</label>
+                                <label className="input-label"><Wrench className="w-4 h-4 inline mr-1 opacity-70" />Poseur principal</label>
                                 <select
                                     value={formData.poseur_id}
                                     onChange={(e) => setFormData({ ...formData, poseur_id: e.target.value })}
