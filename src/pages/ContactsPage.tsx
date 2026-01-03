@@ -9,10 +9,12 @@ import {
     Building2,
     MapPin,
     RefreshCw,
-    X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Tables } from '../lib/database.types';
+import { CreateContactModal } from '../components/chantiers/CreateContactModal';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useUserRole } from '../hooks/useUserRole';
 
 type Client = Tables<'clients'> & {
     ref_clients?: Tables<'ref_clients'> | null;
@@ -20,26 +22,19 @@ type Client = Tables<'clients'> & {
 };
 
 export function ContactsPage() {
+    const { userId, isAdmin, isSuperviseur, isChargeAffaire } = useUserRole();
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
-    const [editingClient, setEditingClient] = useState<Client | null>(null);
+    const [editingClient, setEditingClient] = useState<Tables<'clients'> | null>(null);
 
-    // Form state
-    const [formData, setFormData] = useState({
-        nom: '',
-        email: '',
-        telephone: '',
-        adresse: '',
-        entreprise: '',
-        job: '',
-        client_categorie: 'contact_client',
-    });
+    // Delete modal state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
     const [categories, setCategories] = useState<Tables<'ref_clients'>[]>([]);
-    const [jobs, setJobs] = useState<Tables<'ref_job'>[]>([]);
 
     const fetchClients = async () => {
         setLoading(true);
@@ -59,12 +54,8 @@ export function ContactsPage() {
     };
 
     const fetchRefs = async () => {
-        const [catResult, jobResult] = await Promise.all([
-            supabase.from('ref_clients').select('*'),
-            supabase.from('ref_job').select('*'),
-        ]);
-        setCategories((catResult.data as Tables<'ref_clients'>[]) || []);
-        setJobs((jobResult.data as Tables<'ref_job'>[]) || []);
+        const { data } = await supabase.from('ref_clients').select('*');
+        setCategories((data as Tables<'ref_clients'>[]) || []);
     };
 
     useEffect(() => {
@@ -87,64 +78,34 @@ export function ContactsPage() {
 
     const openCreateModal = () => {
         setEditingClient(null);
-        setFormData({
-            nom: '',
-            email: '',
-            telephone: '',
-            adresse: '',
-            entreprise: '',
-            job: '',
-            client_categorie: 'contact_client',
-        });
         setShowModal(true);
     };
 
     const openEditModal = (client: Client) => {
         setEditingClient(client);
-        setFormData({
-            nom: client.nom,
-            email: client.email || '',
-            telephone: client.telephone || '',
-            adresse: client.adresse || '',
-            entreprise: client.entreprise || '',
-            job: client.job || '',
-            client_categorie: client.client_categorie,
-        });
         setShowModal(true);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        try {
-            if (editingClient) {
-                await supabase
-                    .from('clients')
-                    .update({
-                        ...formData,
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq('id', editingClient.id);
-            } else {
-                await supabase.from('clients').insert([{ ...formData, deleted_at: null }]);
-            }
-
-            setShowModal(false);
-            fetchClients();
-        } catch {
-            alert('Erreur lors de la sauvegarde');
-        }
+    const handleModalSuccess = () => {
+        fetchClients();
     };
 
-    const handleDelete = async (client: Client) => {
-        if (!confirm(`Supprimer "${client.nom}" ?`)) return;
+    const handleDelete = (client: Client) => {
+        setClientToDelete(client);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDeleteClient = async () => {
+        if (!clientToDelete) return;
 
         try {
             await supabase
                 .from('clients')
                 .update({ deleted_at: new Date().toISOString() })
-                .eq('id', client.id);
+                .eq('id', clientToDelete.id);
             fetchClients();
+            setShowDeleteModal(false);
+            setClientToDelete(null);
         } catch {
             alert('Erreur lors de la suppression');
         }
@@ -238,18 +199,23 @@ export function ContactsPage() {
                                         </div>
                                     </div>
                                     <div className="flex gap-1">
-                                        <button
-                                            onClick={() => openEditModal(client)}
-                                            className="p-1.5 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
-                                        >
-                                            <Edit className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(client)}
-                                            className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {(isAdmin || isSuperviseur || (isChargeAffaire && userId && client.created_by === userId)) && (
+                                            <button
+                                                onClick={() => openEditModal(client)}
+                                                className="p-1.5 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {(isAdmin || isSuperviseur || (isChargeAffaire && userId && client.created_by === userId)) && (
+                                            <button
+                                                onClick={() => handleDelete(client)}
+                                                className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
+                                                title="Supprimer le contact"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -296,136 +262,25 @@ export function ContactsPage() {
             </div>
 
             {/* Modal */}
-            {showModal && (
-                <div className="modal-backdrop">
-                    <div
-                        className="glass-card w-full max-w-lg p-6 animate-fadeIn"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-bold text-white">
-                                {editingClient ? 'Modifier le contact' : 'Nouveau contact'}
-                            </h2>
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
+            <CreateContactModal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                onSuccess={handleModalSuccess}
+                editingClient={editingClient}
+            />
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2">
-                                    <label className="input-label">Nom *</label>
-                                    <input
-                                        type="text"
-                                        value={formData.nom}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, nom: e.target.value })
-                                        }
-                                        className="input-field"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="input-label">Email</label>
-                                    <input
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, email: e.target.value })
-                                        }
-                                        className="input-field"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="input-label">Téléphone</label>
-                                    <input
-                                        type="tel"
-                                        value={formData.telephone}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, telephone: e.target.value })
-                                        }
-                                        className="input-field"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="input-label">Entreprise</label>
-                                    <input
-                                        type="text"
-                                        value={formData.entreprise}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, entreprise: e.target.value })
-                                        }
-                                        className="input-field"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="input-label">Fonction</label>
-                                    <select
-                                        value={formData.job}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, job: e.target.value })
-                                        }
-                                        className="input-field"
-                                    >
-                                        <option value="">Sélectionner...</option>
-                                        {jobs.map((job) => (
-                                            <option key={job.code} value={job.code}>
-                                                {job.icon} {job.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="input-label">Adresse</label>
-                                    <input
-                                        type="text"
-                                        value={formData.adresse}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, adresse: e.target.value })
-                                        }
-                                        className="input-field"
-                                    />
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="input-label">Catégorie</label>
-                                    <select
-                                        value={formData.client_categorie}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                client_categorie: e.target.value,
-                                            })
-                                        }
-                                        className="input-field"
-                                    >
-                                        {categories.map((cat) => (
-                                            <option key={cat.code} value={cat.code}>
-                                                {cat.icon} {cat.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="btn-secondary"
-                                >
-                                    Annuler
-                                </button>
-                                <button type="submit" className="btn-primary">
-                                    {editingClient ? 'Enregistrer' : 'Créer'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setClientToDelete(null);
+                }}
+                onConfirm={confirmDeleteClient}
+                title="Supprimer le contact"
+                message={`Êtes-vous sûr de vouloir supprimer "${clientToDelete?.nom}" ?`}
+                confirmText="Supprimer"
+                variant="danger"
+            />
         </div>
     );
 }

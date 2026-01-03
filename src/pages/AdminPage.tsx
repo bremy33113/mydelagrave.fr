@@ -8,10 +8,12 @@ import {
     X,
     Shield,
     AlertTriangle,
+    Trash2,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
 import type { Tables } from '../lib/database.types';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 type User = Tables<'users'> & {
     ref_roles_user?: Tables<'ref_roles_user'> | null;
@@ -24,6 +26,10 @@ export function AdminPage() {
     const [showModal, setShowModal] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [roles, setRoles] = useState<Tables<'ref_roles_user'>[]>([]);
+
+    // Delete modal state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
     const [formData, setFormData] = useState({
         email: '',
@@ -41,7 +47,14 @@ export function AdminPage() {
                 .select('*, ref_roles_user(*)')
                 .order('last_name', { ascending: true });
 
-            setUsers((data as User[]) || []);
+            let filteredUsers = (data as User[]) || [];
+
+            // Supervisors can only see Poseurs and Charge d'Affaires
+            if (!isAdmin && canManageUsers) { // implies Supervisor because of logic in useUserRole
+                filteredUsers = filteredUsers.filter(u => u.role === 'poseur' || u.role === 'charge_affaire');
+            }
+
+            setUsers(filteredUsers);
         } catch (err) {
             console.error('Error fetching users:', err);
         } finally {
@@ -55,7 +68,14 @@ export function AdminPage() {
             .select('*')
             .order('level', { ascending: false });
 
-        setRoles((data as Tables<'ref_roles_user'>[]) || []);
+        let fetchedRoles = (data as Tables<'ref_roles_user'>[]) || [];
+
+        // Supervisors can only assign Poseur role
+        if (!isAdmin && canManageUsers) {
+            fetchedRoles = fetchedRoles.filter(r => r.code === 'poseur');
+        }
+
+        setRoles(fetchedRoles);
     };
 
     useEffect(() => {
@@ -133,12 +153,17 @@ export function AdminPage() {
                 if (error) throw error;
 
                 // Update role after creation
-                const allUsers = await supabase.from('users').select('*').eq('email', formData.email);
-                if (allUsers.data && allUsers.data[0]) {
+                const { data: newUser } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('email', formData.email)
+                    .single();
+
+                if (newUser) {
                     await supabase
                         .from('users')
                         .update({ role: formData.role })
-                        .eq('id', allUsers.data[0].id);
+                        .eq('id', (newUser as Tables<'users'>).id);
                 }
             }
 
@@ -149,20 +174,56 @@ export function AdminPage() {
         }
     };
 
-    const toggleSuspend = async (user: User) => {
-        const action = user.suspended ? 'réactiver' : 'suspendre';
-        if (!confirm(`Voulez-vous ${action} ${user.first_name} ${user.last_name} ?`)) return;
+
+
+    const deleteUser = (user: User) => {
+        setUserToDelete(user);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDeleteUser = async () => {
+        if (!userToDelete) return;
+
+        try {
+            const { error } = await supabase
+                .from('users')
+                .delete()
+                .eq('id', userToDelete.id);
+
+            if (error) throw error;
+
+            fetchUsers();
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+        } catch (err) {
+            alert('Erreur lors de la suppression : ' + (err as Error).message);
+        }
+    };
+
+    // Suspend modal state
+    const [showSuspendModal, setShowSuspendModal] = useState(false);
+    const [userToSuspend, setUserToSuspend] = useState<User | null>(null);
+
+    const toggleSuspend = (user: User) => {
+        setUserToSuspend(user);
+        setShowSuspendModal(true);
+    };
+
+    const confirmToggleSuspend = async () => {
+        if (!userToSuspend) return;
 
         try {
             await supabase
                 .from('users')
                 .update({
-                    suspended: !user.suspended,
+                    suspended: !userToSuspend.suspended,
                     updated_at: new Date().toISOString(),
                 })
-                .eq('id', user.id);
+                .eq('id', userToSuspend.id);
 
             fetchUsers();
+            setShowSuspendModal(false);
+            setUserToSuspend(null);
         } catch {
             alert('Erreur lors de la mise à jour');
         }
@@ -275,27 +336,42 @@ export function AdminPage() {
                                         </td>
                                         <td className="p-4">
                                             <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={() => openEditModal(user)}
-                                                    className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
-                                                    title="Modifier"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => toggleSuspend(user)}
-                                                    className={`p-2 rounded-lg transition-colors ${user.suspended
-                                                        ? 'hover:bg-green-500/20 text-slate-400 hover:text-green-400'
-                                                        : 'hover:bg-red-500/20 text-slate-400 hover:text-red-400'
-                                                        }`}
-                                                    title={user.suspended ? 'Réactiver' : 'Suspendre'}
-                                                >
-                                                    {user.suspended ? (
-                                                        <CheckCircle className="w-4 h-4" />
-                                                    ) : (
-                                                        <Ban className="w-4 h-4" />
-                                                    )}
-                                                </button>
+                                                {/* Edit button: Admin can edit all, Supervisor can only edit Poseurs */}
+                                                {(isAdmin || user.role === 'poseur') && (
+                                                    <button
+                                                        onClick={() => openEditModal(user)}
+                                                        className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
+                                                        title="Modifier"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                {/* Suspend/Delete: Admin can manage non-admins, Supervisor can only manage Poseurs */}
+                                                {(isAdmin ? user.role !== 'admin' : user.role === 'poseur') && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => toggleSuspend(user)}
+                                                            className={`p-2 rounded-lg transition-colors ${user.suspended
+                                                                ? 'hover:bg-green-500/20 text-slate-400 hover:text-green-400'
+                                                                : 'hover:bg-red-500/20 text-slate-400 hover:text-red-400'
+                                                                }`}
+                                                            title={user.suspended ? 'Réactiver' : 'Suspendre'}
+                                                        >
+                                                            {user.suspended ? (
+                                                                <CheckCircle className="w-4 h-4" />
+                                                            ) : (
+                                                                <Ban className="w-4 h-4" />
+                                                            )}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteUser(user)}
+                                                            className="p-2 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
+                                                            title="Supprimer définitivement"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -420,6 +496,32 @@ export function AdminPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={showSuspendModal}
+                onClose={() => {
+                    setShowSuspendModal(false);
+                    setUserToSuspend(null);
+                }}
+                onConfirm={confirmToggleSuspend}
+                title={userToSuspend?.suspended ? "Réactiver l'utilisateur" : "Suspendre l'utilisateur"}
+                message={`Voulez-vous vraiment ${userToSuspend?.suspended ? 'réactiver' : 'suspendre'} ${userToSuspend?.first_name} ${userToSuspend?.last_name} ?`}
+                confirmText={userToSuspend?.suspended ? "Réactiver" : "Suspendre"}
+                variant={userToSuspend?.suspended ? "info" : "warning"}
+            />
+
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setUserToDelete(null);
+                }}
+                onConfirm={confirmDeleteUser}
+                title="Supprimer l'utilisateur"
+                message={`Êtes-vous sûr de vouloir supprimer définitivement ${userToDelete?.first_name} ${userToDelete?.last_name} ? Cette action est irréversible.`}
+                confirmText="Supprimer"
+                variant="danger"
+            />
         </div>
     );
 }

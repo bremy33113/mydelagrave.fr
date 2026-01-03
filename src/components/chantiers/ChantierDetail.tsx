@@ -69,20 +69,24 @@ export function ChantierDetail({
 
                     {/* Actions */}
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={onEdit}
-                            className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
-                            title="Modifier"
-                        >
-                            <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={onDelete}
-                            className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-red-500/20 hover:text-red-400 transition-colors"
-                            title="Supprimer"
-                        >
-                            <Trash2 className="w-5 h-5" />
-                        </button>
+                        {onEdit && (
+                            <button
+                                onClick={onEdit}
+                                className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
+                                title="Modifier"
+                            >
+                                <Edit className="w-5 h-5" />
+                            </button>
+                        )}
+                        {onDelete && (
+                            <button
+                                onClick={onDelete}
+                                className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                                title="Supprimer"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -219,8 +223,8 @@ export function ChantierDetail({
                     <div className="grid grid-cols-2 gap-3">
                         <div
                             className={`flex items-center gap-2 p-3 rounded-lg ${chantier.reserves_levees
-                                    ? 'bg-green-500/10 text-green-400'
-                                    : 'bg-slate-800/50 text-slate-400'
+                                ? 'bg-green-500/10 text-green-400'
+                                : 'bg-slate-800/50 text-slate-400'
                                 }`}
                         >
                             {chantier.reserves_levees ? (
@@ -232,8 +236,8 @@ export function ChantierDetail({
                         </div>
                         <div
                             className={`flex items-center gap-2 p-3 rounded-lg ${chantier.doe_fourni
-                                    ? 'bg-green-500/10 text-green-400'
-                                    : 'bg-slate-800/50 text-slate-400'
+                                ? 'bg-green-500/10 text-green-400'
+                                : 'bg-slate-800/50 text-slate-400'
                                 }`}
                         >
                             {chantier.doe_fourni ? (

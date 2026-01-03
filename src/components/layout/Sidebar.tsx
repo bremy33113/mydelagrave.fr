@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard,
     Users,
@@ -19,12 +19,10 @@ interface SidebarProps {
 
 export function Sidebar({ userEmail }: SidebarProps) {
     const [collapsed, setCollapsed] = useState(false);
-    const navigate = useNavigate();
     const { isAdmin, isSuperviseur, role } = useUserRole();
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        navigate('/login');
     };
 
     const navItems = [

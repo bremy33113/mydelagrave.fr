@@ -50,9 +50,11 @@ export interface Database {
                     email: string | null;
                     telephone: string | null;
                     adresse: string | null;
+                    batiment: string | null;
                     entreprise: string | null;
                     job: string | null;
                     client_categorie: string;
+                    created_by: string | null;
                     created_at: string;
                     updated_at: string;
                 };

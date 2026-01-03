@@ -105,7 +105,10 @@ class MockAuth {
     }
 
     async signInWithPassword({ email, password }: { email: string; password: string }): Promise<AuthResponse> {
-        const validPassword = mockPasswords[email];
+        // Combiner les mots de passe statiques et ceux du localStorage
+        const storedPasswords = JSON.parse(localStorage.getItem('mock_passwords') || '{}');
+        const allPasswords = { ...mockPasswords, ...storedPasswords };
+        const validPassword = allPasswords[email];
 
         if (!validPassword || validPassword !== password) {
             return {
@@ -187,11 +190,15 @@ class MockAuth {
             access_token: 'mock_token_' + generateUUID(),
         };
 
-        localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
-        this.notifyListeners('SIGNED_IN', session);
+        // Si une session existe déjà (ex: admin créant un user), ne pas la remplacer
+        const currentSession = localStorage.getItem(AUTH_SESSION_KEY);
+        if (!currentSession) {
+            localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+            this.notifyListeners('SIGNED_IN', session);
+        }
 
         return {
-            data: { user: session.user, session },
+            data: { user: session.user, session: currentSession ? null : session },
             error: null,
         };
     }

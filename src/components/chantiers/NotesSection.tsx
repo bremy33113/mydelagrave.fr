@@ -11,6 +11,10 @@ interface NotesSectionProps {
     chantierId: string;
 }
 
+import { ConfirmModal } from '../ui/ConfirmModal';
+
+// ... other imports
+
 export function NotesSection({ chantierId }: NotesSectionProps) {
     const [notes, setNotes] = useState<Note[]>([]);
     const [loading, setLoading] = useState(true);
@@ -20,6 +24,10 @@ export function NotesSection({ chantierId }: NotesSectionProps) {
     const [photo1, setPhoto1] = useState<string | null>(null);
     const [photo2, setPhoto2] = useState<string | null>(null);
     const [expandedImage, setExpandedImage] = useState<string | null>(null);
+
+    // Delete modal state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [noteIdToDelete, setNoteIdToDelete] = useState<string | null>(null);
 
     useEffect(() => {
         fetchNotes();
@@ -112,16 +120,23 @@ export function NotesSection({ chantierId }: NotesSectionProps) {
         }
     };
 
-    const handleDelete = async (noteId: string) => {
-        if (!confirm('Supprimer cette note ?')) return;
+    const handleDelete = (noteId: string) => {
+        setNoteIdToDelete(noteId);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDeleteNote = async () => {
+        if (!noteIdToDelete) return;
 
         try {
             await supabase
                 .from('notes_chantiers')
                 .update({ deleted_at: new Date().toISOString() })
-                .eq('id', noteId);
+                .eq('id', noteIdToDelete);
 
             fetchNotes();
+            setShowDeleteModal(false);
+            setNoteIdToDelete(null);
         } catch {
             alert('Erreur lors de la suppression');
         }
@@ -309,6 +324,19 @@ export function NotesSection({ chantierId }: NotesSectionProps) {
                     />
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setNoteIdToDelete(null);
+                }}
+                onConfirm={confirmDeleteNote}
+                title="Supprimer la note"
+                message="Voulez-vous vraiment supprimer cette note ?"
+                confirmText="Supprimer"
+                variant="danger"
+            />
         </div>
     );
 }

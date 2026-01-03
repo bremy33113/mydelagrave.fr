@@ -127,12 +127,20 @@ function formatDateShort(dateStr: string): string {
     });
 }
 
+import { ConfirmModal } from '../ui/ConfirmModal';
+
+// ... other imports
+
 export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: PhasesModalProps) {
     const [phases, setPhases] = useState<Phase[]>([]);
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<Tables<'users'>[]>([]);
     const [showAddForm, setShowAddForm] = useState(false);
     const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
+
+    // Delete modal state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [phaseIdToDelete, setPhaseIdToDelete] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
         libelle: '',
@@ -250,12 +258,19 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
         }
     };
 
-    const handleDelete = async (phaseId: string) => {
-        if (!confirm('Supprimer cette phase ?')) return;
+    const handleDelete = (phaseId: string) => {
+        setPhaseIdToDelete(phaseId);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDeletePhase = async () => {
+        if (!phaseIdToDelete) return;
 
         try {
-            await supabase.from('phases_chantiers').delete().eq('id', phaseId);
+            await supabase.from('phases_chantiers').delete().eq('id', phaseIdToDelete);
             fetchPhases();
+            setShowDeleteModal(false);
+            setPhaseIdToDelete(null);
         } catch {
             alert('Erreur lors de la suppression');
         }
@@ -518,6 +533,19 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                     </button>
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setPhaseIdToDelete(null);
+                }}
+                onConfirm={confirmDeletePhase}
+                title="Supprimer la phase"
+                message="Voulez-vous vraiment supprimer cette phase ?"
+                confirmText="Supprimer"
+                variant="danger"
+            />
         </div>
     );
 }

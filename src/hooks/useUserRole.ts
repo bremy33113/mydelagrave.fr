@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 type UserRole = 'admin' | 'superviseur' | 'charge_affaire' | 'poseur' | null;
 
 interface UseUserRoleResult {
+    userId: string | null;
     role: UserRole;
     loading: boolean;
     error: string | null;
@@ -17,6 +18,7 @@ interface UseUserRoleResult {
 
 export function useUserRole(): UseUserRoleResult {
     const [role, setRole] = useState<UserRole>(null);
+    const [userId, setUserId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -29,9 +31,12 @@ export function useUserRole(): UseUserRoleResult {
 
                 if (!user) {
                     setRole(null);
+                    setUserId(null);
                     setLoading(false);
                     return;
                 }
+
+                setUserId(user.id);
 
                 const { data, error: queryError } = await supabase
                     .from('users')
@@ -66,6 +71,7 @@ export function useUserRole(): UseUserRoleResult {
     }, []);
 
     return {
+        userId,
         role,
         loading,
         error,
@@ -73,7 +79,7 @@ export function useUserRole(): UseUserRoleResult {
         isSuperviseur: role === 'superviseur',
         isChargeAffaire: role === 'charge_affaire',
         isPoseur: role === 'poseur',
-        canManageUsers: role === 'admin',
+        canManageUsers: role === 'admin' || role === 'superviseur',
         canViewAllChantiers: role === 'admin' || role === 'superviseur',
     };
 }

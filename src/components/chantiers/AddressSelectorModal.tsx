@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, MapPin, Search, Locate, Check } from 'lucide-react';
+import { X, MapPin, Search, Locate, Check, Loader2 } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -24,10 +24,19 @@ interface AddressSelectorModalProps {
     initialCoords?: { lat: number; lng: number };
 }
 
-interface SearchResult {
-    display_name: string;
-    lat: string;
-    lon: string;
+interface AddressFeature {
+    properties: {
+        label: string;
+        score: number;
+        housenumber?: string;
+        street?: string;
+        postcode?: string;
+        city?: string;
+        context?: string;
+    };
+    geometry: {
+        coordinates: [number, number]; // [lon, lat]
+    };
 }
 
 export function AddressSelectorModal({
@@ -42,7 +51,7 @@ export function AddressSelectorModal({
     const markerRef = useRef<L.Marker | null>(null);
 
     const [searchQuery, setSearchQuery] = useState(initialAddress);
-    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [searchResults, setSearchResults] = useState<AddressFeature[]>([]);
     const [searching, setSearching] = useState(false);
     const [selectedAddress, setSelectedAddress] = useState(initialAddress);
     const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(
@@ -79,12 +88,13 @@ export function AddressSelectorModal({
             // Reverse geocode
             try {
                 const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
+                    `https://api-adresse.data.gouv.fr/reverse/?lon=${lng}&lat=${lat}`
                 );
                 const data = await response.json();
-                if (data.display_name) {
-                    setSelectedAddress(data.display_name);
-                    setSearchQuery(data.display_name);
+                if (data.features && data.features.length > 0) {
+                    const label = data.features[0].properties.label;
+                    setSelectedAddress(label);
+                    setSearchQuery(label);
                 }
             } catch (err) {
                 console.error('Reverse geocoding failed:', err);
@@ -118,18 +128,22 @@ export function AddressSelectorModal({
         map.setView([lat, lng], map.getZoom());
     };
 
-    const handleSearch = async () => {
-        if (!searchQuery.trim()) return;
+    const handleSearch = async (query?: string) => {
+        const q = query || searchQuery;
+        if (!q || q.length < 3) {
+            setSearchResults([]);
+            return;
+        }
 
         setSearching(true);
         try {
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-                    searchQuery
-                )}&limit=5&countrycodes=fr`
+                `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5`
             );
-            const data: SearchResult[] = await response.json();
-            setSearchResults(data);
+            const data = await response.json();
+            if (data.features) {
+                setSearchResults(data.features);
+            }
         } catch (err) {
             console.error('Search failed:', err);
         } finally {
@@ -137,13 +151,12 @@ export function AddressSelectorModal({
         }
     };
 
-    const handleSelectResult = (result: SearchResult) => {
-        const lat = parseFloat(result.lat);
-        const lng = parseFloat(result.lon);
+    const handleSelectResult = (feature: AddressFeature) => {
+        const [lng, lat] = feature.geometry.coordinates;
 
-        setSelectedAddress(result.display_name);
+        setSelectedAddress(feature.properties.label);
         setSelectedCoords({ lat, lng });
-        setSearchQuery(result.display_name);
+        setSearchQuery(feature.properties.label);
         setSearchResults([]);
 
         updateMarker(lat, lng);
@@ -167,12 +180,13 @@ export function AddressSelectorModal({
                 // Reverse geocode
                 try {
                     const response = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
+                        `https://api-adresse.data.gouv.fr/reverse/?lon=${lng}&lat=${lat}`
                     );
                     const data = await response.json();
-                    if (data.display_name) {
-                        setSelectedAddress(data.display_name);
-                        setSearchQuery(data.display_name);
+                    if (data.features && data.features.length > 0) {
+                        const label = data.features[0].properties.label;
+                        setSelectedAddress(label);
+                        setSearchQuery(label);
                     }
                 } catch (err) {
                     console.error('Reverse geocoding failed:', err);
@@ -219,24 +233,35 @@ export function AddressSelectorModal({
                             <input
                                 type="text"
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    handleSearch(e.target.value);
+                                }}
                                 placeholder="Rechercher une adresse..."
                                 className="input-field py-2"
-                                style={{ paddingLeft: '2.5rem' }}
+                                style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
                             />
-                        </div>
-                        <button
-                            onClick={handleSearch}
-                            disabled={searching}
-                            className="btn-primary px-4"
-                        >
-                            {searching ? (
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                                'Rechercher'
+                            {searching && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                                </div>
                             )}
-                        </button>
+                            {/* Suggestions Dropdown */}
+                            {searchResults.length > 0 && (
+                                <div className="absolute z-[1000] w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-48 overflow-auto">
+                                    {searchResults.map((result, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => handleSelectResult(result)}
+                                            className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors text-sm text-slate-200 border-b border-slate-700/50 last:border-0"
+                                        >
+                                            <p className="font-medium text-white">{result.properties.label}</p>
+                                            <p className="text-xs text-slate-400">{result.properties.context}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <button
                             onClick={handleLocateMe}
                             disabled={locating}
@@ -246,21 +271,6 @@ export function AddressSelectorModal({
                             <Locate className={`w-4 h-4 ${locating ? 'animate-pulse' : ''}`} />
                         </button>
                     </div>
-
-                    {/* Search results */}
-                    {searchResults.length > 0 && (
-                        <div className="mt-2 max-h-40 overflow-auto rounded-lg bg-slate-800/50 border border-slate-700/50">
-                            {searchResults.map((result, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => handleSelectResult(result)}
-                                    className="w-full text-left px-3 py-2 hover:bg-slate-700/50 text-sm text-white border-b border-slate-700/30 last:border-0"
-                                >
-                                    <p className="line-clamp-2">{result.display_name}</p>
-                                </button>
-                            ))}
-                        </div>
-                    )}
                 </div>
 
                 {/* Map */}

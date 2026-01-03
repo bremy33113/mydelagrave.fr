@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, RefreshCw, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useUserRole } from '../hooks/useUserRole';
 import { KPIBar } from '../components/dashboard/KPIBar';
 import { ChantierCard } from '../components/chantiers/ChantierCard';
 import { ChantierDetail } from '../components/chantiers/ChantierDetail';
@@ -18,6 +19,7 @@ type Chantier = Tables<'chantiers'> & {
 };
 
 export function DashboardPage() {
+    const { userId, canViewAllChantiers, loading: roleLoading, isPoseur } = useUserRole();
     const [chantiers, setChantiers] = useState<Chantier[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -34,6 +36,8 @@ export function DashboardPage() {
     const [deleteLoading, setDeleteLoading] = useState(false);
 
     const fetchChantiers = async () => {
+        if (roleLoading) return; // Wait for role to be loaded
+
         setLoading(true);
         setError(null);
 
@@ -52,11 +56,25 @@ export function DashboardPage() {
 
             if (fetchError) throw fetchError;
 
-            setChantiers((data as Chantier[]) || []);
+            let filteredData = (data as Chantier[]) || [];
+
+            // Apply role-based filtering
+            if (!canViewAllChantiers && userId) {
+                // Charge d'affaire sees only assigned chantiers
+                // Poseur sees only assigned chantiers (via poseur_id or phases - simplified to chantiers assignment here)
+                filteredData = filteredData.filter(
+                    (c) => c.charge_affaire_id === userId || c.poseur_id === userId
+                );
+            } else if (!canViewAllChantiers && !userId) {
+                // If role loaded but no user ID (shouldn't happen if logged in), show nothing
+                filteredData = [];
+            }
+
+            setChantiers(filteredData);
 
             // Auto-select first if none selected
-            if (!selectedId && data && data.length > 0) {
-                setSelectedId(data[0].id);
+            if (!selectedId && filteredData && filteredData.length > 0) {
+                setSelectedId(filteredData[0].id);
             }
         } catch (err) {
             setError((err as Error).message);
@@ -67,7 +85,7 @@ export function DashboardPage() {
 
     useEffect(() => {
         fetchChantiers();
-    }, []);
+    }, [userId, canViewAllChantiers, roleLoading]);
 
     // Filter chantiers based on search and status
     const filteredChantiers = useMemo(() => {
@@ -162,16 +180,18 @@ export function DashboardPage() {
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         Actualiser
                     </button>
-                    <button
-                        onClick={() => {
-                            setEditingChantier(null);
-                            setShowChantierModal(true);
-                        }}
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Nouveau chantier
-                    </button>
+                    {!isPoseur && (
+                        <button
+                            onClick={() => {
+                                setEditingChantier(null);
+                                setShowChantierModal(true);
+                            }}
+                            className="btn-primary flex items-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Nouveau chantier
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -251,11 +271,11 @@ export function DashboardPage() {
                     {selectedChantier ? (
                         <ChantierDetail
                             chantier={selectedChantier}
-                            onEdit={() => {
+                            onEdit={!isPoseur ? () => {
                                 setEditingChantier(selectedChantier);
                                 setShowChantierModal(true);
-                            }}
-                            onDelete={handleDelete}
+                            } : undefined}
+                            onDelete={!isPoseur ? handleDelete : undefined}
                             onManagePhases={() => setShowPhasesModal(true)}
                             onManageContacts={() => setShowContactsModal(true)}
                         />

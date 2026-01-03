@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Trash2, RotateCcw, AlertTriangle, Building2, FileText, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Tables } from '../lib/database.types';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 type DeletedChantier = Tables<'chantiers'> & {
     client?: Tables<'clients'> | null;
@@ -13,12 +14,19 @@ type DeletedNote = Tables<'notes_chantiers'> & {
 
 type DeletedClient = Tables<'clients'> & { deleted_at: string | null };
 
+type ConfirmState = {
+    type: 'restore' | 'delete';
+    itemType: 'chantier' | 'note' | 'client';
+    id: string;
+} | null;
+
 export function TrashPage() {
     const [activeTab, setActiveTab] = useState<'chantiers' | 'notes' | 'contacts'>('chantiers');
     const [chantiers, setChantiers] = useState<DeletedChantier[]>([]);
     const [notes, setNotes] = useState<DeletedNote[]>([]);
     const [clients, setClients] = useState<DeletedClient[]>([]);
     const [loading, setLoading] = useState(true);
+    const [confirmState, setConfirmState] = useState<ConfirmState>(null);
 
     const fetchDeletedItems = async () => {
         setLoading(true);
@@ -60,77 +68,43 @@ export function TrashPage() {
         fetchDeletedItems();
     }, []);
 
-    const restoreChantier = async (id: string) => {
+    const executeAction = async () => {
+        if (!confirmState) return;
+
+        const { type, itemType, id } = confirmState;
+
         try {
-            await supabase
-                .from('chantiers')
-                .update({ deleted_at: null, updated_at: new Date().toISOString() })
-                .eq('id', id);
+            if (type === 'restore') {
+                const table = itemType === 'chantier' ? 'chantiers'
+                    : itemType === 'note' ? 'notes_chantiers'
+                        : 'clients';
+
+                await supabase
+                    .from(table)
+                    .update({ deleted_at: null, updated_at: new Date().toISOString() })
+                    .eq('id', id);
+            } else {
+                const table = itemType === 'chantier' ? 'chantiers'
+                    : itemType === 'note' ? 'notes_chantiers'
+                        : 'clients';
+
+                await supabase.from(table).delete().eq('id', id);
+            }
 
             fetchDeletedItems();
+            setConfirmState(null);
         } catch {
-            alert('Erreur lors de la restauration');
+            alert('Erreur lors de l\'opération');
         }
     };
 
-    const permanentlyDeleteChantier = async (id: string) => {
-        if (!confirm('Supprimer définitivement ce chantier ? Cette action est irréversible.')) return;
-
-        try {
-            await supabase.from('chantiers').delete().eq('id', id);
-            fetchDeletedItems();
-        } catch {
-            alert('Erreur lors de la suppression');
-        }
-    };
-
-    const restoreNote = async (id: string) => {
-        try {
-            await supabase
-                .from('notes_chantiers')
-                .update({ deleted_at: null, updated_at: new Date().toISOString() })
-                .eq('id', id);
-
-            fetchDeletedItems();
-        } catch {
-            alert('Erreur lors de la restauration');
-        }
-    };
-
-    const permanentlyDeleteNote = async (id: string) => {
-        if (!confirm('Supprimer définitivement cette note ? Cette action est irréversible.')) return;
-
-        try {
-            await supabase.from('notes_chantiers').delete().eq('id', id);
-            fetchDeletedItems();
-        } catch {
-            alert('Erreur lors de la suppression');
-        }
-    };
-
-    const restoreClient = async (id: string) => {
-        try {
-            await supabase
-                .from('clients')
-                .update({ deleted_at: null, updated_at: new Date().toISOString() })
-                .eq('id', id);
-
-            fetchDeletedItems();
-        } catch {
-            alert('Erreur lors de la restauration');
-        }
-    };
-
-    const permanentlyDeleteClient = async (id: string) => {
-        if (!confirm('Supprimer définitivement ce contact ? Cette action est irréversible.')) return;
-
-        try {
-            await supabase.from('clients').delete().eq('id', id);
-            fetchDeletedItems();
-        } catch {
-            alert('Erreur lors de la suppression');
-        }
-    };
+    // Helper functions to trigger modal
+    const restoreChantier = (id: string) => setConfirmState({ type: 'restore', itemType: 'chantier', id });
+    const permanentlyDeleteChantier = (id: string) => setConfirmState({ type: 'delete', itemType: 'chantier', id });
+    const restoreNote = (id: string) => setConfirmState({ type: 'restore', itemType: 'note', id });
+    const permanentlyDeleteNote = (id: string) => setConfirmState({ type: 'delete', itemType: 'note', id });
+    const restoreClient = (id: string) => setConfirmState({ type: 'restore', itemType: 'client', id });
+    const permanentlyDeleteClient = (id: string) => setConfirmState({ type: 'delete', itemType: 'client', id });
 
     const formatDate = (date: string) => {
         return new Date(date).toLocaleDateString('fr-FR', {
@@ -343,6 +317,18 @@ export function TrashPage() {
                     Les éléments supprimés définitivement ne peuvent pas être récupérés.
                 </p>
             </div>
+
+            <ConfirmModal
+                isOpen={!!confirmState}
+                onClose={() => setConfirmState(null)}
+                onConfirm={executeAction}
+                title={confirmState?.type === 'restore' ? "Restaurer l'élément" : "Supprimer définitivement"}
+                message={confirmState?.type === 'restore'
+                    ? "Voulez-vous vraiment restaurer cet élément ?"
+                    : "Cette action est irréversible. Voulez-vous continuer ?"}
+                confirmText={confirmState?.type === 'restore' ? "Restaurer" : "Supprimer"}
+                variant={confirmState?.type === 'restore' ? "info" : "danger"}
+            />
         </div>
     );
 }

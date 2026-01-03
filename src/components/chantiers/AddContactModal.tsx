@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, User, Building2, Phone, Mail } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { SelectClientModal } from './SelectClientModal';
+import { ConfirmModal } from '../ui/ConfirmModal';
 import type { Tables } from '../../lib/database.types';
 
 type ChantierContact = Tables<'chantiers_contacts'> & {
@@ -24,6 +25,10 @@ export function AddContactModal({
     const [contacts, setContacts] = useState<ChantierContact[]>([]);
     const [loading, setLoading] = useState(true);
     const [showSelectModal, setShowSelectModal] = useState(false);
+
+    // Delete modal state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [contactIdToRemove, setContactIdToRemove] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -77,12 +82,19 @@ export function AddContactModal({
         }
     };
 
-    const handleRemove = async (contactId: string) => {
-        if (!confirm('Retirer ce contact du chantier ?')) return;
+    const handleRemove = (contactId: string) => {
+        setContactIdToRemove(contactId);
+        setShowDeleteModal(true);
+    };
+
+    const confirmRemoveContact = async () => {
+        if (!contactIdToRemove) return;
 
         try {
-            await supabase.from('chantiers_contacts').delete().eq('id', contactId);
+            await supabase.from('chantiers_contacts').delete().eq('id', contactIdToRemove);
             fetchContacts();
+            setShowDeleteModal(false);
+            setContactIdToRemove(null);
         } catch {
             alert('Erreur lors de la suppression');
         }
@@ -212,6 +224,19 @@ export function AddContactModal({
                 onSelect={handleAddContact}
                 excludeIds={existingClientIds}
                 title="Ajouter un contact au chantier"
+            />
+
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setContactIdToRemove(null);
+                }}
+                onConfirm={confirmRemoveContact}
+                title="Retirer le contact"
+                message="Voulez-vous vraiment retirer ce contact du chantier ?"
+                confirmText="Retirer"
+                variant="warning"
             />
         </>
     );
