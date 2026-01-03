@@ -158,28 +158,11 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
 
     useEffect(() => {
         if (isOpen) {
-            fetchPhases();
+            fetchAndRenumberPhases();
             fetchUsers();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, chantierId]);
-
-    const fetchPhases = async () => {
-        setLoading(true);
-        try {
-            const { data } = await supabase
-                .from('phases_chantiers')
-                .select('*, poseur:users(id, first_name, last_name)')
-                .eq('chantier_id', chantierId)
-                .order('date_debut', { ascending: true });
-
-            setPhases((data as Phase[]) || []);
-        } catch (err) {
-            console.error('Error fetching phases:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const fetchUsers = async () => {
         const { data } = await supabase
@@ -241,19 +224,18 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                     })
                     .eq('id', editingPhase.id);
             } else {
-                // Get next phase number
-                const nextNumber = phases.length > 0 ? Math.max(...phases.map((p) => p.numero_phase)) + 1 : 1;
-
+                // Insert with temporary number (will be renumbered)
                 await supabase.from('phases_chantiers').insert([
                     {
                         ...dataToSave,
-                        numero_phase: nextNumber,
+                        numero_phase: 0, // Temporary, will be renumbered
                     },
                 ]);
             }
 
             resetForm();
-            fetchPhases();
+            // Fetch and renumber to ensure chronological order
+            await fetchAndRenumberPhases();
         } catch (err) {
             alert('Erreur: ' + (err as Error).message);
         }
@@ -269,7 +251,8 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
 
         try {
             await supabase.from('phases_chantiers').delete().eq('id', phaseIdToDelete);
-            fetchPhases();
+            // Fetch and renumber after delete
+            await fetchAndRenumberPhases();
             setShowDeleteModal(false);
             setPhaseIdToDelete(null);
         } catch {
@@ -285,6 +268,58 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
             return dateA.getTime() - dateB.getTime();
         });
     }, [phases]);
+
+    // Renumber phases chronologically in the database
+    const renumberPhases = async (phasesToRenumber: Phase[]) => {
+        // Sort chronologically
+        const sorted = [...phasesToRenumber].sort((a, b) => {
+            const dateA = new Date(a.date_debut + 'T' + a.heure_debut);
+            const dateB = new Date(b.date_debut + 'T' + b.heure_debut);
+            return dateA.getTime() - dateB.getTime();
+        });
+
+        // Update each phase with its new number
+        for (let i = 0; i < sorted.length; i++) {
+            const phase = sorted[i];
+            const newNumber = i + 1;
+            if (phase.numero_phase !== newNumber) {
+                await supabase
+                    .from('phases_chantiers')
+                    .update({ numero_phase: newNumber })
+                    .eq('id', phase.id);
+            }
+        }
+    };
+
+    // Fetch phases and renumber them
+    const fetchAndRenumberPhases = async () => {
+        setLoading(true);
+        try {
+            const { data } = await supabase
+                .from('phases_chantiers')
+                .select('*, poseur:users(id, first_name, last_name)')
+                .eq('chantier_id', chantierId)
+                .order('date_debut', { ascending: true });
+
+            const fetchedPhases = (data as Phase[]) || [];
+
+            // Renumber if needed
+            await renumberPhases(fetchedPhases);
+
+            // Refetch to get updated numbers
+            const { data: updatedData } = await supabase
+                .from('phases_chantiers')
+                .select('*, poseur:users(id, first_name, last_name)')
+                .eq('chantier_id', chantierId)
+                .order('date_debut', { ascending: true });
+
+            setPhases((updatedData as Phase[]) || []);
+        } catch (err) {
+            console.error('Error fetching phases:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const poseurs = users.filter((u) => u.role === 'poseur' || u.role === 'admin');
 

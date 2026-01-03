@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Users,
     Plus,
@@ -9,6 +9,9 @@ import {
     Shield,
     AlertTriangle,
     Trash2,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
@@ -19,6 +22,9 @@ type User = Tables<'users'> & {
     ref_roles_user?: Tables<'ref_roles_user'> | null;
 };
 
+type SortColumn = 'name' | 'role';
+type SortDirection = 'asc' | 'desc';
+
 export function AdminPage() {
     const { isAdmin, canManageUsers } = useUserRole();
     const [users, setUsers] = useState<User[]>([]);
@@ -26,6 +32,10 @@ export function AdminPage() {
     const [showModal, setShowModal] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [roles, setRoles] = useState<Tables<'ref_roles_user'>[]>([]);
+
+    // Sorting state
+    const [sortColumn, setSortColumn] = useState<SortColumn>('name');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
     // Delete modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -83,6 +93,48 @@ export function AdminPage() {
         fetchRoles();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Sorting logic
+    const toggleSort = (column: SortColumn) => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    const sortedUsers = useMemo(() => {
+        return [...users].sort((a, b) => {
+            let comparison = 0;
+
+            if (sortColumn === 'name') {
+                const nameA = `${a.last_name || ''} ${a.first_name || ''}`.toLowerCase();
+                const nameB = `${b.last_name || ''} ${b.first_name || ''}`.toLowerCase();
+                comparison = nameA.localeCompare(nameB, 'fr');
+            } else if (sortColumn === 'role') {
+                // Sort by role level (admin > superviseur > charge_affaire > poseur)
+                const roleOrder: Record<string, number> = {
+                    admin: 4,
+                    superviseur: 3,
+                    charge_affaire: 2,
+                    poseur: 1,
+                };
+                comparison = (roleOrder[b.role] || 0) - (roleOrder[a.role] || 0);
+            }
+
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+    }, [users, sortColumn, sortDirection]);
+
+    const getSortIcon = (column: SortColumn) => {
+        if (sortColumn !== column) {
+            return <ArrowUpDown className="w-4 h-4 opacity-50" />;
+        }
+        return sortDirection === 'asc'
+            ? <ArrowUp className="w-4 h-4" />
+            : <ArrowDown className="w-4 h-4" />;
+    };
 
     const getRoleColor = (role: string) => {
         switch (role) {
@@ -265,13 +317,27 @@ export function AdminPage() {
                         <thead>
                             <tr className="border-b border-slate-700/50">
                                 <th className="text-left p-4 text-sm font-medium text-slate-400">
-                                    Utilisateur
+                                    <button
+                                        onClick={() => toggleSort('name')}
+                                        className="flex items-center gap-2 hover:text-white transition-colors"
+                                        data-testid="sort-by-name"
+                                    >
+                                        Utilisateur
+                                        {getSortIcon('name')}
+                                    </button>
                                 </th>
                                 <th className="text-left p-4 text-sm font-medium text-slate-400">
                                     Email
                                 </th>
                                 <th className="text-left p-4 text-sm font-medium text-slate-400">
-                                    Rôle
+                                    <button
+                                        onClick={() => toggleSort('role')}
+                                        className="flex items-center gap-2 hover:text-white transition-colors"
+                                        data-testid="sort-by-role"
+                                    >
+                                        Rôle
+                                        {getSortIcon('role')}
+                                    </button>
                                 </th>
                                 <th className="text-left p-4 text-sm font-medium text-slate-400">
                                     Statut
@@ -288,14 +354,14 @@ export function AdminPage() {
                                         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
                                     </td>
                                 </tr>
-                            ) : users.length === 0 ? (
+                            ) : sortedUsers.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="p-8 text-center text-slate-400">
                                         Aucun utilisateur trouvé
                                     </td>
                                 </tr>
                             ) : (
-                                users.map((user) => (
+                                sortedUsers.map((user) => (
                                     <tr
                                         key={user.id}
                                         className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors"
