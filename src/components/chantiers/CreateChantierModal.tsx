@@ -100,6 +100,7 @@ export function CreateChantierModal({
                 setClientSearch(client.nom + (client.entreprise ? ` (${client.entreprise})` : ''));
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, editingChantier?.client_id, clients.length]);
 
     const fetchRefs = async () => {

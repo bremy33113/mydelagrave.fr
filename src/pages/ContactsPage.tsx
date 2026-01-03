@@ -22,7 +22,7 @@ type Client = Tables<'clients'> & {
 };
 
 export function ContactsPage() {
-    const { userId, isAdmin, isSuperviseur, isChargeAffaire } = useUserRole();
+    const { userId, isAdmin, isSuperviseur, isChargeAffaire, isPoseur } = useUserRole();
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -126,13 +126,15 @@ export function ContactsPage() {
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </button>
-                    <button
-                        onClick={openCreateModal}
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Nouveau contact
-                    </button>
+                    {!isPoseur && (
+                        <button
+                            onClick={openCreateModal}
+                            className="btn-primary flex items-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Nouveau contact
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -146,12 +148,14 @@ export function ContactsPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Rechercher un contact..."
                         className="input-field pl-12"
+                        data-testid="contacts-search-input"
                     />
                 </div>
                 <select
                     value={categoryFilter || ''}
                     onChange={(e) => setCategoryFilter(e.target.value || null)}
                     className="input-field w-48"
+                    data-testid="contacts-category-filter"
                 >
                     <option value="">Toutes catégories</option>
                     {categories.map((cat) => (
@@ -203,6 +207,8 @@ export function ContactsPage() {
                                             <button
                                                 onClick={() => openEditModal(client)}
                                                 className="p-1.5 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
+                                                title="Modifier le contact"
+                                                data-testid={`contact-edit-btn-${client.id}`}
                                             >
                                                 <Edit className="w-4 h-4" />
                                             </button>
@@ -212,6 +218,7 @@ export function ContactsPage() {
                                                 onClick={() => handleDelete(client)}
                                                 className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
                                                 title="Supprimer le contact"
+                                                data-testid={`contact-delete-btn-${client.id}`}
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>

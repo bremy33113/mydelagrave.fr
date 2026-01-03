@@ -137,6 +137,7 @@ export function TrashPage() {
                         ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
                         : 'bg-slate-800/30 text-slate-400 hover:bg-slate-800/50'
                         }`}
+                    data-testid="trash-tab-chantiers"
                 >
                     <Building2 className="w-4 h-4" />
                     Chantiers ({chantiers.length})
@@ -147,6 +148,7 @@ export function TrashPage() {
                         ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
                         : 'bg-slate-800/30 text-slate-400 hover:bg-slate-800/50'
                         }`}
+                    data-testid="trash-tab-notes"
                 >
                     <FileText className="w-4 h-4" />
                     Notes ({notes.length})
@@ -157,6 +159,7 @@ export function TrashPage() {
                         ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
                         : 'bg-slate-800/30 text-slate-400 hover:bg-slate-800/50'
                         }`}
+                    data-testid="trash-tab-contacts"
                 >
                     <User className="w-4 h-4" />
                     Contacts ({clients.length})
@@ -198,6 +201,7 @@ export function TrashPage() {
                                         <button
                                             onClick={() => restoreChantier(chantier.id)}
                                             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
+                                            data-testid={`trash-restore-chantier-${chantier.id}`}
                                         >
                                             <RotateCcw className="w-4 h-4" />
                                             Restaurer
@@ -205,6 +209,7 @@ export function TrashPage() {
                                         <button
                                             onClick={() => permanentlyDeleteChantier(chantier.id)}
                                             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                                            data-testid={`trash-delete-chantier-${chantier.id}`}
                                         >
                                             <Trash2 className="w-4 h-4" />
                                             Supprimer
@@ -245,6 +250,7 @@ export function TrashPage() {
                                         <button
                                             onClick={() => restoreNote(note.id)}
                                             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
+                                            data-testid={`trash-restore-note-${note.id}`}
                                         >
                                             <RotateCcw className="w-4 h-4" />
                                             Restaurer
@@ -252,6 +258,7 @@ export function TrashPage() {
                                         <button
                                             onClick={() => permanentlyDeleteNote(note.id)}
                                             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                                            data-testid={`trash-delete-note-${note.id}`}
                                         >
                                             <Trash2 className="w-4 h-4" />
                                             Supprimer
@@ -291,6 +298,7 @@ export function TrashPage() {
                                         <button
                                             onClick={() => restoreClient(client.id)}
                                             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
+                                            data-testid={`trash-restore-contact-${client.id}`}
                                         >
                                             <RotateCcw className="w-4 h-4" />
                                             Restaurer
@@ -298,6 +306,7 @@ export function TrashPage() {
                                         <button
                                             onClick={() => permanentlyDeleteClient(client.id)}
                                             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                                            data-testid={`trash-delete-contact-${client.id}`}
                                         >
                                             <Trash2 className="w-4 h-4" />
                                             Supprimer

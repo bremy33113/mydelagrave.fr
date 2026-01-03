@@ -92,7 +92,7 @@ function initializeDataIfNeeded(): void {
     setTable('chantiers_contacts', initial_chantiers_contacts);
 
     localStorage.setItem(STORAGE_PREFIX + 'initialized', 'true');
-    console.log('📦 Mock database initialized with demo data');
+    console.info('📦 Mock database initialized with demo data');
 }
 
 // ============ MOCK AUTH ============
@@ -662,5 +662,5 @@ export function resetMockDatabase(): void {
         }
     });
     initializeDataIfNeeded();
-    console.log('🔄 Mock database reset');
+    console.info('🔄 Mock database reset');
 }

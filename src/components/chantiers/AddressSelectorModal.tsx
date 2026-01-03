@@ -113,6 +113,7 @@ export function AddressSelectorModal({
                 markerRef.current = null;
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
     const updateMarker = (lat: number, lng: number) => {

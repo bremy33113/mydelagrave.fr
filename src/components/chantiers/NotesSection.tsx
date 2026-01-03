@@ -31,6 +31,7 @@ export function NotesSection({ chantierId }: NotesSectionProps) {
 
     useEffect(() => {
         fetchNotes();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [chantierId]);
 
     const fetchNotes = async () => {

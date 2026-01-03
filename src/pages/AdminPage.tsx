@@ -81,6 +81,7 @@ export function AdminPage() {
     useEffect(() => {
         fetchUsers();
         fetchRoles();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const getRoleColor = (role: string) => {
@@ -342,6 +343,7 @@ export function AdminPage() {
                                                         onClick={() => openEditModal(user)}
                                                         className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
                                                         title="Modifier"
+                                                        data-testid={`user-edit-btn-${user.id}`}
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </button>
@@ -356,6 +358,7 @@ export function AdminPage() {
                                                                 : 'hover:bg-red-500/20 text-slate-400 hover:text-red-400'
                                                                 }`}
                                                             title={user.suspended ? 'Réactiver' : 'Suspendre'}
+                                                            data-testid={`user-suspend-btn-${user.id}`}
                                                         >
                                                             {user.suspended ? (
                                                                 <CheckCircle className="w-4 h-4" />
@@ -367,6 +370,7 @@ export function AdminPage() {
                                                             onClick={() => deleteUser(user)}
                                                             className="p-2 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
                                                             title="Supprimer définitivement"
+                                                            data-testid={`user-delete-btn-${user.id}`}
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
@@ -401,7 +405,7 @@ export function AdminPage() {
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                        <form onSubmit={handleSubmit} className="space-y-4" data-testid="user-form">
                             {!editingUser && (
                                 <>
                                     <div>
@@ -414,6 +418,7 @@ export function AdminPage() {
                                             }
                                             className="input-field"
                                             required
+                                            data-testid="user-email-input"
                                         />
                                     </div>
                                     <div>
@@ -426,6 +431,7 @@ export function AdminPage() {
                                             }
                                             className="input-field"
                                             placeholder="password123 par défaut"
+                                            data-testid="user-password-input"
                                         />
                                     </div>
                                 </>
@@ -441,6 +447,7 @@ export function AdminPage() {
                                             setFormData({ ...formData, first_name: e.target.value })
                                         }
                                         className="input-field"
+                                        data-testid="user-prenom-input"
                                     />
                                 </div>
                                 <div>
@@ -452,6 +459,7 @@ export function AdminPage() {
                                             setFormData({ ...formData, last_name: e.target.value })
                                         }
                                         className="input-field"
+                                        data-testid="user-nom-input"
                                     />
                                 </div>
                             </div>
@@ -464,6 +472,7 @@ export function AdminPage() {
                                         setFormData({ ...formData, role: e.target.value })
                                     }
                                     className="input-field"
+                                    data-testid="user-role-select"
                                 >
                                     {roles.map((role) => (
                                         <option key={role.code} value={role.code}>
@@ -485,10 +494,11 @@ export function AdminPage() {
                                     type="button"
                                     onClick={() => setShowModal(false)}
                                     className="btn-secondary"
+                                    data-testid="user-cancel-btn"
                                 >
                                     Annuler
                                 </button>
-                                <button type="submit" className="btn-primary">
+                                <button type="submit" className="btn-primary" data-testid="user-submit-btn">
                                     {editingUser ? 'Enregistrer' : 'Créer'}
                                 </button>
                             </div>

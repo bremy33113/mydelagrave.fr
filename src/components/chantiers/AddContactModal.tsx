@@ -34,6 +34,7 @@ export function AddContactModal({
         if (isOpen) {
             fetchContacts();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, chantierId]);
 
     const fetchContacts = async () => {

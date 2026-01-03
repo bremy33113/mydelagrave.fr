@@ -187,7 +187,7 @@ export function CreateContactModal({
                     .update({
                         ...formData,
                         updated_at: new Date().toISOString(),
-                    } as any)
+                    } as Record<string, unknown>)
                     .eq('id', editingClient.id)
                     .select()
                     .single();
@@ -199,7 +199,7 @@ export function CreateContactModal({
             } else {
                 const { data } = await supabase
                     .from('clients')
-                    .insert([{ ...formData, created_by: userId, deleted_at: null }] as any)
+                    .insert([{ ...formData, created_by: userId, deleted_at: null }] as Record<string, unknown>[])
                     .select()
                     .single();
 
@@ -253,6 +253,7 @@ export function CreateContactModal({
                                     placeholder="Nom de l'entreprise"
                                     required
                                     autoFocus
+                                    data-testid="contact-entreprise-input"
                                 />
                             </div>
                             <div>
@@ -263,6 +264,7 @@ export function CreateContactModal({
                                     onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
                                     className="input-field"
                                     placeholder="Nom du contact"
+                                    data-testid="contact-nom-input"
                                 />
                             </div>
 
@@ -275,6 +277,7 @@ export function CreateContactModal({
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     className="input-field"
                                     placeholder="email@exemple.com"
+                                    data-testid="contact-email-input"
                                 />
                             </div>
                             <div>
@@ -285,6 +288,7 @@ export function CreateContactModal({
                                     onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
                                     className="input-field"
                                     placeholder="06 12 34 56 78"
+                                    data-testid="contact-telephone-input"
                                 />
                             </div>
 
@@ -295,6 +299,7 @@ export function CreateContactModal({
                                     value={formData.job}
                                     onChange={(e) => setFormData({ ...formData, job: e.target.value })}
                                     className="input-field"
+                                    data-testid="contact-job-select"
                                 >
                                     <option value="">Sélectionner...</option>
                                     {jobs.map((job) => (
@@ -310,6 +315,7 @@ export function CreateContactModal({
                                     value={formData.client_categorie}
                                     onChange={(e) => setFormData({ ...formData, client_categorie: e.target.value })}
                                     className="input-field"
+                                    data-testid="contact-categorie-select"
                                 >
                                     {categories.map((cat) => (
                                         <option key={cat.code} value={cat.code}>
@@ -385,10 +391,10 @@ export function CreateContactModal({
 
                         {/* Actions */}
                         <div className="flex justify-end gap-3 pt-4 border-t border-slate-700/50">
-                            <button type="button" onClick={onClose} className="btn-secondary">
+                            <button type="button" onClick={onClose} className="btn-secondary" data-testid="contact-cancel-btn">
                                 Annuler
                             </button>
-                            <button type="submit" disabled={loading} className="btn-primary">
+                            <button type="submit" disabled={loading} className="btn-primary" data-testid="contact-submit-btn">
                                 {loading ? (isEditing ? 'Enregistrement...' : 'Création...') : (isEditing ? 'Enregistrer' : 'Créer le contact')}
                             </button>
                         </div>

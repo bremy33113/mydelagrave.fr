@@ -161,6 +161,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
             fetchPhases();
             fetchUsers();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, chantierId]);
 
     const fetchPhases = async () => {

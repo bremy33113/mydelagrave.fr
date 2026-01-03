@@ -85,6 +85,7 @@ export function DashboardPage() {
 
     useEffect(() => {
         fetchChantiers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId, canViewAllChantiers, roleLoading]);
 
     // Filter chantiers based on search and status
