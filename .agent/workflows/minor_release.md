@@ -11,9 +11,9 @@ This workflow increments the minor version number for new feature releases.
    npm version minor -m "Release v%s"
    ```
 
-2. **Push changes and tags to GitHub**
+2. **Push changes and tags to dev branch**
    ```
-   git push origin main --follow-tags
+   git push origin dev --follow-tags
    ```
 
 3. **Verify the release**

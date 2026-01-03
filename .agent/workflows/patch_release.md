@@ -11,9 +11,9 @@ This workflow increments the patch version number for bugfix releases.
    npm version patch -m "Release v%s"
    ```
 
-2. **Push changes and tags to GitHub**
+2. **Push changes and tags to dev branch**
    ```
-   git push origin main --follow-tags
+   git push origin dev --follow-tags
    ```
 
 3. **Verify the release**
