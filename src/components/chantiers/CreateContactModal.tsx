@@ -204,8 +204,7 @@ export function CreateContactModal({
                     .from('clients')
                     .insert([{
                         ...formData,
-                        created_by: userId || null,
-                        deleted_at: null
+                        created_by: userId || null
                     }] as Record<string, unknown>[])
                     .select()
                     .single();
