@@ -2,6 +2,16 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [0.6.2] - 2026-01-04
+
+### Nouvelles Fonctionnalités
+- ✨ Vues Planning 3 Mois et Année ajoutées
+- ✨ Bouton pour ouvrir le Planning sur un écran externe (sans sidebar)
+- ✨ Affichage de l'année au-dessus des semaines/mois dans l'en-tête Planning
+
+### Corrections
+- 🐛 Fix transparence du formulaire d'édition inline des phases
+
 ## [0.6.1] - 2026-01-04
 
 ### Corrections

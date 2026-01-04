@@ -129,7 +129,7 @@ export function DraggablePhase({
     if (isEditing) {
         return (
             <div
-                className={`h-full rounded-md border ${statusColor} p-1 flex flex-col gap-1`}
+                className="h-full rounded-md border border-slate-500 bg-slate-800 p-1 flex flex-col gap-1 relative z-50 shadow-lg"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center gap-1">
@@ -137,14 +137,14 @@ export function DraggablePhase({
                         type="date"
                         value={editDate}
                         onChange={(e) => setEditDate(e.target.value)}
-                        className="flex-1 px-1 py-0.5 text-xs bg-slate-900/80 border border-slate-600 rounded text-white"
+                        className="flex-1 px-1 py-0.5 text-xs bg-slate-900 border border-slate-600 rounded text-white"
                     />
                 </div>
                 <div className="flex items-center gap-1">
                     <select
                         value={editHour}
                         onChange={(e) => setEditHour(parseInt(e.target.value))}
-                        className="flex-1 px-1 py-0.5 text-xs bg-slate-900/80 border border-slate-600 rounded text-white"
+                        className="flex-1 px-1 py-0.5 text-xs bg-slate-900 border border-slate-600 rounded text-white"
                     >
                         {[8, 9, 10, 11, 13, 14, 15, 16].map((h) => (
                             <option key={h} value={h}>{h}h</option>
@@ -156,7 +156,7 @@ export function DraggablePhase({
                         onChange={(e) => setEditDuration(parseInt(e.target.value) || 1)}
                         min={1}
                         max={40}
-                        className="w-12 px-1 py-0.5 text-xs bg-slate-900/80 border border-slate-600 rounded text-white"
+                        className="w-12 px-1 py-0.5 text-xs bg-slate-900 border border-slate-600 rounded text-white"
                     />
                     <span className="text-xs text-white">h</span>
                 </div>

@@ -3,7 +3,7 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**0.6.1**
+**0.6.2**
 
 ## ÉTAT DU SYSTÈME
 Gestion Documentaire pour Chantiers
@@ -38,6 +38,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.6.2 | 2026-01-04 | Vues Planning 3 Mois/Année + fenêtre externe |
 | 0.6.1 | 2026-01-04 | Précision horaire des barres de phase |
 | 0.6.0 | 2026-01-04 | Gestion Documentaire pour Chantiers |
 | 0.5.0 | 2026-01-04 | Filtres avancés & documentation centralisée |

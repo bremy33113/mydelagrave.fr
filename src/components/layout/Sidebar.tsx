@@ -9,10 +9,25 @@ import {
     ChevronLeft,
     ChevronRight,
     CalendarDays,
+    MonitorUp,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
+
+// Type for Screen Details API (experimental)
+interface ScreenDetailed {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    isPrimary: boolean;
+    label: string;
+}
+
+interface ScreenDetails {
+    screens: ScreenDetailed[];
+}
 
 interface SidebarProps {
     userEmail?: string;
@@ -20,7 +35,104 @@ interface SidebarProps {
 
 export function Sidebar({ userEmail }: SidebarProps) {
     const [collapsed, setCollapsed] = useState(false);
+    const [hasMultipleScreens, setHasMultipleScreens] = useState(false);
+    const [screenDetails, setScreenDetails] = useState<ScreenDetails | null>(null);
+    const [planningWindowRef, setPlanningWindowRef] = useState<Window | null>(null);
+    const [isPlanningExternalOpen, setIsPlanningExternalOpen] = useState(false);
     const { isAdmin, isSuperviseur, canViewAllChantiers, role } = useUserRole();
+
+    // Detect multiple screens
+    useEffect(() => {
+        const detectScreens = async () => {
+            // Try the Window Management API (Chrome 100+)
+            if ('getScreenDetails' in window) {
+                try {
+                    const details = await (window as unknown as { getScreenDetails: () => Promise<ScreenDetails> }).getScreenDetails();
+                    setScreenDetails(details);
+                    setHasMultipleScreens(details.screens.length > 1);
+                } catch {
+                    // Permission denied or API not available
+                    setHasMultipleScreens(false);
+                }
+            } else {
+                // Fallback: check if screen dimensions suggest multiple monitors
+                // This is a heuristic - if available width differs significantly from screen width
+                const hasMultiple = window.screen.availWidth !== window.screen.width ||
+                    window.screen.availHeight !== window.screen.height;
+                setHasMultipleScreens(hasMultiple);
+            }
+        };
+
+        detectScreens();
+
+        // Listen for screen changes
+        if ('onscreenchange' in window) {
+            (window as unknown as { onscreenchange: () => void }).onscreenchange = detectScreens;
+        }
+    }, []);
+
+    // Watch for external planning window closure
+    useEffect(() => {
+        if (!planningWindowRef) return;
+
+        const checkInterval = setInterval(() => {
+            if (planningWindowRef.closed) {
+                setIsPlanningExternalOpen(false);
+                setPlanningWindowRef(null);
+                clearInterval(checkInterval);
+            }
+        }, 500);
+
+        return () => clearInterval(checkInterval);
+    }, [planningWindowRef]);
+
+    // Open Planning on external screen
+    const openPlanningOnExternalScreen = async () => {
+        const baseUrl = window.location.origin + window.location.pathname;
+        const planningUrl = `${baseUrl}#/planning`;
+
+        let left = 0;
+        let top = 0;
+        let width = 1920;
+        let height = 1080;
+
+        // Try to get screen details (this may prompt for permission)
+        let details = screenDetails;
+        if (!details && 'getScreenDetails' in window) {
+            try {
+                details = await (window as unknown as { getScreenDetails: () => Promise<ScreenDetails> }).getScreenDetails();
+                setScreenDetails(details);
+                setHasMultipleScreens(details.screens.length > 1);
+            } catch {
+                // Permission denied
+            }
+        }
+
+        // Try to find the secondary screen
+        if (details && details.screens.length > 1) {
+            // Find the first non-primary screen
+            const secondaryScreen = details.screens.find(s => !s.isPrimary) || details.screens[1];
+            left = secondaryScreen.left;
+            top = secondaryScreen.top;
+            width = secondaryScreen.width;
+            height = secondaryScreen.height;
+        } else {
+            // Fallback: position to the right of current screen
+            left = window.screen.width;
+            top = 0;
+            width = window.screen.availWidth;
+            height = window.screen.availHeight;
+        }
+
+        // Open new window
+        const features = `left=${left},top=${top},width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`;
+        const newWindow = window.open(planningUrl, 'PlanningExternalWindow', features);
+
+        if (newWindow) {
+            setPlanningWindowRef(newWindow);
+            setIsPlanningExternalOpen(true);
+        }
+    };
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -113,22 +225,42 @@ export function Sidebar({ userEmail }: SidebarProps) {
             <nav className="flex-1 p-4 space-y-2">
                 {navItems
                     .filter((item) => item.show)
+                    .filter((item) => !(item.to === '/planning' && isPlanningExternalOpen))
                     .map((item) => (
-                        <NavLink
-                            key={item.to}
-                            to={item.to}
-                            className={({ isActive }) =>
-                                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                                }`
-                            }
-                        >
-                            <item.icon className="w-5 h-5 flex-shrink-0" />
-                            {!collapsed && (
-                                <span className="font-medium animate-fadeIn">{item.label}</span>
+                        <div key={item.to} className="flex items-center gap-1">
+                            <NavLink
+                                to={item.to}
+                                className={({ isActive }) =>
+                                    `flex-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
+                                        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                                    }`
+                                }
+                            >
+                                <item.icon className="w-5 h-5 flex-shrink-0" />
+                                {!collapsed && (
+                                    <span className="font-medium animate-fadeIn">{item.label}</span>
+                                )}
+                            </NavLink>
+
+                            {/* External screen button for Planning */}
+                            {item.to === '/planning' && !collapsed && (
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        openPlanningOnExternalScreen();
+                                    }}
+                                    className={`p-2 rounded-lg transition-all ${
+                                        hasMultipleScreens
+                                            ? 'text-purple-400 hover:bg-purple-500/20'
+                                            : 'text-slate-500 hover:bg-slate-700/50 hover:text-slate-300'
+                                    }`}
+                                    title={hasMultipleScreens ? 'Ouvrir sur un autre écran' : 'Ouvrir dans une nouvelle fenêtre'}
+                                >
+                                    <MonitorUp className="w-4 h-4" />
+                                </button>
                             )}
-                        </NavLink>
+                        </div>
                     ))}
             </nav>
 

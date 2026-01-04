@@ -18,7 +18,7 @@ export type PhaseWithRelations = Tables<'phases_chantiers'> & {
     } | null;
 };
 
-export type ViewMode = 'week' | '3weeks' | 'month';
+export type ViewMode = 'week' | '3weeks' | 'month' | '3months' | 'year';
 
 // Get Monday of the current week
 function getWeekStart(date: Date): Date {
@@ -71,6 +71,12 @@ export function PlanningPage() {
                 break;
             case 'month':
                 end.setDate(start.getDate() + 27);
+                break;
+            case '3months':
+                end.setDate(start.getDate() + 90); // ~3 mois
+                break;
+            case 'year':
+                end.setDate(start.getDate() + 365); // 1 an
                 break;
         }
 
@@ -151,10 +157,25 @@ export function PlanningPage() {
         return phases.filter((p) => !p.poseur_id);
     }, [phases]);
 
-    // Navigate: Hebdo = 1 day, 3Sem/Mois = 7 days
+    // Navigate: Hebdo = 1 day, 3Sem/Mois = 7 days, 3Mois = 30 days, Annuel = 90 days
     const navigateWeek = (direction: 'prev' | 'next') => {
         const newDate = new Date(currentDate);
-        const days = viewMode === 'week' ? 1 : 7;
+        let days = 7;
+        switch (viewMode) {
+            case 'week':
+                days = 1;
+                break;
+            case '3weeks':
+            case 'month':
+                days = 7;
+                break;
+            case '3months':
+                days = 30;
+                break;
+            case 'year':
+                days = 90;
+                break;
+        }
         newDate.setDate(newDate.getDate() + (direction === 'next' ? days : -days));
         setCurrentDate(newDate);
     };
@@ -257,17 +278,17 @@ export function PlanningPage() {
                     <div className="flex items-center gap-3">
                         {/* View mode toggle */}
                         <div className="flex bg-slate-800/50 rounded-lg p-1">
-                            {(['week', '3weeks', 'month'] as ViewMode[]).map((mode) => (
+                            {(['week', '3weeks', 'month', '3months', 'year'] as ViewMode[]).map((mode) => (
                                 <button
                                     key={mode}
                                     onClick={() => setViewMode(mode)}
-                                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                                    className={`px-2 py-1.5 text-xs rounded-md transition-colors ${
                                         viewMode === mode
                                             ? 'bg-blue-600 text-white'
                                             : 'text-slate-400 hover:text-white'
                                     }`}
                                 >
-                                    {mode === 'week' ? 'Hebdo' : mode === '3weeks' ? '3 Sem' : 'Mois'}
+                                    {mode === 'week' ? 'Hebdo' : mode === '3weeks' ? '3 Sem' : mode === 'month' ? 'Mois' : mode === '3months' ? '3 Mois' : 'Année'}
                                 </button>
                             ))}
                         </div>

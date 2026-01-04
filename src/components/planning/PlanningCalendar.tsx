@@ -83,7 +83,8 @@ function getWorkingDaysFromStart(start: Date, count: number): { date: Date; isHo
 }
 
 // Constants for responsive calculation
-const MIN_COLUMN_WIDTH = 60;
+const MIN_COLUMN_WIDTH = 20; // Minimum for year view
+const MIN_COLUMN_WIDTH_NORMAL = 60; // Minimum for normal views
 const MAX_COLUMN_WIDTH = 100;
 const POSEUR_COLUMN_WIDTH = 160;
 
@@ -134,26 +135,56 @@ function useResponsivePlanning(
             const containerWidth = containerRef.current.offsetWidth;
             const availableWidth = containerWidth - POSEUR_COLUMN_WIDTH;
 
+            // Minimum column width depends on view mode
+            const minWidth = viewMode === '3months' || viewMode === 'year' ? MIN_COLUMN_WIDTH : MIN_COLUMN_WIDTH_NORMAL;
+
             // Calculate how many days can fit
-            const maxPossibleDays = Math.floor(availableWidth / MIN_COLUMN_WIDTH);
+            const maxPossibleDays = Math.floor(availableWidth / minWidth);
             const minPossibleDays = Math.floor(availableWidth / MAX_COLUMN_WIDTH);
 
             // Base days according to viewMode (minimum)
-            const baseDays = viewMode === 'week' ? 5 : viewMode === '3weeks' ? 15 : 20;
+            let baseDays: number;
+            let maxDays: number;
+            switch (viewMode) {
+                case 'week':
+                    baseDays = 5;
+                    maxDays = 10;
+                    break;
+                case '3weeks':
+                    baseDays = 15;
+                    maxDays = 20;
+                    break;
+                case 'month':
+                    baseDays = 20;
+                    maxDays = 25;
+                    break;
+                case '3months':
+                    baseDays = 65; // ~3 mois de jours ouvrés
+                    maxDays = 70;
+                    break;
+                case 'year':
+                    baseDays = 260; // ~1 an de jours ouvrés (52 semaines * 5 jours)
+                    maxDays = 265;
+                    break;
+                default:
+                    baseDays = 5;
+                    maxDays = 40;
+            }
 
             // Take the maximum between baseDays and what can fit
-            // But cap at maxPossibleDays
+            // But cap at maxPossibleDays and maxDays
             const actualDays = Math.min(
                 maxPossibleDays,
+                maxDays,
                 Math.max(baseDays, minPossibleDays)
             );
 
-            // Ensure at least 3 days, cap at 40 days
-            const finalDays = Math.max(3, Math.min(40, actualDays));
+            // Ensure at least 3 days
+            const finalDays = Math.max(3, actualDays);
 
             // Calculate column width to fill available space
             const calculatedWidth = Math.floor(availableWidth / finalDays);
-            const finalWidth = Math.max(MIN_COLUMN_WIDTH, Math.min(MAX_COLUMN_WIDTH, calculatedWidth));
+            const finalWidth = Math.max(minWidth, Math.min(MAX_COLUMN_WIDTH, calculatedWidth));
 
             setState({ daysCount: finalDays, columnWidth: finalWidth });
         };
@@ -226,13 +257,14 @@ export function PlanningCalendar({
 
     // Group dates by week for header display
     const weekGroups = useMemo(() => {
-        const groups: { week: number; month: string; startIndex: number; count: number; hasWeekendBefore: boolean[] }[] = [];
+        const groups: { week: number; month: string; year: number; startIndex: number; count: number; hasWeekendBefore: boolean[] }[] = [];
         let currentWeek = -1;
         let currentGroup: typeof groups[0] | null = null;
 
         workingDates.forEach((dateInfo, index) => {
             const week = getWeekNumber(dateInfo.date);
             const month = getMonthName(dateInfo.date);
+            const year = dateInfo.date.getFullYear();
 
             if (week !== currentWeek) {
                 if (currentGroup) {
@@ -241,6 +273,7 @@ export function PlanningCalendar({
                 currentGroup = {
                     week,
                     month,
+                    year,
                     startIndex: index,
                     count: 1,
                     hasWeekendBefore: [dateInfo.weekendBefore]
@@ -258,6 +291,39 @@ export function PlanningCalendar({
 
         return groups;
     }, [workingDates]);
+
+    // Group weeks by year for year header
+    const yearGroups = useMemo(() => {
+        const groups: { year: number; weekCount: number; totalWidth: number }[] = [];
+        let currentYear = -1;
+        let currentGroup: typeof groups[0] | null = null;
+
+        weekGroups.forEach((weekGroup) => {
+            const weekendCount = weekGroup.hasWeekendBefore.filter(Boolean).length;
+            const weekWidth = weekGroup.count * columnWidth + weekendCount * 4;
+
+            if (weekGroup.year !== currentYear) {
+                if (currentGroup) {
+                    groups.push(currentGroup);
+                }
+                currentGroup = {
+                    year: weekGroup.year,
+                    weekCount: 1,
+                    totalWidth: weekWidth
+                };
+                currentYear = weekGroup.year;
+            } else if (currentGroup) {
+                currentGroup.weekCount++;
+                currentGroup.totalWidth += weekWidth;
+            }
+        });
+
+        if (currentGroup) {
+            groups.push(currentGroup);
+        }
+
+        return groups;
+    }, [weekGroups, columnWidth]);
 
     // Group phases by poseur
     const phasesByPoseur = useMemo(() => {
@@ -329,11 +395,31 @@ export function PlanningCalendar({
                 ref={containerRef}
                 onWheel={handleWheel}
             >
-                {/* Header with weeks/months and dates */}
+                {/* Header with years, weeks/months and dates */}
                 <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
+                    {/* Row 0: Years (only shown if multiple years or long view) */}
+                    {(yearGroups.length > 1 || viewMode === '3months' || viewMode === 'year') && (
+                        <div className="flex border-b border-slate-700/30">
+                            <div className="flex-shrink-0 border-r border-slate-700/50" style={{ width: POSEUR_COLUMN_WIDTH }} />
+                            <div className="flex-1 flex">
+                                {yearGroups.map((yearGroup, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center justify-center border-r border-slate-700/30 bg-slate-800/50 py-0.5"
+                                        style={{ width: yearGroup.totalWidth }}
+                                    >
+                                        <span className="text-xs font-bold text-blue-400">
+                                            {yearGroup.year}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Row 1: Weeks and Months */}
                     <div className="flex border-b border-slate-700/30">
-                        {/* Poseur column header - spans both rows */}
+                        {/* Poseur column header */}
                         <div className="flex-shrink-0 px-3 py-1 border-r border-slate-700/50 flex items-center" style={{ width: POSEUR_COLUMN_WIDTH }}>
                             <span className="text-xs font-medium text-slate-500 uppercase">Poseur</span>
                         </div>

@@ -55,6 +55,21 @@ function App() {
         );
     }
 
+    // Mode popup : fenêtre externe Planning sans sidebar
+    const isPopupWindow = window.name === 'PlanningExternalWindow';
+
+    if (isPopupWindow) {
+        return (
+            <div className="h-screen bg-app-bg overflow-hidden">
+                <Routes>
+                    <Route path="/planning" element={<PlanningPage />} />
+                    <Route path="*" element={<Navigate to="/planning" replace />} />
+                </Routes>
+            </div>
+        );
+    }
+
+    // Mode normal : avec Layout
     return (
         <Layout userEmail={user.email}>
             <Routes>
