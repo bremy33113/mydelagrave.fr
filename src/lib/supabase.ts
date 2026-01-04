@@ -528,10 +528,12 @@ class MockQueryBuilder {
             if (colonMatch) {
                 // client:clients(*) or charge_affaire:users!chantiers_charge_affaire_id_fkey(*)
                 const [, alias, table] = colonMatch;
+                // Special case: creator -> created_by
+                const foreignKey = alias === 'creator' ? 'created_by' : `${alias}_id`;
                 relations.push({
                     alias,
                     table,
-                    foreignKey: `${alias}_id`,
+                    foreignKey,
                     primaryKey: 'id',
                     type: 'many-to-one',
                 });

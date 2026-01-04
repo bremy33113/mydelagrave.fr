@@ -52,6 +52,7 @@ export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProp
     return (
         <button
             onClick={onClick}
+            data-testid="chantier-card"
             className={`w-full text-left p-3 rounded-xl transition-all duration-200 animate-fadeIn ${isSelected
                     ? 'bg-blue-600/20 border border-blue-500/50 shadow-lg shadow-blue-500/10'
                     : 'bg-slate-800/30 border border-slate-700/50 hover:bg-slate-800/50 hover:border-slate-600/50'
@@ -65,6 +66,7 @@ export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProp
                     {chantier.reference && (
                         <span className="text-xs text-slate-500 flex-shrink-0">({chantier.reference})</span>
                     )}
+                    <span className="text-xs text-slate-600 flex-shrink-0">[{chantier.id}]</span>
                 </div>
                 <ChantierStatusBadge statut={chantier.statut} />
             </div>

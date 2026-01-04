@@ -6,7 +6,8 @@
       "Bash(findstr:*)",
       "Bash(tree:*)",
       "Bash(cat:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npm run lint)"
     ]
   }
 }

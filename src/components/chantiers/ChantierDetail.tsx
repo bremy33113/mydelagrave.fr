@@ -1,8 +1,7 @@
+import { useState, useEffect, useRef } from 'react';
 import {
     MapPin,
-    User,
     Building2,
-    Calendar,
     Phone,
     Mail,
     Edit,
@@ -12,9 +11,19 @@ import {
     Clock,
     CheckCircle,
     XCircle,
+    ChevronDown,
+    Plus,
+    Pencil,
+    X,
+    Image,
 } from 'lucide-react';
 import { ChantierStatusBadge } from '../ui/ChantierStatusBadge';
+import { supabase } from '../../lib/supabase';
 import type { Tables } from '../../lib/database.types';
+
+type Note = Tables<'notes_chantiers'> & {
+    creator?: { first_name: string; last_name: string } | null;
+};
 
 type Chantier = Tables<'chantiers'> & {
     client?: Tables<'clients'> | null;
@@ -38,13 +47,137 @@ export function ChantierDetail({
     onManagePhases,
     onManageContacts,
 }: ChantierDetailProps) {
-    const formatDate = (date: string | null) => {
-        if (!date) return '-';
-        return new Date(date).toLocaleDateString('fr-FR', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-        });
+    const [coordonneesExpanded, setCoordonneesExpanded] = useState(true);
+    const [informationsExpanded, setInformationsExpanded] = useState(true);
+
+    // Notes state
+    const [notes, setNotes] = useState<Note[]>([]);
+    const [notesRefresh, setNotesRefresh] = useState(0);
+    const [showNoteForm, setShowNoteForm] = useState(false);
+    const [editingNote, setEditingNote] = useState<Note | null>(null);
+    const [noteContent, setNoteContent] = useState('');
+    const [notePhoto1, setNotePhoto1] = useState<string | null>(null);
+    const [notePhoto2, setNotePhoto2] = useState<string | null>(null);
+    const [photoModal, setPhotoModal] = useState<string | null>(null);
+    const photo1InputRef = useRef<HTMLInputElement>(null);
+    const photo2InputRef = useRef<HTMLInputElement>(null);
+
+    // Fetch notes
+    useEffect(() => {
+        const fetchNotes = async () => {
+            const { data } = await supabase
+                .from('notes_chantiers')
+                .select('*')
+                .eq('chantier_id', chantier.id)
+                .is('deleted_at', null)
+                .order('created_at', { ascending: false });
+            setNotes((data as Note[]) || []);
+        };
+        fetchNotes();
+    }, [chantier.id, notesRefresh]);
+
+    const resetNoteForm = () => {
+        setShowNoteForm(false);
+        setEditingNote(null);
+        setNoteContent('');
+        setNotePhoto1(null);
+        setNotePhoto2(null);
+    };
+
+    const handleSaveNote = async () => {
+        try {
+            const { data: userData } = await supabase.auth.getUser();
+
+            if (editingNote) {
+                await supabase
+                    .from('notes_chantiers')
+                    .update({
+                        contenu: noteContent || null,
+                        photo_1_url: notePhoto1,
+                        photo_2_url: notePhoto2,
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', editingNote.id);
+            } else {
+                const { error } = await supabase.from('notes_chantiers').insert([{
+                    chantier_id: chantier.id,
+                    contenu: noteContent || null,
+                    photo_1_url: notePhoto1,
+                    photo_2_url: notePhoto2,
+                    created_by: userData?.user?.id || null,
+                    deleted_at: null,
+                }]);
+                if (error) {
+                    console.error('Insert error:', error);
+                    alert('Erreur: ' + error.message);
+                    return;
+                }
+            }
+
+            resetNoteForm();
+            setNotesRefresh((n) => n + 1);
+        } catch (err) {
+            console.error('Erreur sauvegarde note:', err);
+            alert('Erreur: ' + (err as Error).message);
+        }
+    };
+
+    const handleEditNote = (note: Note) => {
+        setEditingNote(note);
+        setNoteContent(note.contenu || '');
+        setNotePhoto1(note.photo_1_url);
+        setNotePhoto2(note.photo_2_url);
+        setShowNoteForm(true);
+    };
+
+    const handleDeleteNote = async (noteId: string) => {
+        if (!confirm('Supprimer cette note ?')) return;
+        await supabase
+            .from('notes_chantiers')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', noteId);
+        setNotesRefresh((n) => n + 1);
+    };
+
+    const handleImageUpload = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        slot: 'photo1' | 'photo2'
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Compress and convert to base64 (small size for localStorage)
+        const img = document.createElement('img');
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const maxSize = 300; // Reduced for localStorage limits
+                let { width, height } = img;
+
+                if (width > height && width > maxSize) {
+                    height = (height * maxSize) / width;
+                    width = maxSize;
+                } else if (height > maxSize) {
+                    width = (width * maxSize) / height;
+                    height = maxSize;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+
+                const compressed = canvas.toDataURL('image/jpeg', 0.5);
+                if (slot === 'photo1') {
+                    setNotePhoto1(compressed);
+                } else {
+                    setNotePhoto2(compressed);
+                }
+            };
+            img.src = event.target?.result as string;
+        };
+        reader.readAsDataURL(file);
     };
 
     return (
@@ -125,97 +258,270 @@ export function ChantierDetail({
                 {/* Coordonnées chantier */}
                 {(chantier.client || chantier.adresse_livraison) && (
                     <section className="glass-card p-4">
-                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                            <Building2 className="w-4 h-4" />
-                            Coordonnées chantier
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Client */}
-                            {chantier.client && (
-                                <div className="space-y-2">
-                                    <p className="text-xs text-slate-500 uppercase">Client principal</p>
-                                    <p className="text-base font-medium text-white">{chantier.client.nom}</p>
-                                    {chantier.client.entreprise && (
-                                        <p className="text-sm text-slate-400">{chantier.client.entreprise}</p>
-                                    )}
-                                    {chantier.client.email && (
-                                        <div className="flex items-center gap-2 text-sm text-slate-400">
-                                            <Mail className="w-3 h-3" />
-                                            <a
-                                                href={`mailto:${chantier.client.email}`}
-                                                className="hover:text-blue-400 transition-colors truncate"
-                                            >
-                                                {chantier.client.email}
-                                            </a>
-                                        </div>
-                                    )}
-                                    {chantier.client.telephone && (
-                                        <div className="flex items-center gap-2 text-sm text-slate-400">
-                                            <Phone className="w-3 h-3" />
-                                            <a
-                                                href={`tel:${chantier.client.telephone}`}
-                                                className="hover:text-blue-400 transition-colors"
-                                            >
-                                                {chantier.client.telephone}
-                                            </a>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                        <button
+                            onClick={() => setCoordonneesExpanded(!coordonneesExpanded)}
+                            className="w-full flex items-center gap-2 text-left"
+                        >
+                            <ChevronDown
+                                className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${
+                                    coordonneesExpanded ? '' : '-rotate-90'
+                                }`}
+                            />
+                            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-2">
+                                <Building2 className="w-4 h-4" />
+                                Coordonnées chantier
+                            </h3>
+                        </button>
+                        {coordonneesExpanded && (
+                            <div className="grid grid-cols-2 gap-4 mt-3">
+                                {/* Client */}
+                                {chantier.client && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs text-slate-500 uppercase">Client principal</p>
+                                        <p className="text-base font-medium text-white">{chantier.client.nom}</p>
+                                        {chantier.client.entreprise && (
+                                            <p className="text-sm text-slate-400">{chantier.client.entreprise}</p>
+                                        )}
+                                        {chantier.client.email && (
+                                            <div className="flex items-center gap-2 text-sm text-slate-400">
+                                                <Mail className="w-3 h-3" />
+                                                <a
+                                                    href={`mailto:${chantier.client.email}`}
+                                                    className="hover:text-blue-400 transition-colors truncate"
+                                                >
+                                                    {chantier.client.email}
+                                                </a>
+                                            </div>
+                                        )}
+                                        {chantier.client.telephone && (
+                                            <div className="flex items-center gap-2 text-sm text-slate-400">
+                                                <Phone className="w-3 h-3" />
+                                                <a
+                                                    href={`tel:${chantier.client.telephone}`}
+                                                    className="hover:text-blue-400 transition-colors"
+                                                >
+                                                    {chantier.client.telephone}
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
-                            {/* Adresse livraison */}
-                            {chantier.adresse_livraison && (
-                                <div className="space-y-2">
-                                    <p className="text-xs text-slate-500 uppercase">Adresse de livraison</p>
-                                    <p className="text-sm text-white">{chantier.adresse_livraison}</p>
-                                    {chantier.adresse_livraison_latitude && chantier.adresse_livraison_longitude && (
-                                        <a
-                                            href={`https://www.google.com/maps?q=${chantier.adresse_livraison_latitude},${chantier.adresse_livraison_longitude}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                                        >
-                                            <MapPin className="w-3 h-3" />
-                                            Voir sur Google Maps
-                                        </a>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                                {/* Adresse livraison */}
+                                {chantier.adresse_livraison && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs text-slate-500 uppercase">Adresse de livraison</p>
+                                        <p className="text-sm text-white">{chantier.adresse_livraison}</p>
+                                        {chantier.adresse_livraison_latitude && chantier.adresse_livraison_longitude && (
+                                            <a
+                                                href={`https://www.google.com/maps?q=${chantier.adresse_livraison_latitude},${chantier.adresse_livraison_longitude}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                            >
+                                                <MapPin className="w-3 h-3" />
+                                                Voir sur Google Maps
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </section>
                 )}
 
-                {/* Dates & Charge d'affaires */}
-                <section className="glass-card p-4">
-                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        Informations
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-xs text-slate-500 mb-1">Date début</p>
-                            <div className="flex items-center gap-2 text-white">
-                                <Calendar className="w-4 h-4 text-slate-400" />
-                                {formatDate(chantier.date_debut)}
-                            </div>
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500 mb-1">Date fin</p>
-                            <div className="flex items-center gap-2 text-white">
-                                <Calendar className="w-4 h-4 text-slate-400" />
-                                {formatDate(chantier.date_fin)}
-                            </div>
-                        </div>
-                        {chantier.charge_affaire && (
-                            <div className="col-span-2">
-                                <p className="text-xs text-slate-500 mb-1">Chargé d'affaires</p>
-                                <div className="flex items-center gap-2 text-white">
-                                    <User className="w-4 h-4 text-slate-400" />
-                                    {chantier.charge_affaire.first_name} {chantier.charge_affaire.last_name}
-                                </div>
-                            </div>
-                        )}
+                {/* Dates & Charge d'affaires + Notes */}
+                <section className="glass-card p-4" data-testid="section-informations">
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={() => setInformationsExpanded(!informationsExpanded)}
+                            className="flex items-center gap-2 text-left"
+                            data-testid="btn-toggle-informations"
+                        >
+                            <ChevronDown
+                                className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${
+                                    informationsExpanded ? '' : '-rotate-90'
+                                }`}
+                            />
+                            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-2">
+                                <FileText className="w-4 h-4" />
+                                Informations
+                            </h3>
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowNoteForm(true);
+                                setInformationsExpanded(true);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
+                            title="Ajouter une note"
+                            data-testid="btn-add-note"
+                        >
+                            <Plus className="w-4 h-4" />
+                        </button>
                     </div>
+
+                    {informationsExpanded && (
+                        <div className="mt-3 space-y-4">
+                            {/* Formulaire inline d'ajout/édition de note */}
+                            {showNoteForm && (
+                                <div className="border-t border-slate-700/50 pt-4 space-y-3" data-testid="note-form">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs text-slate-500 uppercase">
+                                            {editingNote ? 'Modifier la note' : 'Nouvelle note'}
+                                        </p>
+                                        <button
+                                            onClick={resetNoteForm}
+                                            className="p-1 text-slate-400 hover:text-white"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <textarea
+                                        value={noteContent}
+                                        onChange={(e) => setNoteContent(e.target.value)}
+                                        placeholder="Contenu de la note..."
+                                        className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm resize-none focus:outline-none focus:border-blue-500"
+                                        rows={3}
+                                        data-testid="note-content-input"
+                                    />
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <input
+                                                ref={photo1InputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => handleImageUpload(e, 'photo1')}
+                                                className="hidden"
+                                            />
+                                            {notePhoto1 ? (
+                                                <div className="relative">
+                                                    <img src={notePhoto1} alt="Photo 1" className="w-16 h-16 object-cover rounded-lg" />
+                                                    <button
+                                                        onClick={() => setNotePhoto1(null)}
+                                                        className="absolute -top-1 -right-1 p-0.5 bg-red-500 rounded-full text-white"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => photo1InputRef.current?.click()}
+                                                    className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-slate-600 text-sm"
+                                                >
+                                                    <Image className="w-4 h-4" />
+                                                    Photo 1
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <input
+                                                ref={photo2InputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => handleImageUpload(e, 'photo2')}
+                                                className="hidden"
+                                            />
+                                            {notePhoto2 ? (
+                                                <div className="relative">
+                                                    <img src={notePhoto2} alt="Photo 2" className="w-16 h-16 object-cover rounded-lg" />
+                                                    <button
+                                                        onClick={() => setNotePhoto2(null)}
+                                                        className="absolute -top-1 -right-1 p-0.5 bg-red-500 rounded-full text-white"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => photo2InputRef.current?.click()}
+                                                    className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-slate-600 text-sm"
+                                                >
+                                                    <Image className="w-4 h-4" />
+                                                    Photo 2
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={resetNoteForm}
+                                            className="px-3 py-1.5 text-sm text-slate-400 hover:text-white"
+                                        >
+                                            Annuler
+                                        </button>
+                                        <button
+                                            onClick={handleSaveNote}
+                                            disabled={!noteContent && !notePhoto1 && !notePhoto2}
+                                            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            data-testid="btn-submit-note"
+                                        >
+                                            {editingNote ? 'Modifier' : 'Ajouter'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Liste des notes */}
+                            <div className="border-t border-slate-700/50 pt-4" data-testid="notes-section">
+                                <p className="text-xs text-slate-500 uppercase mb-2" data-testid="notes-count">Notes ({notes.length})</p>
+                                {notes.length === 0 ? (
+                                    <p className="text-sm text-slate-500 italic">Aucune note</p>
+                                ) : (
+                                    <div className="divide-y divide-slate-700/50 max-h-60 overflow-y-auto">
+                                        {notes.map((note) => (
+                                            <div
+                                                key={note.id}
+                                                className="flex items-start gap-3 p-2 hover:bg-slate-800/30 group"
+                                            >
+                                                <span className="text-xs text-slate-500 whitespace-nowrap pt-0.5">
+                                                    {new Date(note.created_at).toLocaleDateString('fr-FR')}
+                                                </span>
+                                                <p className="flex-1 text-sm text-slate-300 line-clamp-2">
+                                                    {note.contenu || <span className="italic text-slate-500">Pas de texte</span>}
+                                                </p>
+                                                <div className="flex items-center gap-1">
+                                                    {note.photo_1_url && (
+                                                        <img
+                                                            src={note.photo_1_url}
+                                                            alt="Photo 1"
+                                                            className="w-8 h-8 object-cover rounded cursor-pointer hover:opacity-80"
+                                                            onClick={() => setPhotoModal(note.photo_1_url)}
+                                                        />
+                                                    )}
+                                                    {note.photo_2_url && (
+                                                        <img
+                                                            src={note.photo_2_url}
+                                                            alt="Photo 2"
+                                                            className="w-8 h-8 object-cover rounded cursor-pointer hover:opacity-80"
+                                                            onClick={() => setPhotoModal(note.photo_2_url)}
+                                                        />
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => handleEditNote(note)}
+                                                        className="p-1 text-slate-400 hover:text-blue-400"
+                                                        title="Modifier"
+                                                    >
+                                                        <Pencil className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteNote(note.id)}
+                                                        className="p-1 text-slate-400 hover:text-red-400"
+                                                        title="Supprimer"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </section>
 
                 {/* Completion status */}
@@ -253,6 +559,29 @@ export function ChantierDetail({
                     </div>
                 </section>
             </div>
+
+            {/* Photo Modal */}
+            {photoModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+                    onClick={() => setPhotoModal(null)}
+                >
+                    <div className="relative max-w-4xl max-h-[90vh] p-2">
+                        <button
+                            onClick={() => setPhotoModal(null)}
+                            className="absolute top-4 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                        <img
+                            src={photoModal}
+                            alt="Photo agrandie"
+                            className="max-w-full max-h-[85vh] object-contain rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

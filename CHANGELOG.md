@@ -2,6 +2,24 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [0.4.0] - 2026-01-04
+
+### Nouvelles Fonctionnalités
+- ✨ Section Informations expandable avec chevron
+- ✨ Gestionnaire de notes CRUD (création, édition, suppression)
+- ✨ Upload de photos dans les notes (compression automatique)
+- ✨ Modale d'affichage des photos en grand
+- ✨ Affichage de l'ID chantier dans les cartes
+
+### Améliorations
+- ⚡ Workflow QA amélioré avec création automatique de tests E2E
+- ⚡ 8 nouveaux tests E2E pour les notes (e2e/notes.spec.ts)
+- ⚡ Notes de migration Supabase documentées dans CLAUDE.md
+
+### Corrections
+- 🐛 Fix soft delete (`deleted_at: null` vs `undefined`)
+- 🐛 Fix relation `creator:users` dans le mock Supabase
+
 ## [0.3.1] - 2026-01-04
 
 ### Corrections

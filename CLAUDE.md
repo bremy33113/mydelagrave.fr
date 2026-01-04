@@ -85,3 +85,17 @@ Agent workflows are defined in `.agent/workflows/`:
 ## French UI
 
 All user-facing text is in French. Keep UI labels, error messages, and placeholders in French.
+
+## Migration Notes (Mock → Supabase)
+
+### Storage Bucket pour les photos
+Actuellement, les photos des notes (`notes_chantiers.photo_1_url`, `photo_2_url`) sont stockées en base64 compressé directement dans la table.
+
+**Lors de la migration vers Supabase réel :**
+- Créer un bucket `notes-photos` dans Supabase Storage
+- Modifier `handleImageUpload` dans `ChantierDetail.tsx` pour uploader vers le bucket
+- Stocker uniquement le path/URL dans la table au lieu du base64
+- Configurer les policies RLS sur le bucket
+
+### Soft Delete
+S'assurer que `deleted_at` est explicitement `null` (pas `undefined`) lors des insertions pour que le filtre `.is('deleted_at', null)` fonctionne.
