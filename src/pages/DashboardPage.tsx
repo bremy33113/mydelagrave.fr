@@ -112,7 +112,7 @@ export function DashboardPage() {
                 .eq('role', 'charge_affaire')
                 .is('deleted_at', null)
                 .order('last_name');
-            if (caData) setChargeAffaireList(caData);
+            if (caData && Array.isArray(caData)) setChargeAffaireList(caData as Tables<'users'>[]);
 
             // Fetch poseurs
             const { data: poseurData } = await supabase
@@ -121,14 +121,14 @@ export function DashboardPage() {
                 .eq('role', 'poseur')
                 .is('deleted_at', null)
                 .order('last_name');
-            if (poseurData) setPoseurList(poseurData);
+            if (poseurData && Array.isArray(poseurData)) setPoseurList(poseurData as Tables<'users'>[]);
 
             // Fetch statuts
             const { data: statutData } = await supabase
                 .from('ref_statuts_chantier')
                 .select('*')
-                .order('ordre');
-            if (statutData) setStatutList(statutData);
+                .order('code');
+            if (statutData && Array.isArray(statutData)) setStatutList(statutData as Tables<'ref_statuts_chantier'>[]);
         };
 
         fetchFilterLists();
@@ -313,8 +313,8 @@ export function DashboardPage() {
                                     >
                                         <option value="">Statut</option>
                                         {statutList.map((statut) => (
-                                            <option key={statut.id} value={statut.id}>
-                                                {statut.libelle}
+                                            <option key={statut.code} value={statut.code}>
+                                                {statut.label}
                                             </option>
                                         ))}
                                     </select>

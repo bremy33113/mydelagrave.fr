@@ -11,6 +11,7 @@ import {
     ref_types_chantier,
     ref_clients,
     ref_job,
+    ref_types_document,
     mockPasswords,
     initial_users,
     initial_clients,
@@ -18,6 +19,7 @@ import {
     initial_phases_chantiers,
     initial_notes_chantiers,
     initial_chantiers_contacts,
+    initial_documents_chantiers,
 } from './mockData';
 
 // ============ TYPES ============
@@ -71,28 +73,47 @@ function setTable<T>(tableName: string, data: T[]): void {
 
 function initializeDataIfNeeded(): void {
     // Vérifier si les données sont déjà initialisées
-    if (localStorage.getItem(STORAGE_PREFIX + 'initialized')) {
-        return;
+    const isInitialized = localStorage.getItem(STORAGE_PREFIX + 'initialized');
+
+    if (!isInitialized) {
+        // Initialiser les tables de référence
+        setTable('ref_roles_user', ref_roles_user);
+        setTable('ref_statuts_chantier', ref_statuts_chantier);
+        setTable('ref_categories_chantier', ref_categories_chantier);
+        setTable('ref_types_chantier', ref_types_chantier);
+        setTable('ref_clients', ref_clients);
+        setTable('ref_job', ref_job);
+        setTable('ref_types_document', ref_types_document);
+
+        // Initialiser les données de démo
+        setTable('users', initial_users);
+        setTable('clients', initial_clients);
+        setTable('chantiers', initial_chantiers);
+        setTable('phases_chantiers', initial_phases_chantiers);
+        setTable('notes_chantiers', initial_notes_chantiers);
+        setTable('chantiers_contacts', initial_chantiers_contacts);
+        setTable('documents_chantiers', initial_documents_chantiers);
+
+        localStorage.setItem(STORAGE_PREFIX + 'initialized', 'true');
+        console.info('📦 Mock database initialized with demo data');
     }
 
-    // Initialiser les tables de référence
-    setTable('ref_roles_user', ref_roles_user);
-    setTable('ref_statuts_chantier', ref_statuts_chantier);
-    setTable('ref_categories_chantier', ref_categories_chantier);
-    setTable('ref_types_chantier', ref_types_chantier);
-    setTable('ref_clients', ref_clients);
-    setTable('ref_job', ref_job);
+    // Migration: ajouter les tables manquantes (pour les installations existantes)
+    migrateIfNeeded();
+}
 
-    // Initialiser les données de démo
-    setTable('users', initial_users);
-    setTable('clients', initial_clients);
-    setTable('chantiers', initial_chantiers);
-    setTable('phases_chantiers', initial_phases_chantiers);
-    setTable('notes_chantiers', initial_notes_chantiers);
-    setTable('chantiers_contacts', initial_chantiers_contacts);
+function migrateIfNeeded(): void {
+    // Migration v0.6.0: Ajouter ref_types_document si manquant
+    if (!localStorage.getItem(STORAGE_PREFIX + 'ref_types_document')) {
+        setTable('ref_types_document', ref_types_document);
+        console.info('📦 Migration: ref_types_document ajouté');
+    }
 
-    localStorage.setItem(STORAGE_PREFIX + 'initialized', 'true');
-    console.info('📦 Mock database initialized with demo data');
+    // Migration v0.6.0: Ajouter documents_chantiers si manquant
+    if (!localStorage.getItem(STORAGE_PREFIX + 'documents_chantiers')) {
+        setTable('documents_chantiers', initial_documents_chantiers);
+        console.info('📦 Migration: documents_chantiers ajouté');
+    }
 }
 
 // ============ MOCK AUTH ============
@@ -515,21 +536,41 @@ class MockQueryBuilder {
         type: 'many-to-one' | 'one-to-many';
     }> {
         const relations: Array<{ alias: string; table: string; foreignKey: string; primaryKey: string; type: 'many-to-one' | 'one-to-many' }> = [];
-        const selectParts = this.state.selectColumns.split(',').map((s) => s.trim());
+
+        // Split by comma but not inside parentheses
+        // e.g., "*, uploader:users!uploaded_by(first_name, last_name)" should split into:
+        // ["*", "uploader:users!uploaded_by(first_name, last_name)"]
+        const selectParts: string[] = [];
+        let current = '';
+        let depth = 0;
+        for (const char of this.state.selectColumns) {
+            if (char === '(') depth++;
+            else if (char === ')') depth--;
+
+            if (char === ',' && depth === 0) {
+                selectParts.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        if (current.trim()) {
+            selectParts.push(current.trim());
+        }
 
         // One-to-many relations (child tables that reference parent via foreign key)
-        const oneToManyTables = ['phases_chantiers', 'notes_chantiers', 'chantiers_contacts'];
+        const oneToManyTables = ['phases_chantiers', 'notes_chantiers', 'chantiers_contacts', 'documents_chantiers'];
 
         selectParts.forEach((part) => {
-            // Format: client:clients(*) ou ref_statuts_chantier(*) ou phases_chantiers(*)
-            const colonMatch = part.match(/(\w+):(\w+)(?:!(\w+))?\(\*\)/);
-            const simpleMatch = part.match(/(\w+)\(\*\)/);
+            // Format: client:clients(*) ou uploader:users!uploaded_by(first_name, last_name) ou phases_chantiers(*)
+            const colonMatch = part.match(/(\w+):(\w+)(?:!(\w+))?\(([^)]+)\)/);
+            const simpleMatch = part.match(/(\w+)\(([^)]+)\)/);
 
             if (colonMatch) {
-                // client:clients(*) or charge_affaire:users!chantiers_charge_affaire_id_fkey(*)
-                const [, alias, table] = colonMatch;
-                // Special case: creator -> created_by
-                const foreignKey = alias === 'creator' ? 'created_by' : `${alias}_id`;
+                // client:clients(*) or uploader:users!uploaded_by(*)
+                const [, alias, table, explicitForeignKey] = colonMatch;
+                // Use explicit foreign key if provided, otherwise fallback to convention
+                const foreignKey = explicitForeignKey || (alias === 'creator' ? 'created_by' : `${alias}_id`);
                 relations.push({
                     alias,
                     table,

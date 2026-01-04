@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**0.5.0**
+**0.6.0**
 
 ## ÉTAT DU SYSTÈME
-Filtres avancés & documentation centralisée
+Gestion Documentaire pour Chantiers
 
 ## Instructions Générales
 
@@ -38,7 +38,8 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 0.5.0 | 2025-01-04 | Filtres avancés & documentation centralisée |
+| 0.6.0 | 2026-01-04 | Gestion Documentaire pour Chantiers |
+| 0.5.0 | 2026-01-04 | Filtres avancés & documentation centralisée |
 | 0.4.0 | 2025-01-04 | Gestionnaire de notes & sections expandables |
 | 0.3.1 | 2025-01-03 | Corrections UI et support relations one-to-many |
 | 0.3.0 | 2025-01-03 | Tri utilisateurs & renumérotation phases |

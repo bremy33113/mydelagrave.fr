@@ -163,6 +163,34 @@ export interface Database {
                 Insert: Database['public']['Tables']['ref_job']['Row'];
                 Update: Partial<Database['public']['Tables']['ref_job']['Insert']>;
             };
+            ref_types_document: {
+                Row: {
+                    id: string;
+                    libelle: string;
+                    icon: string;
+                    ordre: number;
+                };
+                Insert: Database['public']['Tables']['ref_types_document']['Row'];
+                Update: Partial<Database['public']['Tables']['ref_types_document']['Insert']>;
+            };
+            documents_chantiers: {
+                Row: {
+                    id: string;
+                    chantier_id: string;
+                    type: string;
+                    nom: string;
+                    description: string | null;
+                    storage_path: string;
+                    file_size: number;
+                    mime_type: string;
+                    uploaded_by: string;
+                    deleted_at: string | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: Omit<Database['public']['Tables']['documents_chantiers']['Row'], 'id' | 'created_at' | 'updated_at'>;
+                Update: Partial<Database['public']['Tables']['documents_chantiers']['Insert']>;
+            };
         };
         Functions: {
             get_my_role: {

@@ -2,6 +2,21 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [0.6.0] - 2026-01-04
+
+### Nouvelles Fonctionnalités
+- ✨ Section Documents dans le détail chantier (upload, liste, prévisualisation)
+- ✨ Modal d'upload avec drag & drop, 4 types de documents (Plan, Devis, Rapport, Liste réserves)
+- ✨ Prévisualisation des images dans une modal dédiée
+- ✨ Téléchargement et suppression des documents
+- ✨ Intégration des documents dans la corbeille (soft delete + restauration)
+
+### Corrections
+- 🐛 Fix parsing des relations Supabase avec virgules dans les parenthèses (uploader name)
+
+### Tests
+- 🧪 11 tests E2E pour les documents (107 tests total)
+
 ## [0.5.0] - 2026-01-04
 
 ### Nouvelles Fonctionnalités

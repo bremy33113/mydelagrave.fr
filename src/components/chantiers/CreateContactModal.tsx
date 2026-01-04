@@ -94,7 +94,6 @@ export function CreateContactModal({
                     email: editingClient.email || '',
                     telephone: editingClient.telephone || '',
                     adresse: editingClient.adresse || '',
-                    // @ts-expect-error - batiment doesn't exist in DB yet
                     batiment: editingClient.batiment || '',
                     entreprise: editingClient.entreprise || '',
                     job: editingClient.job || '',

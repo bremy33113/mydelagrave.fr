@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trash2, RotateCcw, AlertTriangle, Building2, FileText, User } from 'lucide-react';
+import { Trash2, RotateCcw, AlertTriangle, Building2, FileText, User, File } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Tables } from '../lib/database.types';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -14,17 +14,23 @@ type DeletedNote = Tables<'notes_chantiers'> & {
 
 type DeletedClient = Tables<'clients'> & { deleted_at: string | null };
 
+type DeletedDocument = Tables<'documents_chantiers'> & {
+    chantier?: { nom: string } | null;
+};
+
 type ConfirmState = {
     type: 'restore' | 'delete';
-    itemType: 'chantier' | 'note' | 'client';
+    itemType: 'chantier' | 'note' | 'client' | 'document';
     id: string;
+    storagePath?: string;
 } | null;
 
 export function TrashPage() {
-    const [activeTab, setActiveTab] = useState<'chantiers' | 'notes' | 'contacts'>('chantiers');
+    const [activeTab, setActiveTab] = useState<'chantiers' | 'notes' | 'contacts' | 'documents'>('chantiers');
     const [chantiers, setChantiers] = useState<DeletedChantier[]>([]);
     const [notes, setNotes] = useState<DeletedNote[]>([]);
     const [clients, setClients] = useState<DeletedClient[]>([]);
+    const [documents, setDocuments] = useState<DeletedDocument[]>([]);
     const [loading, setLoading] = useState(true);
     const [confirmState, setConfirmState] = useState<ConfirmState>(null);
 
@@ -57,6 +63,15 @@ export function TrashPage() {
                 .order('deleted_at', { ascending: false });
 
             setClients((clientsData as DeletedClient[]) || []);
+
+            // Fetch deleted documents
+            const { data: documentsData } = await supabase
+                .from('documents_chantiers')
+                .select('*, chantier:chantiers(nom)')
+                .not('deleted_at', 'is', null)
+                .order('deleted_at', { ascending: false });
+
+            setDocuments((documentsData as DeletedDocument[]) || []);
         } catch (err) {
             console.error('Error fetching deleted items:', err);
         } finally {
@@ -71,12 +86,13 @@ export function TrashPage() {
     const executeAction = async () => {
         if (!confirmState) return;
 
-        const { type, itemType, id } = confirmState;
+        const { type, itemType, id, storagePath } = confirmState;
 
         try {
             if (type === 'restore') {
                 const table = itemType === 'chantier' ? 'chantiers'
                     : itemType === 'note' ? 'notes_chantiers'
+                    : itemType === 'document' ? 'documents_chantiers'
                         : 'clients';
 
                 await supabase
@@ -86,7 +102,13 @@ export function TrashPage() {
             } else {
                 const table = itemType === 'chantier' ? 'chantiers'
                     : itemType === 'note' ? 'notes_chantiers'
+                    : itemType === 'document' ? 'documents_chantiers'
                         : 'clients';
+
+                // If it's a document, also delete from storage
+                if (itemType === 'document' && storagePath) {
+                    await supabase.storage.from('documents').remove([storagePath]);
+                }
 
                 await supabase.from(table).delete().eq('id', id);
             }
@@ -105,6 +127,18 @@ export function TrashPage() {
     const permanentlyDeleteNote = (id: string) => setConfirmState({ type: 'delete', itemType: 'note', id });
     const restoreClient = (id: string) => setConfirmState({ type: 'restore', itemType: 'client', id });
     const permanentlyDeleteClient = (id: string) => setConfirmState({ type: 'delete', itemType: 'client', id });
+    const restoreDocument = (id: string) => setConfirmState({ type: 'restore', itemType: 'document', id });
+    const permanentlyDeleteDocument = (id: string, storagePath: string) => setConfirmState({ type: 'delete', itemType: 'document', id, storagePath });
+
+    const getDocumentTypeIcon = (type: string): string => {
+        const icons: Record<string, string> = {
+            plan: '📐',
+            devis: '💰',
+            rapport: '📄',
+            reserve: '📋',
+        };
+        return icons[type] || '📎';
+    };
 
     const formatDate = (date: string) => {
         return new Date(date).toLocaleDateString('fr-FR', {
@@ -163,6 +197,17 @@ export function TrashPage() {
                 >
                     <User className="w-4 h-4" />
                     Contacts ({clients.length})
+                </button>
+                <button
+                    onClick={() => setActiveTab('documents')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'documents'
+                        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                        : 'bg-slate-800/30 text-slate-400 hover:bg-slate-800/50'
+                        }`}
+                    data-testid="trash-tab-documents"
+                >
+                    <File className="w-4 h-4" />
+                    Documents ({documents.length})
                 </button>
             </div>
 
@@ -268,7 +313,7 @@ export function TrashPage() {
                             ))}
                         </div>
                     )
-                ) : (
+                ) : activeTab === 'contacts' ? (
                     // Contacts tab
                     clients.length === 0 ? (
                         <div className="text-center py-12 text-slate-400">
@@ -307,6 +352,54 @@ export function TrashPage() {
                                             onClick={() => permanentlyDeleteClient(client.id)}
                                             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
                                             data-testid={`trash-delete-contact-${client.id}`}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Supprimer
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )
+                ) : (
+                    // Documents tab
+                    documents.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400">
+                            <File className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                            <p>Aucun document dans la corbeille</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {documents.map((doc) => (
+                                <div
+                                    key={doc.id}
+                                    className="glass-card p-4 flex items-center justify-between animate-fadeIn"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-slate-800/50 flex items-center justify-center text-xl">
+                                            {getDocumentTypeIcon(doc.type)}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-white">{doc.nom}</h3>
+                                            <p className="text-sm text-slate-400">
+                                                {doc.chantier?.nom && `${doc.chantier.nom} • `}
+                                                Supprimé le {doc.deleted_at && formatDate(doc.deleted_at)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => restoreDocument(doc.id)}
+                                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
+                                            data-testid={`trash-restore-document-${doc.id}`}
+                                        >
+                                            <RotateCcw className="w-4 h-4" />
+                                            Restaurer
+                                        </button>
+                                        <button
+                                            onClick={() => permanentlyDeleteDocument(doc.id, doc.storage_path)}
+                                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                                            data-testid={`trash-delete-document-${doc.id}`}
                                         >
                                             <Trash2 className="w-4 h-4" />
                                             Supprimer

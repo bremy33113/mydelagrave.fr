@@ -51,6 +51,13 @@ export const ref_job: Tables<'ref_job'>[] = [
     { code: 'autre', label: 'Autre', icon: '👤', color: '#64748B' },
 ];
 
+export const ref_types_document: Tables<'ref_types_document'>[] = [
+    { id: 'plan', libelle: 'Plan', icon: '📐', ordre: 1 },
+    { id: 'devis', libelle: 'Devis', icon: '💰', ordre: 2 },
+    { id: 'rapport', libelle: 'Rapport', icon: '📄', ordre: 3 },
+    { id: 'reserve', libelle: 'Liste réserves', icon: '📋', ordre: 4 },
+];
+
 // ============ DONNÉES DE DÉMO ============
 
 // Mots de passe en clair pour le mock (en prod, hashés par Supabase)
@@ -111,9 +118,11 @@ export const initial_clients: Tables<'clients'>[] = [
         email: 'sophie.bernard@chu-nantes.fr',
         telephone: '02 40 08 33 33',
         adresse: '1 Place Alexis-Ricordeau, 44093 Nantes',
+        batiment: null,
         entreprise: 'CHU de Nantes',
         job: 'directeur',
         client_categorie: 'contact_client',
+        created_by: null,
         created_at: '2024-01-15T10:00:00Z',
         updated_at: '2024-01-15T10:00:00Z',
     },
@@ -123,9 +132,11 @@ export const initial_clients: Tables<'clients'>[] = [
         email: 'marc.lefevre@archistudio.fr',
         telephone: '02 41 22 33 44',
         adresse: '15 Rue de la Paix, 49000 Angers',
+        batiment: null,
         entreprise: 'ArchiStudio',
         job: 'architecte',
         client_categorie: 'architecte',
+        created_by: null,
         created_at: '2024-02-01T09:00:00Z',
         updated_at: '2024-02-01T09:00:00Z',
     },
@@ -135,9 +146,11 @@ export const initial_clients: Tables<'clients'>[] = [
         email: 'a.moreau@batipro.fr',
         telephone: '02 51 44 55 66',
         adresse: '8 Boulevard des Industries, 44600 Saint-Nazaire',
+        batiment: null,
         entreprise: 'BatiPro',
         job: 'conducteur_travaux',
         client_categorie: 'entreprise_generale',
+        created_by: null,
         created_at: '2024-02-10T14:00:00Z',
         updated_at: '2024-02-10T14:00:00Z',
     },
@@ -318,3 +331,5 @@ export const initial_chantiers_contacts: Tables<'chantiers_contacts'>[] = [
         updated_at: '2024-12-20T11:00:00Z',
     },
 ];
+
+export const initial_documents_chantiers: Tables<'documents_chantiers'>[] = [];

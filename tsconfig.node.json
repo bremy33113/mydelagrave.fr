@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "composite": true,
         "target": "ES2022",
         "lib": [
             "ES2023"
@@ -10,7 +11,10 @@
         "allowImportingTsExtensions": true,
         "resolveJsonModule": true,
         "isolatedModules": true,
-        "noEmit": true,
+        "noEmit": false,
+        "emitDeclarationOnly": true,
+        "declaration": true,
+        "outDir": "./node_modules/.tmp",
         "strict": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
