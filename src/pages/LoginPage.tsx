@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase, isUsingMock } from '../lib/supabase';
 
 export function LoginPage() {
     const [email, setEmail] = useState('');
@@ -132,31 +132,33 @@ export function LoginPage() {
                     </form>
                 </div>
 
-                {/* Demo accounts */}
-                <div
-                    className="mt-6 glass-card p-4 animate-fadeIn"
-                    style={{ animationDelay: '0.2s' }}
-                >
-                    <p className="text-sm text-slate-400 mb-3 text-center">
-                        Comptes de démonstration
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                        {demoAccounts.map((account) => (
-                            <button
-                                key={account.email}
-                                onClick={() => fillDemoAccount(account.email, account.password)}
-                                className="p-2 text-left rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
-                            >
-                                <p className="text-xs font-medium text-white">{account.role}</p>
-                                <p className="text-xs text-slate-400 truncate">{account.email}</p>
-                            </button>
-                        ))}
+                {/* Demo accounts - uniquement en mode dev */}
+                {isUsingMock && (
+                    <div
+                        className="mt-6 glass-card p-4 animate-fadeIn"
+                        style={{ animationDelay: '0.2s' }}
+                    >
+                        <p className="text-sm text-slate-400 mb-3 text-center">
+                            Comptes de démonstration
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                            {demoAccounts.map((account) => (
+                                <button
+                                    key={account.email}
+                                    onClick={() => fillDemoAccount(account.email, account.password)}
+                                    className="p-2 text-left rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
+                                >
+                                    <p className="text-xs font-medium text-white">{account.role}</p>
+                                    <p className="text-xs text-slate-400 truncate">{account.email}</p>
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Version */}
                 <p className="text-center text-xs text-slate-500 mt-6">
-                    Version 0.0.1 (Mock Mode)
+                    Version 1.1.0 {isUsingMock ? '(Mode Dev)' : '(Production)'}
                 </p>
             </div>
         </div>
