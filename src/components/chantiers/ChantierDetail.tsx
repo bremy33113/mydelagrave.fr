@@ -362,6 +362,12 @@ export function ChantierDetail({
                                         {chantier.client.entreprise && (
                                             <p className="text-sm text-slate-400">{chantier.client.entreprise}</p>
                                         )}
+                                        {chantier.client.adresse && (
+                                            <div className="flex items-center gap-2 text-sm text-slate-400">
+                                                <MapPin className="w-3 h-3" />
+                                                <span>{chantier.client.adresse}</span>
+                                            </div>
+                                        )}
                                         {chantier.client.email && (
                                             <div className="flex items-center gap-2 text-sm text-slate-400">
                                                 <Mail className="w-3 h-3" />
@@ -392,17 +398,19 @@ export function ChantierDetail({
                                     <div className="space-y-2">
                                         <p className="text-xs text-slate-500 uppercase">Adresse de livraison</p>
                                         <p className="text-sm text-white">{chantier.adresse_livraison}</p>
-                                        {chantier.adresse_livraison_latitude && chantier.adresse_livraison_longitude && (
-                                            <a
-                                                href={`https://www.google.com/maps?q=${chantier.adresse_livraison_latitude},${chantier.adresse_livraison_longitude}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                                            >
-                                                <MapPin className="w-3 h-3" />
-                                                Voir sur Google Maps
-                                            </a>
-                                        )}
+                                        <a
+                                            href={
+                                                chantier.adresse_livraison_latitude && chantier.adresse_livraison_longitude
+                                                    ? `https://www.google.com/maps?q=${chantier.adresse_livraison_latitude},${chantier.adresse_livraison_longitude}`
+                                                    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(chantier.adresse_livraison)}`
+                                            }
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                        >
+                                            <MapPin className="w-3 h-3" />
+                                            Voir sur Google Maps
+                                        </a>
                                     </div>
                                 )}
                             </div>
