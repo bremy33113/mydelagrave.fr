@@ -4,8 +4,7 @@
 -- Description: Création de toutes les tables, contraintes et triggers
 -- =============================================
 
--- Extension UUID
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Note: gen_random_uuid() est natif dans PostgreSQL 13+ (utilisé par Supabase)
 
 -- =============================================
 -- TABLE DE VERSIONING
@@ -92,7 +91,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- clients: Contacts externes (clients, architectes, entreprises)
 CREATE TABLE IF NOT EXISTS clients (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nom VARCHAR(255) NOT NULL,
     email VARCHAR(255),
     telephone VARCHAR(50),
@@ -108,7 +107,7 @@ CREATE TABLE IF NOT EXISTS clients (
 
 -- chantiers: Sites de construction (entité principale)
 CREATE TABLE IF NOT EXISTS chantiers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reference VARCHAR(50),
     nom VARCHAR(255) NOT NULL,
     adresse_livraison TEXT,
@@ -131,7 +130,7 @@ CREATE TABLE IF NOT EXISTS chantiers (
 
 -- phases_chantiers: Phases de travail pour chaque chantier
 CREATE TABLE IF NOT EXISTS phases_chantiers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     chantier_id UUID NOT NULL REFERENCES chantiers(id) ON DELETE CASCADE,
     numero_phase INTEGER NOT NULL,
     libelle VARCHAR(255),
@@ -148,7 +147,7 @@ CREATE TABLE IF NOT EXISTS phases_chantiers (
 
 -- notes_chantiers: Notes/commentaires avec photos optionnelles
 CREATE TABLE IF NOT EXISTS notes_chantiers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     chantier_id UUID NOT NULL REFERENCES chantiers(id) ON DELETE CASCADE,
     contenu TEXT,
     photo_1_url TEXT,  -- Chemin storage ou URL
@@ -161,7 +160,7 @@ CREATE TABLE IF NOT EXISTS notes_chantiers (
 
 -- chantiers_contacts: Relation many-to-many chantiers <-> contacts
 CREATE TABLE IF NOT EXISTS chantiers_contacts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     chantier_id UUID NOT NULL REFERENCES chantiers(id) ON DELETE CASCADE,
     client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     role VARCHAR(100),
@@ -172,7 +171,7 @@ CREATE TABLE IF NOT EXISTS chantiers_contacts (
 
 -- documents_chantiers: Documents attachés aux chantiers
 CREATE TABLE IF NOT EXISTS documents_chantiers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     chantier_id UUID NOT NULL REFERENCES chantiers(id) ON DELETE CASCADE,
     type VARCHAR(50) NOT NULL REFERENCES ref_types_document(id),
     nom VARCHAR(255) NOT NULL,

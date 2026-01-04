@@ -64,7 +64,7 @@ CREATE POLICY "documents_update" ON storage.objects
         bucket_id = 'documents'
         AND (
             owner = auth.uid()
-            OR auth.is_supervisor_or_admin()
+            OR public.is_supervisor_or_admin()
         )
     );
 
@@ -76,7 +76,7 @@ CREATE POLICY "documents_delete" ON storage.objects
         bucket_id = 'documents'
         AND (
             owner = auth.uid()
-            OR auth.is_supervisor_or_admin()
+            OR public.is_supervisor_or_admin()
         )
     );
 
@@ -110,7 +110,7 @@ CREATE POLICY "notes_photos_update" ON storage.objects
         bucket_id = 'notes-photos'
         AND (
             owner = auth.uid()
-            OR auth.is_supervisor_or_admin()
+            OR public.is_supervisor_or_admin()
         )
     );
 
@@ -122,7 +122,7 @@ CREATE POLICY "notes_photos_delete" ON storage.objects
         bucket_id = 'notes-photos'
         AND (
             owner = auth.uid()
-            OR auth.is_supervisor_or_admin()
+            OR public.is_supervisor_or_admin()
         )
     );
 
