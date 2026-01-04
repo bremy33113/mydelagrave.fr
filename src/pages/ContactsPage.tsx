@@ -42,6 +42,7 @@ export function ContactsPage() {
             const { data } = await supabase
                 .from('clients')
                 .select('*, ref_clients(*), ref_job(*)')
+                .is('deleted_at', null)
                 .order('nom', { ascending: true });
 
             setClients((data as Client[]) || []);
