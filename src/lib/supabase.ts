@@ -243,6 +243,29 @@ class MockAuth {
         return { data: { session } };
     }
 
+    async setSession({ access_token }: { access_token: string; refresh_token: string }): Promise<{ data: { session: MockSession | null }; error: null }> {
+        // Restore session from tokens (mock: reconstruct from localStorage or token data)
+        // In mock mode, we store the full session, so we can just look it up
+        const stored = localStorage.getItem(AUTH_SESSION_KEY);
+        if (stored) {
+            const session = JSON.parse(stored);
+            // Verify tokens match (simplified mock validation)
+            if (session.access_token === access_token) {
+                this.notifyListeners('TOKEN_REFRESHED', session);
+                return { data: { session }, error: null };
+            }
+        }
+        // If tokens provided, create a minimal session restoration
+        // This handles the case where admin session is being restored after signUp
+        const currentSession = stored ? JSON.parse(stored) : null;
+        if (currentSession && access_token) {
+            localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(currentSession));
+            this.notifyListeners('SIGNED_IN', currentSession);
+            return { data: { session: currentSession }, error: null };
+        }
+        return { data: { session: null }, error: null };
+    }
+
     async getUser(): Promise<{ data: { user: MockUser | null } }> {
         const stored = localStorage.getItem(AUTH_SESSION_KEY);
         const session = stored ? JSON.parse(stored) : null;
