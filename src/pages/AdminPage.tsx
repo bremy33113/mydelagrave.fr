@@ -191,7 +191,11 @@ export function AdminPage() {
                     })
                     .eq('id', editingUser.id);
             } else {
-                // Create new user (mock signup)
+                // Sauvegarder la session admin actuelle avant de créer le nouvel utilisateur
+                const { data: sessionData } = await supabase.auth.getSession();
+                const adminSession = sessionData?.session;
+
+                // Create new user
                 const { error } = await supabase.auth.signUp({
                     email: formData.email,
                     password: formData.password || 'password123',
@@ -199,11 +203,20 @@ export function AdminPage() {
                         data: {
                             first_name: formData.first_name,
                             last_name: formData.last_name,
+                            role: formData.role,
                         },
                     },
                 });
 
                 if (error) throw error;
+
+                // Restaurer la session admin (évite la déconnexion)
+                if (adminSession) {
+                    await supabase.auth.setSession({
+                        access_token: adminSession.access_token,
+                        refresh_token: adminSession.refresh_token,
+                    });
+                }
 
                 // Update role after creation
                 const { data: newUser } = await supabase
