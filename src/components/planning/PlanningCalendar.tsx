@@ -85,7 +85,6 @@ function getWorkingDaysFromStart(start: Date, count: number): { date: Date; isHo
 // Constants for responsive calculation
 const MIN_COLUMN_WIDTH = 20; // Minimum for year view
 const MIN_COLUMN_WIDTH_NORMAL = 60; // Minimum for normal views
-const MAX_COLUMN_WIDTH = 100;
 const POSEUR_COLUMN_WIDTH = 160;
 
 // Get ISO week number
@@ -138,55 +137,40 @@ function useResponsivePlanning(
             // Minimum column width depends on view mode
             const minWidth = viewMode === '3months' || viewMode === 'year' ? MIN_COLUMN_WIDTH : MIN_COLUMN_WIDTH_NORMAL;
 
-            // Calculate how many days can fit
-            const maxPossibleDays = Math.floor(availableWidth / minWidth);
-            const minPossibleDays = Math.floor(availableWidth / MAX_COLUMN_WIDTH);
-
-            // Base days according to viewMode (minimum)
-            let baseDays: number;
-            let maxDays: number;
+            // Fixed days count according to viewMode
+            let targetDays: number;
             switch (viewMode) {
                 case 'week':
-                    baseDays = 5;
-                    maxDays = 10;
+                    targetDays = 5; // 5 jours ouvrés
                     break;
                 case '3weeks':
-                    baseDays = 15;
-                    maxDays = 20;
+                    targetDays = 15; // 3 semaines * 5 jours
                     break;
                 case 'month':
-                    baseDays = 20;
-                    maxDays = 25;
+                    targetDays = 22; // ~1 mois de jours ouvrés
                     break;
                 case '3months':
-                    baseDays = 65; // ~3 mois de jours ouvrés
-                    maxDays = 70;
+                    targetDays = 65; // ~3 mois de jours ouvrés
                     break;
                 case 'year':
-                    baseDays = 260; // ~1 an de jours ouvrés (52 semaines * 5 jours)
-                    maxDays = 265;
+                    targetDays = 260; // ~1 an de jours ouvrés
                     break;
                 default:
-                    baseDays = 5;
-                    maxDays = 40;
+                    targetDays = 5;
             }
 
-            // Take the maximum between baseDays and what can fit
-            // But cap at maxPossibleDays and maxDays
-            const actualDays = Math.min(
-                maxPossibleDays,
-                maxDays,
-                Math.max(baseDays, minPossibleDays)
-            );
+            // Calculate column width to fill ALL available space
+            const calculatedWidth = Math.floor(availableWidth / targetDays);
 
-            // Ensure at least 3 days
-            const finalDays = Math.max(3, actualDays);
+            // Use minimum width only if calculated is too small
+            const finalWidth = Math.max(minWidth, calculatedWidth);
 
-            // Calculate column width to fill available space
-            const calculatedWidth = Math.floor(availableWidth / finalDays);
-            const finalWidth = Math.max(minWidth, Math.min(MAX_COLUMN_WIDTH, calculatedWidth));
+            // If columns are at minimum width, we may need more days to fill space
+            const finalDays = finalWidth === minWidth
+                ? Math.floor(availableWidth / minWidth)
+                : targetDays;
 
-            setState({ daysCount: finalDays, columnWidth: finalWidth });
+            setState({ daysCount: Math.max(3, finalDays), columnWidth: finalWidth });
         };
 
         updateLayout();
