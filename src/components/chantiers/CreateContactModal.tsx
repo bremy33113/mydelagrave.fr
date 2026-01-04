@@ -214,12 +214,15 @@ export function CreateContactModal({
                     throw new Error(error.message);
                 }
 
-                if (data) {
-                    onSuccess(data as Tables<'clients'>);
-                    onClose();
+                if (!data) {
+                    throw new Error('Création refusée. Vérifiez vos permissions.');
                 }
+
+                onSuccess(data as Tables<'clients'>);
+                onClose();
             }
         } catch (err) {
+            console.error('Erreur création contact:', err);
             alert('Erreur lors de la sauvegarde: ' + (err as Error).message);
         } finally {
             setLoading(false);
