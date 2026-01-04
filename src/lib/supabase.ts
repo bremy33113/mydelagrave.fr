@@ -493,8 +493,16 @@ class MockQueryBuilder {
                 case 'neq':
                     return value !== filter.value;
                 case 'is':
+                    // Treat undefined as null for .is('column', null) queries
+                    if (filter.value === null) {
+                        return value === null || value === undefined;
+                    }
                     return value === filter.value;
                 case 'not_is':
+                    // Treat undefined as null for .not('column', 'is', null) queries
+                    if (filter.value === null) {
+                        return value !== null && value !== undefined;
+                    }
                     return value !== filter.value;
                 case 'in':
                     return (filter.value as unknown[]).includes(value);
