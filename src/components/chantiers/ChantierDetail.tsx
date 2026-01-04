@@ -346,6 +346,7 @@ export function ChantierDetail({
                             <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-2">
                                 <FileText className="w-4 h-4" />
                                 Informations
+                                <span className="text-xs font-normal" data-testid="notes-count">({notes.length})</span>
                             </h3>
                         </button>
                         <button
@@ -465,7 +466,6 @@ export function ChantierDetail({
 
                             {/* Liste des notes */}
                             <div className="border-t border-slate-700/50 pt-4" data-testid="notes-section">
-                                <p className="text-xs text-slate-500 uppercase mb-2" data-testid="notes-count">Notes ({notes.length})</p>
                                 {notes.length === 0 ? (
                                     <p className="text-sm text-slate-500 italic">Aucune note</p>
                                 ) : (

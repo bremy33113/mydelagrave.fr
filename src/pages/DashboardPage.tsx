@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { Plus, Search, RefreshCw, AlertCircle, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
 import { KPIBar } from '../components/dashboard/KPIBar';
@@ -27,6 +27,16 @@ export function DashboardPage() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+    // Dropdown filter states (for admin/superviseur only)
+    const [filterChargeAffaire, setFilterChargeAffaire] = useState<string>('');
+    const [filterStatut, setFilterStatut] = useState<string>('');
+    const [filterPoseur, setFilterPoseur] = useState<string>('');
+
+    // Lists for dropdown filters
+    const [chargeAffaireList, setChargeAffaireList] = useState<Tables<'users'>[]>([]);
+    const [poseurList, setPoseurList] = useState<Tables<'users'>[]>([]);
+    const [statutList, setStatutList] = useState<Tables<'ref_statuts_chantier'>[]>([]);
 
     // Modal states
     const [showChantierModal, setShowChantierModal] = useState(false);
@@ -90,6 +100,40 @@ export function DashboardPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId, canViewAllChantiers, roleLoading]);
 
+    // Fetch filter lists for admin/superviseur
+    useEffect(() => {
+        if (!canViewAllChantiers) return;
+
+        const fetchFilterLists = async () => {
+            // Fetch charge d'affaires
+            const { data: caData } = await supabase
+                .from('users')
+                .select('*')
+                .eq('role', 'charge_affaire')
+                .is('deleted_at', null)
+                .order('last_name');
+            if (caData) setChargeAffaireList(caData);
+
+            // Fetch poseurs
+            const { data: poseurData } = await supabase
+                .from('users')
+                .select('*')
+                .eq('role', 'poseur')
+                .is('deleted_at', null)
+                .order('last_name');
+            if (poseurData) setPoseurList(poseurData);
+
+            // Fetch statuts
+            const { data: statutData } = await supabase
+                .from('ref_statuts_chantier')
+                .select('*')
+                .order('ordre');
+            if (statutData) setStatutList(statutData);
+        };
+
+        fetchFilterLists();
+    }, [canViewAllChantiers]);
+
     // Filter chantiers based on search and status
     const filteredChantiers = useMemo(() => {
         let result = chantiers;
@@ -106,7 +150,7 @@ export function DashboardPage() {
             );
         }
 
-        // Status filter
+        // Status filter (from KPI bar)
         if (statusFilter) {
             switch (statusFilter) {
                 case 'non_planifie':
@@ -127,8 +171,19 @@ export function DashboardPage() {
             }
         }
 
+        // Dropdown filters (admin/superviseur only)
+        if (filterChargeAffaire) {
+            result = result.filter((c) => c.charge_affaire_id === filterChargeAffaire);
+        }
+        if (filterStatut) {
+            result = result.filter((c) => c.statut === filterStatut);
+        }
+        if (filterPoseur) {
+            result = result.filter((c) => c.poseur_id === filterPoseur);
+        }
+
         return result;
-    }, [chantiers, searchQuery, statusFilter]);
+    }, [chantiers, searchQuery, statusFilter, filterChargeAffaire, filterStatut, filterPoseur]);
 
     const selectedChantier = useMemo(
         () => chantiers.find((c) => c.id === selectedId),
@@ -219,16 +274,70 @@ export function DashboardPage() {
             <div className="flex-1 flex gap-6 min-h-0">
                 {/* List panel */}
                 <div className="w-2/5 flex flex-col min-h-0">
-                    {/* Search */}
-                    <div className="relative mb-4">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Rechercher un chantier..."
-                            className="input-field !pl-11"
-                        />
+                    {/* Search and Filters */}
+                    <div className="flex gap-2 mb-4">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Rechercher un chantier..."
+                                className="input-field !pl-11"
+                            />
+                        </div>
+                        {canViewAllChantiers && (
+                            <>
+                                <div className="relative">
+                                    <select
+                                        data-testid="filter-charge-affaire"
+                                        value={filterChargeAffaire}
+                                        onChange={(e) => setFilterChargeAffaire(e.target.value)}
+                                        className={`input-field appearance-none pr-8 min-w-[120px] ${filterChargeAffaire ? 'border-blue-500/50 text-blue-400' : ''}`}
+                                    >
+                                        <option value="">Chargé</option>
+                                        {chargeAffaireList.map((user) => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.first_name} {user.last_name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                </div>
+                                <div className="relative">
+                                    <select
+                                        data-testid="filter-statut"
+                                        value={filterStatut}
+                                        onChange={(e) => setFilterStatut(e.target.value)}
+                                        className={`input-field appearance-none pr-8 min-w-[120px] ${filterStatut ? 'border-blue-500/50 text-blue-400' : ''}`}
+                                    >
+                                        <option value="">Statut</option>
+                                        {statutList.map((statut) => (
+                                            <option key={statut.id} value={statut.id}>
+                                                {statut.libelle}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                </div>
+                                <div className="relative">
+                                    <select
+                                        data-testid="filter-poseur"
+                                        value={filterPoseur}
+                                        onChange={(e) => setFilterPoseur(e.target.value)}
+                                        className={`input-field appearance-none pr-8 min-w-[120px] ${filterPoseur ? 'border-blue-500/50 text-blue-400' : ''}`}
+                                    >
+                                        <option value="">Poseur</option>
+                                        {poseurList.map((user) => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.first_name} {user.last_name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Active filter indicator */}

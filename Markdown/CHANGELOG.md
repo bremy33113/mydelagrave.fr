@@ -2,6 +2,18 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [0.5.0] - 2026-01-04
+
+### Nouvelles Fonctionnalités
+- ✨ Filtres dropdown (Chargé d'affaire, Statut, Poseur) pour admin/superviseur
+- ✨ Création `markdown/AGENTS.md` pour instructions agents IA
+
+### Améliorations
+- ⚡ Compteur de notes déplacé à côté du titre "(X)"
+- ⚡ Centralisation de la documentation dans `markdown/`
+- ⚡ Ajout étape de nettoyage aux skills de release
+- ⚡ 8 nouveaux tests E2E pour les filtres (96 tests total)
+
 ## [0.4.0] - 2026-01-04
 
 ### Nouvelles Fonctionnalités

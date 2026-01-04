@@ -1,6 +1,6 @@
 ---
 description: Bump minor version (x.Y.0) + changelog auto + commit + tag + push (project)
-allowed-tools: Read, Edit, Grep, Bash(npm:*), Bash(git:*), Bash(cat:*), Bash(grep:*)
+allowed-tools: Read, Edit, Grep, Bash(npm:*), Bash(git:*), Bash(cat:*), Bash(grep:*), Bash(rm:*), Bash(find:*)
 ---
 
 # MINOR Version Bump (x.Y.0)
@@ -10,6 +10,40 @@ Tu es un Release Manager Senior. Exécute un bump de version MINOR complet.
 ## Règles Sémantiques
 - **MINOR (x.Y.0)** : Nouvelles fonctionnalités, améliorations UX visibles
 - Reset du PATCH à 0
+
+## Étape 0: Nettoyage du projet
+
+**AVANT toute release**, nettoyer les fichiers inutiles :
+
+```bash
+# Supprimer les fichiers temporaires et inutiles
+find . -name "*.tmp" -delete 2>/dev/null
+find . -name "*.bak" -delete 2>/dev/null
+find . -name "*.log" -not -path "./node_modules/*" -delete 2>/dev/null
+find . -name ".DS_Store" -delete 2>/dev/null
+find . -name "Thumbs.db" -delete 2>/dev/null
+
+# Supprimer les images orphelines à la racine (copies, doublons)
+find . -maxdepth 1 -name "*.png" -delete 2>/dev/null
+find . -maxdepth 1 -name "*.jpg" -delete 2>/dev/null
+find . -maxdepth 1 -name "*.jpeg" -delete 2>/dev/null
+
+# Supprimer les dossiers de résultats de tests
+rm -rf test-results 2>/dev/null
+rm -rf playwright-report 2>/dev/null
+
+# Supprimer les fichiers null ou vides
+find . -name "null" -delete 2>/dev/null
+find . -type f -empty -not -path "./node_modules/*" -delete 2>/dev/null
+```
+
+Afficher un rapport :
+```
+🧹 Nettoyage effectué :
+- Fichiers temporaires supprimés : N
+- Images orphelines supprimées : N
+- Dossiers de tests nettoyés : ✓
+```
 
 ## Étape 1: Lire la version actuelle
 
@@ -27,9 +61,7 @@ grep -r "vX.Y.Z" --include="*.json" --include="*.md" --include="*.tsx" --include
 
 **Fichiers obligatoires** (toujours présents) :
 1. `package.json` - `"version": "X.Y.0"`
-2. `public/manifest.json` - `"version": "X.Y.0"`
-3. `AGENTS.md` - VERSION_ACTUELLE + ÉTAT DU SYSTÈME
-4. `CLAUDE.md` - Footer avec date et version
+2. `markdown/AGENTS.md` - VERSION_ACTUELLE + ÉTAT DU SYSTÈME + historique
 
 **Fichiers dynamiques** (découverts par scan) :
 - Tout fichier `.tsx`/`.ts` contenant `vX.Y.Z` (ex: sidebars, footers)
@@ -75,10 +107,10 @@ Propose :
 
 Pour chaque fichier trouvé, remplacer l'ancienne version par la nouvelle.
 
-**AGENTS.md** : Mettre à jour ÉTAT DU SYSTÈME avec le titre de release.
+**markdown/AGENTS.md** : Mettre à jour VERSION_ACTUELLE, ÉTAT DU SYSTÈME et historique.
 
 **Changelogs** :
-- `CHANGELOG.md` : Nouvelle entrée complète
+- `markdown/CHANGELOG.md` : Nouvelle entrée complète
 
 ## Étape 5: Commit, Tag et Push
 

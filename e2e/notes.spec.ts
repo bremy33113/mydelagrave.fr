@@ -53,9 +53,9 @@ test.describe('Notes - Section Informations', () => {
     });
 
     test('should create a note with text', async ({ page }) => {
-        // Get initial count
+        // Get initial count from (X) format
         const countText = await page.locator('[data-testid="notes-count"]').textContent();
-        const initialCount = parseInt(countText?.match(/\d+/)?.[0] || '0');
+        const initialCount = parseInt(countText?.replace(/[()]/g, '') || '0');
 
         // Open form
         await page.click('[data-testid="btn-add-note"]');
@@ -70,7 +70,7 @@ test.describe('Notes - Section Informations', () => {
         await expect(page.locator('[data-testid="note-form"]')).not.toBeVisible();
 
         // Verify count increased
-        await expect(page.locator('[data-testid="notes-count"]')).toContainText(`Notes (${initialCount + 1})`);
+        await expect(page.locator('[data-testid="notes-count"]')).toContainText(`(${initialCount + 1})`);
     });
 
     test('should display notes in the list', async ({ page }) => {
