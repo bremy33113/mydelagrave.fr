@@ -1,0 +1,330 @@
+import { useState, useEffect, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useUserRole } from '../hooks/useUserRole';
+import { PlanningCalendar } from '../components/planning/PlanningCalendar';
+import { UnassignedPhasesPanel } from '../components/planning/UnassignedPhasesPanel';
+import type { Tables } from '../lib/database.types';
+
+export type PhaseWithRelations = Tables<'phases_chantiers'> & {
+    poseur?: { id: string; first_name: string | null; last_name: string | null } | null;
+    chantier?: {
+        id: string;
+        nom: string;
+        reference: string | null;
+        statut: string;
+        adresse_livraison_latitude: number | null;
+        adresse_livraison_longitude: number | null;
+    } | null;
+};
+
+export type ViewMode = 'week' | '3weeks' | 'month';
+
+// Get Monday of the current week
+function getWeekStart(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+// Get ISO week number
+function getWeekNumber(date: Date): number {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+// Format date range for display
+function formatDateRange(start: Date, end: Date): string {
+    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+    const startStr = start.toLocaleDateString('fr-FR', options);
+    const endStr = end.toLocaleDateString('fr-FR', { ...options, year: 'numeric' });
+    return `${startStr} - ${endStr}`;
+}
+
+export function PlanningPage() {
+    const { canViewAllChantiers, loading: roleLoading } = useUserRole();
+    const [viewMode, setViewMode] = useState<ViewMode>('week');
+    const [currentDate, setCurrentDate] = useState(getWeekStart(new Date()));
+    const [selectedPoseur, setSelectedPoseur] = useState<string | null>(null);
+    const [phases, setPhases] = useState<PhaseWithRelations[]>([]);
+    const [poseurs, setPoseurs] = useState<Tables<'users'>[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    // Calculate date range based on view mode
+    const dateRange = useMemo(() => {
+        const start = new Date(currentDate);
+        const end = new Date(currentDate);
+
+        switch (viewMode) {
+            case 'week':
+                end.setDate(start.getDate() + 6);
+                break;
+            case '3weeks':
+                end.setDate(start.getDate() + 20);
+                break;
+            case 'month':
+                end.setDate(start.getDate() + 27);
+                break;
+        }
+
+        return { start, end };
+    }, [currentDate, viewMode]);
+
+    // Fetch poseurs (users with role poseur only)
+    useEffect(() => {
+        const fetchPoseurs = async () => {
+            const { data } = await supabase
+                .from('users')
+                .select('*')
+                .eq('role', 'poseur')
+                .eq('suspended', false)
+                .order('last_name', { ascending: true });
+            if (data && Array.isArray(data)) {
+                setPoseurs(data as Tables<'users'>[]);
+            }
+        };
+        fetchPoseurs();
+    }, []);
+
+    // Fetch phases with relations
+    useEffect(() => {
+        const fetchPhases = async () => {
+            setLoading(true);
+
+            // Fetch all phases (we'll filter client-side for flexibility)
+            const { data, error } = await supabase
+                .from('phases_chantiers')
+                .select(`
+                    *,
+                    poseur:users!poseur_id(id, first_name, last_name),
+                    chantier:chantiers(id, nom, reference, statut, adresse_livraison_latitude, adresse_livraison_longitude)
+                `)
+                .order('date_debut', { ascending: true });
+
+            if (error) {
+                console.error('Error fetching phases:', error);
+            } else if (data && Array.isArray(data)) {
+                // Filter out phases from deleted chantiers
+                const validPhases = data.filter(
+                    (p: PhaseWithRelations) => p.chantier && !(p.chantier as { deleted_at?: string }).deleted_at
+                ) as PhaseWithRelations[];
+                setPhases(validPhases);
+            }
+
+            setLoading(false);
+        };
+
+        fetchPhases();
+    }, [refreshKey]);
+
+    // Filter phases for calendar view (within date range)
+    const calendarPhases = useMemo(() => {
+        const startStr = dateRange.start.toISOString().split('T')[0];
+        const endStr = dateRange.end.toISOString().split('T')[0];
+
+        return phases.filter((p) => {
+            // Phase overlaps with date range if:
+            // phase.date_debut <= endStr AND phase.date_fin >= startStr
+            const phaseStart = p.date_debut;
+            const phaseEnd = p.date_fin;
+
+            const overlaps = phaseStart <= endStr && phaseEnd >= startStr;
+
+            // Apply poseur filter if selected
+            if (selectedPoseur && p.poseur_id !== selectedPoseur) {
+                return false;
+            }
+
+            return overlaps;
+        });
+    }, [phases, dateRange, selectedPoseur]);
+
+    // Unassigned phases (no poseur)
+    const unassignedPhases = useMemo(() => {
+        return phases.filter((p) => !p.poseur_id);
+    }, [phases]);
+
+    // Navigate: Hebdo = 1 day, 3Sem/Mois = 7 days
+    const navigateWeek = (direction: 'prev' | 'next') => {
+        const newDate = new Date(currentDate);
+        const days = viewMode === 'week' ? 1 : 7;
+        newDate.setDate(newDate.getDate() + (direction === 'next' ? days : -days));
+        setCurrentDate(newDate);
+    };
+
+    // Handle calendar navigation (Shift + wheel)
+    const handleCalendarNavigate = (days: number) => {
+        setCurrentDate((prev) => {
+            const newDate = new Date(prev);
+            newDate.setDate(newDate.getDate() + days);
+            return newDate;
+        });
+    };
+
+    // Go to today
+    const goToToday = () => {
+        setCurrentDate(getWeekStart(new Date()));
+    };
+
+    // Handle phase update (from drag & drop or inline edit)
+    const handlePhaseUpdate = async (phaseId: string, updates: Partial<Tables<'phases_chantiers'>>) => {
+        const { error } = await supabase
+            .from('phases_chantiers')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', phaseId);
+
+        if (error) {
+            console.error('Error updating phase:', error);
+            alert('Erreur lors de la mise à jour');
+        } else {
+            // Signal au Dashboard qu'une phase a été modifiée
+            localStorage.setItem('phases_last_update', Date.now().toString());
+            setRefreshKey((k) => k + 1);
+        }
+    };
+
+    // Handle phase click (focus on phase from "À attribuer" panel)
+    const handlePhaseClick = (phase: PhaseWithRelations) => {
+        if (phase.date_debut) {
+            // Center planning on the phase's start date
+            const phaseDate = new Date(phase.date_debut);
+            setCurrentDate(getWeekStart(phaseDate));
+        } else {
+            alert('Cette phase n\'est pas encore planifiée');
+        }
+    };
+
+    // Access denied for non-supervisors
+    if (!roleLoading && !canViewAllChantiers) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-xl text-slate-400">Accès non autorisé</p>
+                    <p className="text-sm text-slate-500 mt-2">
+                        Cette page est réservée aux superviseurs et administrateurs
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-full flex flex-col overflow-hidden">
+            {/* Header */}
+            <header className="flex-shrink-0 p-4 border-b border-slate-700/50">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-2xl font-bold text-white">Planning</h1>
+
+                        {/* Week navigation */}
+                        <div className="flex items-center gap-2 bg-slate-800/50 rounded-lg p-1">
+                            <button
+                                onClick={() => navigateWeek('prev')}
+                                className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
+                                title="Semaine précédente"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+
+                            <button
+                                onClick={goToToday}
+                                className="px-3 py-1 text-sm text-slate-300 hover:text-white transition-colors"
+                            >
+                                Semaine {getWeekNumber(currentDate)}
+                            </button>
+
+                            <button
+                                onClick={() => navigateWeek('next')}
+                                className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
+                                title="Semaine suivante"
+                            >
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <span className="text-sm text-slate-400">
+                            {formatDateRange(dateRange.start, dateRange.end)}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {/* View mode toggle */}
+                        <div className="flex bg-slate-800/50 rounded-lg p-1">
+                            {(['week', '3weeks', 'month'] as ViewMode[]).map((mode) => (
+                                <button
+                                    key={mode}
+                                    onClick={() => setViewMode(mode)}
+                                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                                        viewMode === mode
+                                            ? 'bg-blue-600 text-white'
+                                            : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {mode === 'week' ? 'Hebdo' : mode === '3weeks' ? '3 Sem' : 'Mois'}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Poseur filter */}
+                        <select
+                            value={selectedPoseur || ''}
+                            onChange={(e) => setSelectedPoseur(e.target.value || null)}
+                            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                        >
+                            <option value="">Tous les poseurs</option>
+                            {poseurs.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                    {p.first_name} {p.last_name}
+                                </option>
+                            ))}
+                        </select>
+
+                        {/* Refresh button */}
+                        <button
+                            onClick={() => setRefreshKey((k) => k + 1)}
+                            className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors"
+                            title="Actualiser"
+                        >
+                            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            {/* Main content */}
+            <div className="flex-1 flex overflow-hidden">
+                {/* Unassigned phases panel */}
+                <UnassignedPhasesPanel
+                    phases={unassignedPhases}
+                    onPhaseUpdate={handlePhaseUpdate}
+                    onPhaseClick={handlePhaseClick}
+                />
+
+                {/* Calendar */}
+                <div className="flex-1 overflow-auto">
+                    {loading ? (
+                        <div className="h-full flex items-center justify-center">
+                            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                    ) : (
+                        <PlanningCalendar
+                            phases={calendarPhases}
+                            poseurs={poseurs}
+                            dateRange={dateRange}
+                            viewMode={viewMode}
+                            onPhaseUpdate={handlePhaseUpdate}
+                            onNavigate={handleCalendarNavigate}
+                        />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}

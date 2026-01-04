@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, Search, RefreshCw, AlertCircle, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
@@ -99,6 +99,40 @@ export function DashboardPage() {
         fetchChantiers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId, canViewAllChantiers, roleLoading]);
+
+    // Détecter les modifications de phases depuis le Planning et rafraîchir
+    const lastKnownUpdate = useRef<string | null>(null);
+    useEffect(() => {
+        const checkForUpdates = () => {
+            const phasesUpdate = localStorage.getItem('phases_last_update');
+            if (phasesUpdate && phasesUpdate !== lastKnownUpdate.current) {
+                lastKnownUpdate.current = phasesUpdate;
+                fetchChantiers();
+            }
+        };
+
+        // Vérifier au montage
+        checkForUpdates();
+
+        // Vérifier quand la page redevient visible (navigation retour)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                checkForUpdates();
+            }
+        };
+
+        // Vérifier sur le focus de la fenêtre
+        const handleFocus = () => checkForUpdates();
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Fetch filter lists for admin/superviseur
     useEffect(() => {

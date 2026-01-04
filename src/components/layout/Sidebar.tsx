@@ -8,6 +8,7 @@ import {
     Building2,
     ChevronLeft,
     ChevronRight,
+    CalendarDays,
 } from 'lucide-react';
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
@@ -19,7 +20,7 @@ interface SidebarProps {
 
 export function Sidebar({ userEmail }: SidebarProps) {
     const [collapsed, setCollapsed] = useState(false);
-    const { isAdmin, isSuperviseur, role } = useUserRole();
+    const { isAdmin, isSuperviseur, canViewAllChantiers, role } = useUserRole();
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -31,6 +32,12 @@ export function Sidebar({ userEmail }: SidebarProps) {
             icon: LayoutDashboard,
             label: 'Dashboard',
             show: true,
+        },
+        {
+            to: '/planning',
+            icon: CalendarDays,
+            label: 'Planning',
+            show: canViewAllChantiers,
         },
         {
             to: '/contacts',

@@ -2,6 +2,11 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [0.6.1] - 2026-01-04
+
+### Corrections
+- 🐛 Les barres de phase du planning reflètent maintenant précisément les heures de début/fin (ex: 8h-14h = 75% de la colonne au lieu de 100%)
+
 ## [0.6.0] - 2026-01-04
 
 ### Nouvelles Fonctionnalités

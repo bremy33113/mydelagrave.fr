@@ -17,6 +17,7 @@ graph TB
     subgraph Pages["📄 Pages"]
         Login["LoginPage"]
         Dashboard["DashboardPage"]
+        Planning["PlanningPage"]
         Contacts["ContactsPage"]
         Admin["AdminPage"]
         Trash["TrashPage"]
@@ -26,6 +27,117 @@ graph TB
     App --> Login
     Layout --> Sidebar
     Layout --> Pages
+```
+
+---
+
+## 📅 Planning Page - Zones
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  HEADER                                                                      │
+│  ┌─────────┐ ┌───┬─────────────┬───┐ ┌─────────────────┐ ┌───────────────┐  │
+│  │Planning │ │ ◀ │ Semaine 1   │ ▶ │ │ 25 déc - 5 jan  │ │Hebdo│3Sem│Mois│  │
+│  └─────────┘ └───┴─────────────┴───┘ └─────────────────┘ └───────────────┘  │
+│                                                          ┌─────────────────┐ │
+│                                                          │Tous les poseurs▼│ │
+│                                                          └─────────────────┘ │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ┌────────────┐ ┌────────────────────────────────────────────────────────┐   │
+│ │À ATTRIBUER │ │ CALENDRIER (PlanningCalendar.tsx)                      │   │
+│ │            │ │                                                         │   │
+│ │ Phases non │ │ ┌────────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐   │   │
+│ │ assignées  │ │ │ Poseur │ Lun │ Mar │ Mer │ Jeu │ Ven ║ Lun │ Mar │   │   │
+│ │            │ │ │        │ 29  │ 30  │ 31  │ 01  │ 02  ║ 05  │ 06  │   │   │
+│ │ ┌────────┐ │ │ ├────────┼─────┴─────┴─────┴─────┴─────╫─────┴─────┤   │   │
+│ │ │Phase 1 │ │ │ │J.Dupont│████████ Phase pose ████████║           │   │   │
+│ │ │Chantier│ │ │ │2 phases│                             ║           │   │   │
+│ │ └────────┘ │ │ ├────────┼─────────────────────────────╫───────────┤   │   │
+│ │            │ │ │M.Martin│     ████ Préparation ███████║           │   │   │
+│ │ ┌────────┐ │ │ │1 phase │                             ║           │   │   │
+│ │ │Phase 2 │ │ │ ├────────┼─────────────────────────────╫───────────┤   │   │
+│ │ │Autre   │ │ │ │Non     │                             ║           │   │   │
+│ │ └────────┘ │ │ │attribué│                             ║           │   │   │
+│ │            │ │ └────────┴─────────────────────────────╨───────────┘   │   │
+│ └────────────┘ │                                                         │   │
+│                │ ║ = Séparateur week-end (ligne dorée)                   │   │
+│                │ 🔴 = Jour férié (fond rouge léger)                      │   │
+│                │ 🔵 = Aujourd'hui (fond bleu léger)                      │   │
+│                └────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Navigation
+
+| Mode | Clic ◀ ▶ | Shift + Molette |
+|------|----------|-----------------|
+| **Hebdo** | ±1 jour | ±1 jour |
+| **3 Sem** | ±7 jours | ±1 jour |
+| **Mois** | ±7 jours | ±1 jour |
+
+- **Shift + Molette** : Actif uniquement quand la souris est sur le calendrier
+- **Curseur** : Change en `↔` quand Shift est enfoncé sur le calendrier
+
+### Composants Planning
+
+| Fichier | Description |
+|---------|-------------|
+| `PlanningPage.tsx` | Page principale, gestion état et navigation |
+| `PlanningCalendar.tsx` | Grille calendrier avec drag & drop |
+| `DroppablePoseurRow.tsx` | Ligne poseur droppable (zone de dépôt) |
+| `DraggablePhase.tsx` | Phase draggable avec tooltip |
+| `UnassignedPhasesPanel.tsx` | Panneau phases non attribuées |
+
+### Code clé - Jours fériés
+
+```typescript
+// French public holidays for 2025-2027
+const HOLIDAYS = [
+    // 2025
+    '2025-01-01', '2025-04-21', '2025-05-01', '2025-05-08', '2025-05-29',
+    '2025-06-09', '2025-07-14', '2025-08-15', '2025-11-01', '2025-11-11', '2025-12-25',
+    // 2026
+    '2026-01-01', '2026-04-06', '2026-05-01', '2026-05-08', '2026-05-14',
+    '2026-05-25', '2026-07-14', '2026-08-15', '2026-11-01', '2026-11-11', '2026-12-25',
+    // 2027
+    '2027-01-01', '2027-03-29', '2027-05-01', '2027-05-06', '2027-05-08',
+    '2027-05-17', '2027-07-14', '2027-08-15', '2027-11-01', '2027-11-11', '2027-12-25',
+];
+
+// Format date as YYYY-MM-DD in local timezone (not UTC!)
+function formatLocalDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+```
+
+### Responsive Planning
+
+Le nombre de jours affichés s'adapte automatiquement à la largeur de l'écran :
+
+```typescript
+const MIN_COLUMN_WIDTH = 60;  // Largeur min colonne
+const MAX_COLUMN_WIDTH = 100; // Largeur max colonne
+const POSEUR_COLUMN_WIDTH = 160;
+
+// viewMode définit le MINIMUM de jours
+// week=5, 3weeks=15, month=20
+// L'écran large affiche plus de jours automatiquement
+```
+
+### Couleurs des statuts
+
+```typescript
+const STATUS_COLORS: Record<string, string> = {
+    nouveau: 'bg-blue-500/80 border-blue-400',
+    planifie: 'bg-purple-500/80 border-purple-400',
+    en_cours: 'bg-amber-500/80 border-amber-400',
+    pose_en_cours: 'bg-pink-500/80 border-pink-400',
+    a_terminer: 'bg-orange-500/80 border-orange-400',
+    termine: 'bg-green-500/80 border-green-400',
+};
 ```
 
 ---
@@ -389,6 +501,12 @@ src/
 │   │   ├── AddressSelectorModal.tsx# Modal carte Leaflet
 │   │   └── DocumentUploadModal.tsx # Modal upload documents (drag & drop)
 │   │
+│   ├── planning/
+│   │   ├── PlanningCalendar.tsx    # Grille calendrier avec drag & drop
+│   │   ├── DroppablePoseurRow.tsx  # Ligne poseur (zone droppable)
+│   │   ├── DraggablePhase.tsx      # Phase draggable avec tooltip
+│   │   └── UnassignedPhasesPanel.tsx # Panneau phases non attribuées
+│   │
 │   └── ui/
 │       ├── ChantierStatusBadge.tsx # Badge statut coloré
 │       └── ConfirmModal.tsx        # Modal confirmation générique
@@ -404,6 +522,7 @@ src/
 └── pages/
     ├── LoginPage.tsx       # Page connexion
     ├── DashboardPage.tsx   # Tableau de bord
+    ├── PlanningPage.tsx    # Planning poseurs (drag & drop)
     ├── ContactsPage.tsx    # Gestion contacts
     ├── AdminPage.tsx       # Administration (modal inline)
     └── TrashPage.tsx       # Corbeille (chantiers, notes, contacts)

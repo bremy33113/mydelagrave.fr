@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ContactsPage } from './pages/ContactsPage';
 import { AdminPage } from './pages/AdminPage';
 import { TrashPage } from './pages/TrashPage';
+import { PlanningPage } from './pages/PlanningPage';
 
 interface User {
     id: string;
@@ -60,6 +61,7 @@ function App() {
                 <Route path="/login" element={<Navigate to="/" replace />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/contacts" element={<ContactsPage />} />
+                <Route path="/planning" element={<PlanningPage />} />
                 <Route path="/corbeille" element={<TrashPage />} />
                 <Route path="/*" element={<DashboardPage />} />
             </Routes>
