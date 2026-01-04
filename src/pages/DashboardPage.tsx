@@ -58,7 +58,7 @@ export function DashboardPage() {
                 .select(`
           *,
           client:clients(*),
-          charge_affaire:users(*),
+          charge_affaire:users!charge_affaire_id(*),
           ref_categories_chantier(*),
           ref_statuts_chantier(*),
           phases_chantiers(*)
