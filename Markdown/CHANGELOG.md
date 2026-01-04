@@ -2,6 +2,16 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.1.2] - 2026-01-05
+
+### Corrections UI - Section Coordonnées Chantier
+
+### Corrections
+- 🐛 Ajouter affichage de l'adresse du client principal
+- 🐛 Afficher icône Google Maps même sans coordonnées GPS (fallback sur adresse textuelle)
+
+---
+
 ## [1.1.1] - 2026-01-04
 
 ### Corrections Production Supabase
