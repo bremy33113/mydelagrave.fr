@@ -181,7 +181,7 @@ export function CreateContactModal({
 
         try {
             if (isEditing && editingClient) {
-                const { data } = await supabase
+                const { data, error } = await supabase
                     .from('clients')
                     .update({
                         ...formData,
@@ -191,16 +191,28 @@ export function CreateContactModal({
                     .select()
                     .single();
 
+                if (error) {
+                    throw new Error(error.message);
+                }
+
                 if (data) {
                     onSuccess(data as Tables<'clients'>);
                     onClose();
                 }
             } else {
-                const { data } = await supabase
+                const { data, error } = await supabase
                     .from('clients')
-                    .insert([{ ...formData, created_by: userId, deleted_at: null }] as Record<string, unknown>[])
+                    .insert([{
+                        ...formData,
+                        created_by: userId || null,
+                        deleted_at: null
+                    }] as Record<string, unknown>[])
                     .select()
                     .single();
+
+                if (error) {
+                    throw new Error(error.message);
+                }
 
                 if (data) {
                     onSuccess(data as Tables<'clients'>);
