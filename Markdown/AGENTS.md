@@ -3,7 +3,7 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**1.1.0**
+**1.1.1**
 
 ## ÉTAT DU SYSTÈME
 MyDelagrave Production Ready - Dual Environment (Mock/Supabase)
@@ -55,6 +55,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.1.1 | 2026-01-04 | Corrections production (PostgREST, auth sync, session admin) |
 | 1.1.0 | 2026-01-04 | Infrastructure Production Supabase |
 | 1.0.0 | 2026-01-04 | 🚀 MyDelagrave Production Ready |
 | 0.6.2 | 2026-01-04 | Vues Planning 3 Mois/Année + fenêtre externe |

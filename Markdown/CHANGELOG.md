@@ -2,6 +2,21 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.1.1] - 2026-01-04
+
+### Corrections Production Supabase
+
+### Corrections
+- 🐛 Fix erreur PostgREST "more than one relationship" (spécifier FK explicite `users!charge_affaire_id`)
+- 🐛 Fix sync automatique `auth.users` → `public.users` (trigger + migration initiale)
+- 🐛 Fix déconnexion admin lors de création d'utilisateur (restauration session)
+- 🐛 LoginPage adaptatif : masquer comptes demo en production
+
+### Migrations
+- 📦 `00005_auth_user_sync.sql` : Trigger de synchronisation utilisateurs
+
+---
+
 ## [1.1.0] - 2026-01-04
 
 ### Infrastructure Production Supabase

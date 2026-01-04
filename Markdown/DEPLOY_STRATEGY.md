@@ -366,6 +366,82 @@ DELETE FROM schema_version WHERE version = '1.1.0';
 
 ---
 
+## Problèmes Connus et Solutions
+
+### Erreur : "more than one relationship was found"
+
+**Symptôme** : Erreur PostgREST lors du chargement du dashboard.
+
+**Cause** : La table `chantiers` a deux FK vers `users` (`charge_affaire_id` et `poseur_id`). PostgREST ne sait pas laquelle utiliser.
+
+**Solution** : Spécifier explicitement la FK dans les requêtes :
+```typescript
+// ❌ Incorrect
+.select('*, charge_affaire:users(*)')
+
+// ✅ Correct
+.select('*, charge_affaire:users!charge_affaire_id(*)')
+```
+
+---
+
+### Erreur : Menu Planning/Admin invisible après login
+
+**Symptôme** : L'utilisateur se connecte mais ne voit pas tous les menus.
+
+**Cause** : L'utilisateur existe dans `auth.users` mais pas dans `public.users` (table des rôles).
+
+**Solution** : Appliquer la migration `00005_auth_user_sync.sql` qui :
+1. Crée un trigger pour sync automatique `auth.users` → `public.users`
+2. Synchronise les utilisateurs existants
+
+```sql
+-- Vérifier la sync
+SELECT au.email, pu.role
+FROM auth.users au
+LEFT JOIN public.users pu ON au.id = pu.id;
+```
+
+---
+
+### Erreur : Déconnexion lors de création d'utilisateur (admin)
+
+**Symptôme** : L'admin crée un utilisateur et se retrouve déconnecté.
+
+**Cause** : `supabase.auth.signUp()` connecte automatiquement le nouvel utilisateur.
+
+**Solution** : Sauvegarder et restaurer la session admin :
+```typescript
+// Avant signUp
+const { data } = await supabase.auth.getSession();
+const adminSession = data?.session;
+
+// Après signUp
+if (adminSession) {
+    await supabase.auth.setSession({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token,
+    });
+}
+```
+
+---
+
+### Erreur : Comptes demo visibles en production
+
+**Symptôme** : La page login affiche les comptes de démonstration en production.
+
+**Solution** : Utiliser `isUsingMock` pour conditionner l'affichage :
+```typescript
+import { isUsingMock } from '../lib/supabase';
+
+{isUsingMock && (
+    <div>Comptes de démonstration...</div>
+)}
+```
+
+---
+
 ## Contacts & Support
 
 - **Supabase Documentation** : https://supabase.com/docs
