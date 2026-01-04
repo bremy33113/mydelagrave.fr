@@ -14,10 +14,12 @@ test.describe('Planning Page', () => {
         // Check page title (h1 heading)
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
 
-        // Check view mode buttons
+        // Check view mode buttons (5 modes: Hebdo, 3 Sem, Mois, 3 Mois, Année)
         await expect(page.getByRole('button', { name: 'Hebdo' })).toBeVisible();
         await expect(page.getByRole('button', { name: '3 Sem' })).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Mois' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Mois', exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: '3 Mois' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Année' })).toBeVisible();
 
         // Check week navigation
         await expect(page.getByText(/Semaine \d+/)).toBeVisible();
@@ -68,9 +70,17 @@ test.describe('Planning Page', () => {
         await page.getByRole('button', { name: '3 Sem' }).click();
         await expect(page.getByRole('button', { name: '3 Sem' })).toHaveClass(/bg-blue-600/);
 
-        // Switch to month
-        await page.getByRole('button', { name: 'Mois' }).click();
-        await expect(page.getByRole('button', { name: 'Mois' })).toHaveClass(/bg-blue-600/);
+        // Switch to month (exact match to avoid '3 Mois')
+        await page.getByRole('button', { name: 'Mois', exact: true }).click();
+        await expect(page.getByRole('button', { name: 'Mois', exact: true })).toHaveClass(/bg-blue-600/);
+
+        // Switch to 3 months
+        await page.getByRole('button', { name: '3 Mois' }).click();
+        await expect(page.getByRole('button', { name: '3 Mois' })).toHaveClass(/bg-blue-600/);
+
+        // Switch to year
+        await page.getByRole('button', { name: 'Année' }).click();
+        await expect(page.getByRole('button', { name: 'Année' })).toHaveClass(/bg-blue-600/);
     });
 
     test('should filter by poseur', async ({ page }) => {
@@ -116,5 +126,46 @@ test.describe('Planning Page', () => {
 
         // Should show "À attribuer" panel
         await expect(page.getByText('À attribuer')).toBeVisible();
+    });
+
+    test('should switch to 3 Mois view', async ({ page }) => {
+        await page.getByRole('link', { name: 'Planning' }).click();
+        await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
+
+        // Click 3 Mois button
+        await page.getByRole('button', { name: '3 Mois' }).click();
+
+        // Button should be active
+        await expect(page.getByRole('button', { name: '3 Mois' })).toHaveClass(/bg-blue-600/);
+
+        // Year header should be visible in 3 Mois view
+        const currentYear = new Date().getFullYear();
+        await expect(page.getByText(currentYear.toString()).first()).toBeVisible();
+    });
+
+    test('should switch to Année view', async ({ page }) => {
+        await page.getByRole('link', { name: 'Planning' }).click();
+        await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
+
+        // Click Année button
+        await page.getByRole('button', { name: 'Année' }).click();
+
+        // Button should be active
+        await expect(page.getByRole('button', { name: 'Année' })).toHaveClass(/bg-blue-600/);
+
+        // Year header should be visible
+        const currentYear = new Date().getFullYear();
+        await expect(page.getByText(currentYear.toString()).first()).toBeVisible();
+    });
+
+    test('should have external window button next to Planning menu', async ({ page }) => {
+        // External window button should be visible next to Planning link
+        // The MonitorUp icon button is rendered next to Planning
+        const planningSection = page.locator('nav').filter({ has: page.getByRole('link', { name: 'Planning' }) });
+        await expect(planningSection).toBeVisible();
+
+        // Button with MonitorUp icon should exist (it has a title attribute)
+        const externalButton = page.locator('button[title*="fenêtre"], button[title*="écran"]');
+        await expect(externalButton).toBeVisible();
     });
 });

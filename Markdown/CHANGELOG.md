@@ -2,6 +2,26 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.0.0] - 2026-01-04 🚀 MAJOR RELEASE
+
+### MyDelagrave Production Ready
+
+Première version stable de production avec toutes les fonctionnalités majeures.
+
+### Fonctionnalités Majeures
+- ✨ **Planning complet** avec 5 modes de vue (Hebdo, 3 Sem, Mois, 3 Mois, Année)
+- ✨ **Fenêtre Planning externe** multi-écrans sans sidebar
+- ✨ **Gestion documentaire** complète (upload, prévisualisation, corbeille)
+- ✨ **Système de notes** avec photos et compression automatique
+- ✨ **Filtres avancés** Dashboard (Chargé d'affaire, Statut, Poseur)
+- ✨ **RBAC complet** (Admin, Superviseur, Chargé d'Affaires, Poseur)
+- ✨ **Corbeille** avec soft delete et restauration
+
+### Couverture Tests
+- 🧪 117 tests E2E couvrant toutes les fonctionnalités
+
+---
+
 ## [0.6.2] - 2026-01-04
 
 ### Nouvelles Fonctionnalités
