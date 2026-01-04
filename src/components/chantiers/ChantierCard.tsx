@@ -66,7 +66,6 @@ export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProp
                     {chantier.reference && (
                         <span className="text-xs text-slate-500 flex-shrink-0">({chantier.reference})</span>
                     )}
-                    <span className="text-xs text-slate-600 flex-shrink-0">[{chantier.id}]</span>
                 </div>
                 <ChantierStatusBadge statut={chantier.statut} />
             </div>
