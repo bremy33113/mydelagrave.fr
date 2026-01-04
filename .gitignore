@@ -14,9 +14,10 @@ playwright-report/
 test-results/
 coverage/
 
-# Environment
+# Environment (Supabase credentials - NE PAS COMMITER)
 .env
 .env.local
+.env.production
 .env.*.local
 
 # IDE

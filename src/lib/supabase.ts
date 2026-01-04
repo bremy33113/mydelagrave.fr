@@ -1,9 +1,16 @@
 /**
- * Mock Supabase Client
- * Émule l'API Supabase avec persistance localStorage
- * Ce fichier peut être remplacé par le vrai client Supabase lors de la migration
+ * Supabase Client Factory
+ * Supporte deux modes :
+ * - Mock (localStorage) pour le développement local
+ * - Réel (Supabase distant) pour la production
+ *
+ * Configuration via variables d'environnement :
+ * - VITE_USE_MOCK=true  → Mode développement (défaut)
+ * - VITE_USE_MOCK=false → Mode production (nécessite VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY)
  */
 
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 import {
     ref_roles_user,
     ref_statuts_chantier,
@@ -717,11 +724,49 @@ class MockSupabaseClient {
     }
 }
 
-// Export du client mock
-export const supabase = new MockSupabaseClient();
+// ============ CLIENT FACTORY ============
 
-// Fonction utilitaire pour réinitialiser les données (dev only)
+// Déterminer le mode d'exécution
+const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
+
+/**
+ * Crée le client Supabase approprié selon la configuration
+ * Note: On utilise 'any' pour éviter les conflits de types entre mock et réel
+ * Les deux clients ont la même API, donc c'est sûr à l'exécution
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createSupabaseClient(): any {
+    if (USE_MOCK) {
+        console.info('🔧 Mode développement (localStorage)');
+        return new MockSupabaseClient();
+    }
+
+    // Mode production : utiliser le vrai client Supabase
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+        console.error('❌ Variables Supabase manquantes !');
+        console.error('   Définir VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY');
+        console.error('   Ou activer le mode mock avec VITE_USE_MOCK=true');
+        throw new Error('Configuration Supabase manquante. Vérifiez vos variables d\'environnement.');
+    }
+
+    console.info('🚀 Mode production (Supabase distant)');
+    return createClient<Database>(supabaseUrl, supabaseAnonKey);
+}
+
+// Export du client (mock ou réel selon la configuration)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const supabase: any = createSupabaseClient();
+
+// Fonction utilitaire pour réinitialiser les données (mock mode only)
 export function resetMockDatabase(): void {
+    if (!USE_MOCK) {
+        console.warn('⚠️ resetMockDatabase() n\'est disponible qu\'en mode mock');
+        return;
+    }
+
     Object.keys(localStorage).forEach((key) => {
         if (key.startsWith(STORAGE_PREFIX) || key === AUTH_SESSION_KEY) {
             localStorage.removeItem(key);
@@ -730,3 +775,6 @@ export function resetMockDatabase(): void {
     initializeDataIfNeeded();
     console.info('🔄 Mock database reset');
 }
+
+// Export pour vérifier le mode actuel
+export const isUsingMock = USE_MOCK;

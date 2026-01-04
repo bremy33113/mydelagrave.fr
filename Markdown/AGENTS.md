@@ -3,10 +3,27 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**1.0.0**
+**1.1.0**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave Production Ready
+MyDelagrave Production Ready - Dual Environment (Mock/Supabase)
+
+## Mode d'Exécution
+
+| Variable | Valeur | Mode |
+|----------|--------|------|
+| `VITE_USE_MOCK` | `true` (défaut) | Développement (localStorage) |
+| `VITE_USE_MOCK` | `false` | Production (Supabase distant) |
+
+### Fichiers de configuration
+- `.env.example` : Template des variables
+- `.env.local` : Configuration locale (gitignored)
+- `.env.production` : Configuration production (gitignored)
+
+### Documentation déploiement
+- `markdown/DEPLOY_STRATEGY.md` : Guide complet de déploiement
+- `markdown/DEPLOY_HISTORY.md` : Historique des déploiements
+- `supabase/migrations/` : Scripts SQL pour Supabase
 
 ## Instructions Générales
 
@@ -38,6 +55,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.1.0 | 2026-01-04 | Infrastructure Production Supabase |
 | 1.0.0 | 2026-01-04 | 🚀 MyDelagrave Production Ready |
 | 0.6.2 | 2026-01-04 | Vues Planning 3 Mois/Année + fenêtre externe |
 | 0.6.1 | 2026-01-04 | Précision horaire des barres de phase |

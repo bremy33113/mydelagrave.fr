@@ -2,6 +2,28 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.1.0] - 2026-01-04
+
+### Infrastructure Production Supabase
+
+### Nouvelles Fonctionnalités
+- ✨ Support dual environment (Mock localStorage / Supabase distant)
+- ✨ Client factory pour basculer entre dev et production (`VITE_USE_MOCK`)
+- ✨ Migrations SQL complètes pour Supabase
+
+### Documentation
+- 📚 `DEPLOY_STRATEGY.md` : Guide de déploiement en 4 phases
+- 📚 `DEPLOY_HISTORY.md` : Template de suivi des déploiements
+- 📚 `.env.example` : Configuration des variables d'environnement
+
+### Technique
+- 🔧 Ajout de `@supabase/supabase-js` comme dépendance
+- 🔧 4 migrations SQL : schema, RLS, storage buckets, seed data
+- 🔧 Politiques RLS par rôle (admin, superviseur, charge_affaire, poseur)
+- 🔧 Buckets storage pour documents et photos
+
+---
+
 ## [1.0.0] - 2026-01-04 🚀 MAJOR RELEASE
 
 ### MyDelagrave Production Ready
