@@ -40,6 +40,7 @@ Stocke les fiches contacts (clients, architectes, etc.).
 | `batiment` | String | **[NOUVEAU]** Complément d'adresse (Bâtiment, étage...) - *Supporté uniquement en LocalStorage pour l'instant* |
 | `job` | String | Code fonction (lié à `ref_job`) |
 | `client_categorie` | String | Code catégorie (lié à `ref_clients`) |
+| `created_by` | UUID | Lien vers `users` (Créateur du contact) |
 | `created_at` | ISO Date | Date de création |
 | `updated_at` | ISO Date | Date de dernière modification |
 
@@ -117,6 +118,25 @@ Table de liaison pour associer plusieurs contacts à un chantier.
 | `created_at` | ISO Date | Date de création |
 | `updated_at` | ISO Date | Date de dernière modification |
 
+### `documents_chantiers` (Documents)
+
+Documents uploadés liés aux chantiers (ajouté en v0.6.0).
+
+| Champ | Type | Description |
+| :--- | :--- | :--- |
+| `id` | UUID | Identifiant unique |
+| `chantier_id` | UUID | Lien vers `chantiers` |
+| `type` | String | Code type (lié à `ref_types_document`) |
+| `nom` | String | Nom du fichier affiché |
+| `description` | Text | Description optionnelle |
+| `storage_path` | String | Chemin dans le bucket storage |
+| `file_size` | Number | Taille en octets |
+| `mime_type` | String | Type MIME (image/jpeg, application/pdf...) |
+| `uploaded_by` | UUID | Lien vers `users` (Auteur de l'upload) |
+| `deleted_at` | ISO Date | Date de suppression (Soft delete) |
+| `created_at` | ISO Date | Date de création |
+| `updated_at` | ISO Date | Date de dernière modification |
+
 ## Tables de Référence (Enums)
 
 Ces tables définissent les listes de choix dans l'application.
@@ -127,3 +147,21 @@ Ces tables définissent les listes de choix dans l'application.
 *   **`ref_types_chantier`** : Type de prestation (`fourniture`, `fourniture_pose`).
 *   **`ref_clients`** : Catégories de contacts (`contact_client`, `architecte`, `maitre_ouvrage`, etc.).
 *   **`ref_job`** : Fonctions/Métiers (`directeur`, `commercial`, `architecte`, etc.).
+*   **`ref_types_document`** : Types de documents (`plan`, `devis`, `rapport`, `reserve`).
+
+### `ref_types_document` (Types de documents)
+
+| Champ | Type | Description |
+| :--- | :--- | :--- |
+| `id` | String | Code unique (plan, devis, rapport, reserve) |
+| `libelle` | String | Libellé affiché |
+| `icon` | String | Emoji icône |
+| `ordre` | Number | Ordre d'affichage |
+
+Valeurs :
+| Code | Libellé | Icône |
+| :--- | :--- | :--- |
+| `plan` | Plan | 📐 |
+| `devis` | Devis | 💰 |
+| `rapport` | Rapport | 📄 |
+| `reserve` | Liste réserves | 📋 |

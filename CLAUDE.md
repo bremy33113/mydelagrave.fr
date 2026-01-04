@@ -76,11 +76,16 @@ Test accounts defined in `e2e/helpers.ts`:
 ### Soft Delete Pattern
 Entities use `deleted_at` field for soft deletion. Deleted items appear in TrashPage and can be restored.
 
-## Workflows
+## Workflows & Skills
 
 Agent workflows are defined in `.agent/workflows/`:
 - `run_qa.md`: Lint + E2E tests
 - `patch_release.md`, `minor_release.md`, `major_release.md`: Version bumping and release
+
+Claude Code skills (invocable via `/skill-name`) are in `.claude/commands/`:
+- `/qa`: Analyse de régression complète (lint + E2E)
+- `/patch`, `/minor`, `/major`: Bumping de version et release
+- `/analyze-risks`: Analyse des risques de régression sur 30 jours
 
 ## French UI
 
