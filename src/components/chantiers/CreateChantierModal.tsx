@@ -35,6 +35,14 @@ export function CreateChantierModal({
     const [pendingClientName, setPendingClientName] = useState('');
     const clientInputRef = useRef<HTMLInputElement>(null);
 
+    // Address autocomplete state
+    const [addressSuggestions, setAddressSuggestions] = useState<Array<{
+        properties: { label: string };
+        geometry: { coordinates: [number, number] };
+    }>>([]);
+    const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+    const [addressSearchTimeout, setAddressSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
     const [formData, setFormData] = useState({
         nom: '',
         reference: '',
@@ -103,6 +111,15 @@ export function CreateChantierModal({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, editingChantier?.client_id, clients.length]);
 
+    // Cleanup address search timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (addressSearchTimeout) {
+                clearTimeout(addressSearchTimeout);
+            }
+        };
+    }, [addressSearchTimeout]);
+
     const fetchRefs = async () => {
         const [clientsRes, usersRes, catsRes, typesRes, statutsRes] = await Promise.all([
             supabase.from('clients').select('*').order('nom'),
@@ -117,6 +134,42 @@ export function CreateChantierModal({
         setCategories((catsRes.data as Tables<'ref_categories_chantier'>[]) || []);
         setTypes((typesRes.data as Tables<'ref_types_chantier'>[]) || []);
         setStatuts((statutsRes.data as Tables<'ref_statuts_chantier'>[]) || []);
+    };
+
+    // Address autocomplete functions
+    const handleAddressSearch = (query: string) => {
+        setFormData({ ...formData, adresse_livraison: query });
+
+        // Clear previous timeout
+        if (addressSearchTimeout) {
+            clearTimeout(addressSearchTimeout);
+        }
+
+        // Debounce search
+        if (query.length >= 3) {
+            const timeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(
+                        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=5`
+                    );
+                    const data = await response.json();
+                    setAddressSuggestions(data.features || []);
+                    setShowAddressDropdown(true);
+                } catch (err) {
+                    console.error('Address search failed:', err);
+                }
+            }, 300);
+            setAddressSearchTimeout(timeout);
+        } else {
+            setAddressSuggestions([]);
+            setShowAddressDropdown(false);
+        }
+    };
+
+    const handleSelectAddress = (address: string) => {
+        setFormData({ ...formData, adresse_livraison: address });
+        setAddressSuggestions([]);
+        setShowAddressDropdown(false);
     };
 
     const handleSubmit = async (e: FormEvent) => {
@@ -365,15 +418,33 @@ export function CreateChantierModal({
                             <div className="col-span-2">
                                 <label className="input-label"><MapPin className="w-4 h-4 inline mr-1 opacity-70" />Adresse de livraison</label>
                                 <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={formData.adresse_livraison}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, adresse_livraison: e.target.value })
-                                        }
-                                        className="input-field flex-1"
-                                        placeholder="Ex: 1 Place Alexis-Ricordeau, 44093 Nantes"
-                                    />
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="text"
+                                            value={formData.adresse_livraison}
+                                            onChange={(e) => handleAddressSearch(e.target.value)}
+                                            onFocus={() => addressSuggestions.length > 0 && setShowAddressDropdown(true)}
+                                            onBlur={() => setTimeout(() => setShowAddressDropdown(false), 200)}
+                                            className="input-field"
+                                            placeholder="Ex: 1 Place Alexis-Ricordeau, 44093 Nantes"
+                                        />
+                                        {/* Address Suggestions Dropdown */}
+                                        {showAddressDropdown && addressSuggestions.length > 0 && (
+                                            <div className="absolute z-50 w-full mt-1 max-h-48 overflow-auto rounded-lg bg-slate-800 border border-slate-600 shadow-xl">
+                                                {addressSuggestions.map((suggestion, index) => (
+                                                    <button
+                                                        key={index}
+                                                        type="button"
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        onClick={() => handleSelectAddress(suggestion.properties.label)}
+                                                        className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors text-sm text-white"
+                                                    >
+                                                        {suggestion.properties.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={() => setShowAddressModal(true)}
