@@ -179,12 +179,24 @@ export function CreateContactModal({
 
         setLoading(true);
 
+        // Convertir les chaînes vides en null pour les champs optionnels avec FK
+        const clientData = {
+            nom: formData.nom,
+            email: formData.email || null,
+            telephone: formData.telephone || null,
+            adresse: formData.adresse || null,
+            batiment: formData.batiment || null,
+            entreprise: formData.entreprise,
+            job: formData.job || null,  // Important: '' -> null pour FK ref_job
+            client_categorie: formData.client_categorie,
+        };
+
         try {
             if (isEditing && editingClient) {
                 const { data, error } = await supabase
                     .from('clients')
                     .update({
-                        ...formData,
+                        ...clientData,
                         updated_at: new Date().toISOString(),
                     } as Record<string, unknown>)
                     .eq('id', editingClient.id)
@@ -203,7 +215,7 @@ export function CreateContactModal({
                 const { data, error } = await supabase
                     .from('clients')
                     .insert([{
-                        ...formData,
+                        ...clientData,
                         created_by: userId || null
                     }] as Record<string, unknown>[])
                     .select()
