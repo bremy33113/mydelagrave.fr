@@ -1,7 +1,9 @@
 import { KPICard } from './KPICard';
 import type { Tables } from '../../lib/database.types';
 
-type Chantier = Tables<'chantiers'>;
+type Chantier = Tables<'chantiers'> & {
+    phases_chantiers?: Tables<'phases_chantiers'>[] | null;
+};
 
 interface KPIBarProps {
     chantiers: Chantier[];
@@ -13,9 +15,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
     // Calculer les KPIs
     const total = chantiers.length;
     const nouveaux = chantiers.filter((c) => c.statut === 'nouveau').length;
-    const nonPlanifies = chantiers.filter(
-        (c) => !c.date_debut && c.statut !== 'termine'
-    ).length;
+    const nonPlanifies = chantiers.filter((c) => !c.phases_chantiers || c.phases_chantiers.length === 0).length;
     const nonAttribues = chantiers.filter(
         (c) => !c.poseur_id && c.statut !== 'termine'
     ).length;

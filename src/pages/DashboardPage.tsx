@@ -188,7 +188,7 @@ export function DashboardPage() {
         if (statusFilter) {
             switch (statusFilter) {
                 case 'non_planifie':
-                    result = result.filter((c) => !c.date_debut && c.statut !== 'termine');
+                    result = result.filter((c) => !c.phases_chantiers || c.phases_chantiers.length === 0);
                     break;
                 case 'non_attribue':
                     result = result.filter(

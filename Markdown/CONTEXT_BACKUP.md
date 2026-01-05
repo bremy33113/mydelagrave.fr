@@ -2,7 +2,7 @@
 
 ## État Git
 - **Branche** : dev
-- **Version** : 1.1.5
+- **Version** : 1.1.6
 - **État** : 1 commit non pushé
 
 ## Derniers commits

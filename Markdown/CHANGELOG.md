@@ -2,6 +2,15 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.1.6] - 2026-01-05
+
+### Fix KPI Non planifiés
+
+### Corrections
+- 🐛 KPI "Non planifiés" compte maintenant les chantiers sans phases (au lieu de vérifier date_debut)
+
+---
+
 ## [1.1.5] - 2026-01-05
 
 ### Drag & drop images et qualité adaptative
