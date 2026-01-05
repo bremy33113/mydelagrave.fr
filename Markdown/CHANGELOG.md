@@ -2,6 +2,19 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.1.3] - 2026-01-05
+
+### Améliorations UI et fix storage Supabase
+
+### Corrections
+- 🐛 AddressSelectorModal: Touche Entrée pour valider + bouton recherche focus carte
+- 🐛 ChantierDetail: Boutons Phases/Contacts déplacés dans header, badge catégorie
+- 🐛 Storage: Utiliser createSignedUrl pour buckets privés Supabase
+- 🐛 Storage: Corriger casse du bucket 'Documents' (D majuscule)
+- 🐛 KPI "Non attribués": Filtrer sur poseur_id au lieu de charge_affaire_id
+
+---
+
 ## [1.1.2] - 2026-01-05
 
 ### Corrections UI - Section Coordonnées Chantier
