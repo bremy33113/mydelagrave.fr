@@ -2,6 +2,20 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.2.1] - 2026-01-05
+
+### Ligne "Sans pose" sur le Planning
+
+### Nouvelles fonctionnalités
+- ✨ Ligne "Sans pose" (🚚) affiche les chantiers fourniture seule
+- ✨ Style orange hachuré distinctif pour les phases fourniture
+- ✨ Icône camion sur les phases fourniture seule
+
+### Améliorations
+- 🔧 Phases fourniture exclues du panel "À attribuer"
+
+---
+
 ## [1.2.0] - 2026-01-05
 
 ### Vue Tournée Poseur

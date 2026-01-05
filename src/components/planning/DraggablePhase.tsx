@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronRight, X, Check } from 'lucide-react';
+import { ChevronRight, X, Check, Truck } from 'lucide-react';
 import type { PhaseWithRelations } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
 
@@ -100,7 +100,11 @@ export function DraggablePhase({
           }
         : undefined;
 
-    const statusColor = statusColors[phase.chantier?.statut || 'nouveau'] || statusColors.nouveau;
+    // Special style for "fourniture seule" (delivery only, no installation)
+    const isFournitureSeule = phase.chantier?.type === 'fourniture';
+    const statusColor = isFournitureSeule
+        ? 'bg-gradient-to-r from-amber-600/90 via-amber-500/90 to-amber-600/90 border-amber-400'
+        : statusColors[phase.chantier?.statut || 'nouveau'] || statusColors.nouveau;
 
     const handleSave = async () => {
         if (!onPhaseUpdate) return;
@@ -178,20 +182,34 @@ export function DraggablePhase({
         );
     }
 
+    // Striped background style for fourniture seule
+    const stripedStyle = isFournitureSeule
+        ? {
+              backgroundImage: `repeating-linear-gradient(
+                  -45deg,
+                  transparent,
+                  transparent 4px,
+                  rgba(0,0,0,0.15) 4px,
+                  rgba(0,0,0,0.15) 8px
+              )`,
+          }
+        : undefined;
+
     // Normal display mode
     return (
         <div
             ref={setNodeRef}
-            style={style}
+            style={{ ...style, ...stripedStyle }}
             {...attributes}
             {...listeners}
             className={`h-full rounded-md border cursor-grab active:cursor-grabbing ${statusColor} ${
                 isDragging ? 'opacity-80 shadow-xl scale-105' : 'hover:brightness-110'
             } transition-all`}
             onClick={() => setIsEditing(true)}
-            title={`${phase.chantier?.nom || 'Chantier'} - ${phase.libelle || 'Phase'}\n${phase.date_debut} → ${phase.date_fin}\n${phase.duree_heures}h`}
+            title={`${phase.chantier?.nom || 'Chantier'} - ${phase.libelle || 'Phase'}\n${phase.date_debut} → ${phase.date_fin}\n${phase.duree_heures}h${isFournitureSeule ? '\n🚚 Fourniture seule' : ''}`}
         >
             <div className="h-full flex items-center justify-center px-1 gap-0.5">
+                {isFournitureSeule && <Truck className="w-3 h-3 text-white/80 flex-shrink-0" />}
                 <p className="text-xs font-medium text-white text-center truncate">
                     {phase.chantier?.reference || phase.chantier?.nom?.slice(0, 15) || 'Chantier'}
                 </p>

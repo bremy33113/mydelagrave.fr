@@ -10,6 +10,7 @@ import {
     useSensors,
 } from '@dnd-kit/core';
 import { DroppablePoseurRow } from './DroppablePoseurRow';
+import { SansPoseRow } from './SansPoseRow';
 import { DraggablePhase } from './DraggablePhase';
 import type { PhaseWithRelations, ViewMode } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
@@ -311,9 +312,10 @@ export function PlanningCalendar({
         return groups;
     }, [weekGroups, columnWidth]);
 
-    // Group phases by poseur
-    const phasesByPoseur = useMemo(() => {
+    // Group phases by poseur, separating "sans pose" (fourniture seule)
+    const { phasesByPoseur, sansPosePhases } = useMemo(() => {
         const grouped: Record<string, PhaseWithRelations[]> = {};
+        const sansPose: PhaseWithRelations[] = [];
 
         // Initialize with all poseurs
         poseurs.forEach((p) => {
@@ -325,13 +327,19 @@ export function PlanningCalendar({
 
         // Distribute phases
         phases.forEach((phase) => {
-            const key = phase.poseur_id || 'unassigned';
-            if (grouped[key]) {
-                grouped[key].push(phase);
+            // If chantier type is "fourniture" (supply only) -> Sans pose row
+            if (phase.chantier?.type === 'fourniture') {
+                sansPose.push(phase);
+            } else {
+                // Otherwise -> poseur row or unassigned
+                const key = phase.poseur_id || 'unassigned';
+                if (grouped[key]) {
+                    grouped[key].push(phase);
+                }
             }
         });
 
-        return grouped;
+        return { phasesByPoseur: grouped, sansPosePhases: sansPose };
     }, [phases, poseurs]);
 
     // Handle drag start
@@ -489,6 +497,17 @@ export function PlanningCalendar({
                         onPoseurClick={onPoseurClick}
                     />
                 ))}
+
+                {/* Sans pose row (fourniture seule) - read only */}
+                <SansPoseRow
+                    phases={sansPosePhases}
+                    workingDates={workingDates}
+                    columnWidth={columnWidth}
+                    poseurColumnWidth={POSEUR_COLUMN_WIDTH}
+                    statusColors={STATUS_COLORS}
+                    isCompact={isCompact}
+                    onPhaseUpdate={onPhaseUpdate}
+                />
 
                 {/* Unassigned row */}
                 <DroppablePoseurRow

@@ -14,6 +14,7 @@ export type PhaseWithRelations = Tables<'phases_chantiers'> & {
         nom: string;
         reference: string | null;
         statut: string;
+        type?: string | null;
         adresse_livraison?: string | null;
         adresse_livraison_latitude: number | null;
         adresse_livraison_longitude: number | null;
@@ -116,7 +117,7 @@ export function PlanningPage() {
                 .select(`
                     *,
                     poseur:users!poseur_id(id, first_name, last_name),
-                    chantier:chantiers(id, nom, reference, statut, adresse_livraison, adresse_livraison_latitude, adresse_livraison_longitude)
+                    chantier:chantiers(id, nom, reference, statut, type, adresse_livraison, adresse_livraison_latitude, adresse_livraison_longitude)
                 `)
                 .order('date_debut', { ascending: true });
 
@@ -158,9 +159,9 @@ export function PlanningPage() {
         });
     }, [phases, dateRange, selectedPoseur]);
 
-    // Unassigned phases (no poseur)
+    // Unassigned phases (no poseur, excluding "fourniture seule" which have their own row)
     const unassignedPhases = useMemo(() => {
-        return phases.filter((p) => !p.poseur_id);
+        return phases.filter((p) => !p.poseur_id && p.chantier?.type !== 'fourniture');
     }, [phases]);
 
     // Navigate: Hebdo = 1 day, 3Sem/Mois = 7 days, 3Mois = 30 days, Annuel = 90 days
