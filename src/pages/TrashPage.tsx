@@ -12,7 +12,7 @@ type DeletedNote = Tables<'notes_chantiers'> & {
     chantier?: { nom: string } | null;
 };
 
-type DeletedClient = Tables<'clients'> & { deleted_at: string | null };
+type DeletedClient = Tables<'clients'>;
 
 type DeletedDocument = Tables<'documents_chantiers'> & {
     chantier?: { nom: string } | null;
