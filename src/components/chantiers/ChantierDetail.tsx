@@ -114,7 +114,7 @@ export function ChantierDetail({
                 return;
             }
             const { data } = await supabase.storage
-                .from('Documents')
+                .from('documents')
                 .createSignedUrl(documentPreview.storage_path, 3600);
             setPreviewUrl(data?.signedUrl || null);
         };
@@ -239,7 +239,7 @@ export function ChantierDetail({
         try {
             // Get signed URL for private bucket (valid for 1 hour)
             const { data, error } = await supabase.storage
-                .from('Documents')
+                .from('documents')
                 .createSignedUrl(doc.storage_path, 3600);
 
             if (error) {
