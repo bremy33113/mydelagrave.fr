@@ -2,6 +2,16 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.1.9] - 2026-01-05
+
+### Fix suppression contacts superviseur
+
+### Corrections
+- 🐛 Les superviseurs peuvent maintenant supprimer définitivement les contacts (RLS policy fix)
+- 🐛 Amélioration gestion erreurs dans la corbeille
+
+---
+
 ## [1.1.8] - 2026-01-05
 
 ### Intégration référentiels dans Administration

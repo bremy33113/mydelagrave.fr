@@ -204,10 +204,10 @@ CREATE POLICY "clients_update" ON clients
         public.user_role() IN ('admin', 'superviseur', 'charge_affaire')
     );
 
--- Seul admin peut supprimer des clients
+-- Admin et Superviseur peuvent supprimer des clients
 DROP POLICY IF EXISTS "clients_delete" ON clients;
 CREATE POLICY "clients_delete" ON clients
-    FOR DELETE USING (public.is_admin());
+    FOR DELETE USING (public.is_supervisor_or_admin());
 
 -- =============================================
 -- POLICIES TABLE CHANTIERS

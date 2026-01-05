@@ -110,13 +110,19 @@ export function TrashPage() {
                     await supabase.storage.from('documents').remove([storagePath]);
                 }
 
-                await supabase.from(table).delete().eq('id', id);
+                const { error } = await supabase.from(table).delete().eq('id', id);
+                if (error) {
+                    console.error('Delete error:', error);
+                    alert('Erreur suppression: ' + error.message);
+                    return;
+                }
             }
 
             fetchDeletedItems();
             setConfirmState(null);
-        } catch {
-            alert('Erreur lors de l\'opération');
+        } catch (err) {
+            console.error('Catch error:', err);
+            alert('Erreur lors de l\'opération: ' + (err as Error).message);
         }
     };
 
