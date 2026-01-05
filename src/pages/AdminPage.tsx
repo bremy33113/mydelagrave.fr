@@ -12,11 +12,87 @@ import {
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
+    Database,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
 import type { Tables } from '../lib/database.types';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { RefTableEditor, FieldConfig } from '../components/admin/RefTableEditor';
+
+// Configuration des tables de référence
+interface TableConfig {
+    key: string;
+    title: string;
+    icon: string;
+    fields: FieldConfig[];
+}
+
+const REF_TABLES_CONFIG: TableConfig[] = [
+    {
+        key: 'ref_statuts_chantier',
+        title: 'Statuts',
+        icon: '📊',
+        fields: [
+            { key: 'code', label: 'Code', type: 'text', primaryKey: true, hidden: true },
+            { key: 'label', label: 'Label', type: 'text', required: true },
+            { key: 'icon', label: 'Icône', type: 'icon' },
+            { key: 'color', label: 'Couleur', type: 'color' },
+        ],
+    },
+    {
+        key: 'ref_categories_chantier',
+        title: 'Catégories',
+        icon: '📁',
+        fields: [
+            { key: 'code', label: 'Code', type: 'text', primaryKey: true, hidden: true },
+            { key: 'label', label: 'Label', type: 'text', required: true },
+            { key: 'icon', label: 'Icône', type: 'icon' },
+        ],
+    },
+    {
+        key: 'ref_types_chantier',
+        title: 'Types',
+        icon: '📋',
+        fields: [
+            { key: 'code', label: 'Code', type: 'text', primaryKey: true, hidden: true },
+            { key: 'label', label: 'Label', type: 'text', required: true },
+        ],
+    },
+    {
+        key: 'ref_clients',
+        title: 'Catég. Clients',
+        icon: '👥',
+        fields: [
+            { key: 'code', label: 'Code', type: 'text', primaryKey: true, hidden: true },
+            { key: 'label', label: 'Label', type: 'text', required: true },
+            { key: 'icon', label: 'Icône', type: 'icon' },
+            { key: 'color', label: 'Couleur', type: 'color' },
+        ],
+    },
+    {
+        key: 'ref_job',
+        title: 'Fonctions',
+        icon: '💼',
+        fields: [
+            { key: 'code', label: 'Code', type: 'text', primaryKey: true, hidden: true },
+            { key: 'label', label: 'Label', type: 'text', required: true },
+            { key: 'icon', label: 'Icône', type: 'icon' },
+            { key: 'color', label: 'Couleur', type: 'color' },
+        ],
+    },
+    {
+        key: 'ref_types_document',
+        title: 'Types Docs',
+        icon: '📄',
+        fields: [
+            { key: 'id', label: 'ID', type: 'text', primaryKey: true, hidden: true },
+            { key: 'libelle', label: 'Libellé', type: 'text', required: true },
+            { key: 'icon', label: 'Icône', type: 'icon' },
+            { key: 'ordre', label: 'Ordre', type: 'number', hidden: true },
+        ],
+    },
+];
 
 type User = Tables<'users'> & {
     ref_roles_user?: Tables<'ref_roles_user'> | null;
@@ -25,6 +101,8 @@ type User = Tables<'users'> & {
 type SortColumn = 'name' | 'role';
 type SortDirection = 'asc' | 'desc';
 
+type MainTab = 'users' | 'referentiels';
+
 export function AdminPage() {
     const { isAdmin, canManageUsers } = useUserRole();
     const [users, setUsers] = useState<User[]>([]);
@@ -32,6 +110,10 @@ export function AdminPage() {
     const [showModal, setShowModal] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [roles, setRoles] = useState<Tables<'ref_roles_user'>[]>([]);
+
+    // Main tab state
+    const [activeMainTab, setActiveMainTab] = useState<MainTab>('users');
+    const [activeRefTab, setActiveRefTab] = useState(REF_TABLES_CONFIG[0].key);
 
     // Sorting state
     const [sortColumn, setSortColumn] = useState<SortColumn>('name');
@@ -309,23 +391,66 @@ export function AdminPage() {
         );
     }
 
+    const activeRefConfig = REF_TABLES_CONFIG.find(t => t.key === activeRefTab);
+
     return (
         <div className="h-full flex flex-col p-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Administration</h1>
-                    <p className="text-slate-400">Gestion des utilisateurs</p>
+            <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+                            {activeMainTab === 'users' ? (
+                                <Users className="w-7 h-7 text-blue-400" />
+                            ) : (
+                                <Database className="w-7 h-7 text-blue-400" />
+                            )}
+                            Administration
+                        </h1>
+                        <p className="text-slate-400 mt-1">
+                            {activeMainTab === 'users' ? 'Gestion des utilisateurs' : 'Gestion des référentiels'}
+                        </p>
+                    </div>
+                    {activeMainTab === 'users' && (
+                        <button onClick={openCreateModal} className="btn-primary flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
+                            Nouvel utilisateur
+                        </button>
+                    )}
                 </div>
-                <button onClick={openCreateModal} className="btn-primary flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Nouvel utilisateur
-                </button>
+
+                {/* Main tabs */}
+                <div className="flex gap-2 border-b border-slate-700 pb-4">
+                    <button
+                        onClick={() => setActiveMainTab('users')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                            activeMainTab === 'users'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                        }`}
+                    >
+                        <Users className="w-4 h-4" />
+                        <span className="font-medium">Utilisateurs</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveMainTab('referentiels')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                            activeMainTab === 'referentiels'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                        }`}
+                    >
+                        <Database className="w-4 h-4" />
+                        <span className="font-medium">Référentiels</span>
+                    </button>
+                </div>
             </div>
 
-            {/* Users table */}
-            <div className="flex-1 overflow-auto">
-                <div className="glass-card overflow-hidden">
+            {/* Content */}
+            {activeMainTab === 'users' ? (
+                /* Users table */
+                <div className="flex-1 overflow-auto">
+                    <div className="glass-card overflow-hidden">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-slate-700/50">
@@ -462,8 +587,42 @@ export function AdminPage() {
                             )}
                         </tbody>
                     </table>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                /* Referentiels section */
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    {/* Ref tables tabs */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        {REF_TABLES_CONFIG.map((table) => (
+                            <button
+                                key={table.key}
+                                onClick={() => setActiveRefTab(table.key)}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${
+                                    activeRefTab === table.key
+                                        ? 'bg-purple-600/30 text-purple-300 border border-purple-500/50'
+                                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                                }`}
+                            >
+                                <span>{table.icon}</span>
+                                <span className="font-medium">{table.title}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Ref table editor */}
+                    <div className="flex-1 overflow-auto">
+                        {activeRefConfig && (
+                            <RefTableEditor
+                                key={activeRefConfig.key}
+                                tableName={activeRefConfig.key}
+                                title={activeRefConfig.title}
+                                fields={activeRefConfig.fields}
+                            />
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Modal */}
             {showModal && (

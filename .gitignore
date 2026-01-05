@@ -41,3 +41,6 @@ npm-debug.log*
 
 # Artifacts (local brain files)
 .gemini/
+
+# Claude Code (keep commands/, ignore local settings)
+.claude/settings*.json

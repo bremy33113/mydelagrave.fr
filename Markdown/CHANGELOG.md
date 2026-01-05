@@ -2,6 +2,18 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.1.8] - 2026-01-05
+
+### Intégration référentiels dans Administration
+
+### Améliorations
+- 🔧 Référentiels intégrés dans la page Administration (onglets Utilisateurs/Référentiels)
+- 🔧 Suppression de la page RefTablesPage séparée
+- 🔧 Déplacement du skill save_context vers .claude/commands/
+- 📝 Mise à jour CLAUDE.md avec le nouveau skill
+
+---
+
 ## [1.1.7] - 2026-01-05
 
 ### Ajout liste contacts chantier expandable

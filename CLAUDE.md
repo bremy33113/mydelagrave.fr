@@ -86,6 +86,7 @@ Claude Code skills (invocable via `/skill-name`) are in `.claude/commands/`:
 - `/qa`: Analyse de régression complète (lint + E2E)
 - `/patch`, `/minor`, `/major`: Bumping de version et release
 - `/analyze-risks`: Analyse des risques de régression sur 30 jours
+- `/save_context`: Sauvegarde le contexte de travail pour reprise après compactage
 
 ## French UI
 
