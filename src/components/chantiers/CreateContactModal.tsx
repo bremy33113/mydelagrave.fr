@@ -1,9 +1,8 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { X, User, Phone, Mail, Building2, MapPin, Briefcase, Map, Loader2, Plus, Search } from 'lucide-react';
+import { X, User, Phone, Mail, Building2, MapPin, Briefcase, Map, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Tables } from '../../lib/database.types';
 import { AddressSelectorModal } from './AddressSelectorModal';
-import { CreateJobModal } from './CreateJobModal';
 import { useUserRole } from '../../hooks/useUserRole';
 
 interface CreateContactModalProps {
@@ -73,12 +72,6 @@ export function CreateContactModal({
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isSearchingAddress, setIsSearchingAddress] = useState(false);
 
-    // Job Autocomplete State
-    const [jobSearch, setJobSearch] = useState('');
-    const [showJobDropdown, setShowJobDropdown] = useState(false);
-    const [showCreateJobModal, setShowCreateJobModal] = useState(false);
-    const [pendingJobLabel, setPendingJobLabel] = useState('');
-
     const [formData, setFormData] = useState({
         nom: initialName,
         email: '',
@@ -121,23 +114,12 @@ export function CreateContactModal({
             setAddressCoords(undefined);
             setAddressSuggestions([]);
             setShowSuggestions(false);
-            // Reset job search
-            if (editingClient?.job) {
-                const existingJob = jobs.find(j => j.code === editingClient.job);
-                setJobSearch(existingJob ? `${existingJob.icon} ${existingJob.label}` : '');
-            } else {
-                setJobSearch('');
-            }
-            setShowJobDropdown(false);
         }
-    }, [isOpen, initialName, editingClient, jobs]);
+    }, [isOpen, initialName, editingClient]);
 
     // Close suggestions when clicking outside
     useEffect(() => {
-        const handleClickOutside = () => {
-            setShowSuggestions(false);
-            setShowJobDropdown(false);
-        };
+        const handleClickOutside = () => setShowSuggestions(false);
         window.addEventListener('click', handleClickOutside);
         return () => window.removeEventListener('click', handleClickOutside);
     }, []);
@@ -336,86 +318,21 @@ export function CreateContactModal({
                             </div>
 
                             {/* Row 3: Fonction + Catégorie */}
-                            <div className="relative">
+                            <div>
                                 <label className="input-label"><Briefcase className="w-4 h-4 inline mr-1 opacity-70" />Fonction</label>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
-                                    <input
-                                        type="text"
-                                        value={jobSearch}
-                                        onChange={(e) => {
-                                            setJobSearch(e.target.value);
-                                            setShowJobDropdown(true);
-                                            if (!e.target.value) {
-                                                setFormData({ ...formData, job: '' });
-                                            }
-                                        }}
-                                        onFocus={() => setShowJobDropdown(true)}
-                                        onClick={(e) => e.stopPropagation()}
-                                        placeholder="Rechercher une fonction..."
-                                        className="input-field pl-9"
-                                        data-testid="contact-job-input"
-                                    />
-
-                                    {/* Job Dropdown */}
-                                    {showJobDropdown && (
-                                        <div
-                                            className="absolute z-50 w-full mt-1 max-h-48 overflow-auto rounded-lg bg-slate-800 border border-slate-600 shadow-xl"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            {jobs
-                                                .filter(j =>
-                                                    j.label.toLowerCase().includes(jobSearch.toLowerCase()) ||
-                                                    j.code.toLowerCase().includes(jobSearch.toLowerCase())
-                                                )
-                                                .map((job) => (
-                                                    <button
-                                                        key={job.code}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setFormData({ ...formData, job: job.code });
-                                                            setJobSearch(`${job.icon} ${job.label}`);
-                                                            setShowJobDropdown(false);
-                                                        }}
-                                                        className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${formData.job === job.code ? 'bg-blue-500/20 text-blue-300' : 'text-white'
-                                                            }`}
-                                                    >
-                                                        <span className="mr-2">{job.icon}</span>
-                                                        {job.label}
-                                                    </button>
-                                                ))
-                                            }
-
-                                            {/* Create new option */}
-                                            {jobSearch.trim() && !jobs.some(j =>
-                                                j.label.toLowerCase() === jobSearch.toLowerCase()
-                                            ) && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setPendingJobLabel(jobSearch);
-                                                        setShowCreateJobModal(true);
-                                                        setShowJobDropdown(false);
-                                                    }}
-                                                    className="w-full text-left px-4 py-2 hover:bg-green-500/20 text-green-400 border-t border-slate-700 flex items-center gap-2"
-                                                >
-                                                    <Plus className="w-4 h-4" />
-                                                    Créer "{jobSearch}"
-                                                </button>
-                                            )}
-
-                                            {/* Empty state */}
-                                            {jobs.filter(j =>
-                                                j.label.toLowerCase().includes(jobSearch.toLowerCase()) ||
-                                                j.code.toLowerCase().includes(jobSearch.toLowerCase())
-                                            ).length === 0 && !jobSearch.trim() && (
-                                                <div className="px-4 py-3 text-slate-400 text-sm">
-                                                    Tapez pour rechercher ou créer une fonction
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                <select
+                                    value={formData.job}
+                                    onChange={(e) => setFormData({ ...formData, job: e.target.value })}
+                                    className="input-field"
+                                    data-testid="contact-job-select"
+                                >
+                                    <option value="">Sélectionner...</option>
+                                    {jobs.map((job) => (
+                                        <option key={job.code} value={job.code}>
+                                            {job.icon} {job.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="input-label">Catégorie</label>
@@ -517,23 +434,6 @@ export function CreateContactModal({
                 onSelect={handleAddressSelect}
                 initialAddress={formData.adresse}
                 initialCoords={addressCoords}
-            />
-
-            {/* Create Job Modal */}
-            <CreateJobModal
-                isOpen={showCreateJobModal}
-                onClose={() => {
-                    setShowCreateJobModal(false);
-                    setPendingJobLabel('');
-                }}
-                onSuccess={(newJob) => {
-                    setJobs([...jobs, newJob]);
-                    setFormData({ ...formData, job: newJob.code });
-                    setJobSearch(`${newJob.icon} ${newJob.label}`);
-                    setShowCreateJobModal(false);
-                    setPendingJobLabel('');
-                }}
-                initialLabel={pendingJobLabel}
             />
         </>
     );

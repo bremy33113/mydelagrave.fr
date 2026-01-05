@@ -40,6 +40,12 @@ type Chantier = Tables<'chantiers'> & {
     ref_statuts_chantier?: Tables<'ref_statuts_chantier'> | null;
 };
 
+type ChantierContact = Tables<'chantiers_contacts'> & {
+    clients: (Tables<'clients'> & {
+        ref_job?: Tables<'ref_job'> | null;
+    }) | null;
+};
+
 interface ChantierDetailProps {
     chantier: Chantier;
     onEdit?: () => void;
@@ -58,6 +64,10 @@ export function ChantierDetail({
     const [coordonneesExpanded, setCoordonneesExpanded] = useState(true);
     const [informationsExpanded, setInformationsExpanded] = useState(true);
     const [documentsExpanded, setDocumentsExpanded] = useState(true);
+    const [contactsExpanded, setContactsExpanded] = useState(true);
+
+    // Contacts chantier state
+    const [chantierContacts, setChantierContacts] = useState<ChantierContact[]>([]);
 
     // Notes state
     const [notes, setNotes] = useState<Note[]>([]);
@@ -91,6 +101,44 @@ export function ChantierDetail({
         };
         fetchNotes();
     }, [chantier.id, notesRefresh]);
+
+    // Fetch chantier contacts
+    useEffect(() => {
+        const fetchContacts = async () => {
+            // Fetch contacts with clients (alias format for mock compatibility)
+            const { data: contactsData } = await supabase
+                .from('chantiers_contacts')
+                .select('*, client:clients!client_id(*)')
+                .eq('chantier_id', chantier.id);
+
+            if (!contactsData || contactsData.length === 0) {
+                setChantierContacts([]);
+                return;
+            }
+
+            // Fetch all jobs to enrich client data
+            const { data: jobsData } = await supabase
+                .from('ref_job')
+                .select('*');
+
+            const jobsMap = new Map((jobsData || []).map((j: Tables<'ref_job'>) => [j.code, j]));
+
+            // Enrich contacts with job data (use 'client' alias, map to 'clients' for type)
+            const enrichedContacts = contactsData.map((contact: Record<string, unknown>) => {
+                const clientData = contact.client as Tables<'clients'> | null;
+                return {
+                    ...contact,
+                    clients: clientData ? {
+                        ...clientData,
+                        ref_job: clientData.job ? jobsMap.get(clientData.job) || null : null,
+                    } : null,
+                };
+            });
+
+            setChantierContacts(enrichedContacts as ChantierContact[]);
+        };
+        fetchContacts();
+    }, [chantier.id]);
 
     // Fetch documents
     useEffect(() => {
@@ -421,6 +469,7 @@ export function ChantierDetail({
                             </h3>
                         </button>
                         {coordonneesExpanded && (
+                            <>
                             <div className="grid grid-cols-2 gap-4 mt-3">
                                 {/* Client */}
                                 {chantier.client && (
@@ -482,6 +531,96 @@ export function ChantierDetail({
                                     </div>
                                 )}
                             </div>
+
+                            {/* Contacts chantier - liste expandable */}
+                            {chantierContacts.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-slate-700/50">
+                                    <button
+                                        onClick={() => setContactsExpanded(!contactsExpanded)}
+                                        className="flex items-center gap-2 text-left w-full"
+                                    >
+                                        <ChevronDown
+                                            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                                                contactsExpanded ? '' : '-rotate-90'
+                                            }`}
+                                        />
+                                        <span className="text-xs text-slate-500 uppercase flex items-center gap-2">
+                                            <Users className="w-3 h-3" />
+                                            Contacts chantier ({chantierContacts.length})
+                                        </span>
+                                    </button>
+                                    {contactsExpanded && (
+                                        <div className="mt-3 space-y-2">
+                                            {chantierContacts.map((contact) => {
+                                                const client = contact.clients;
+                                                if (!client) return null;
+                                                return (
+                                                <div
+                                                    key={contact.id}
+                                                    className="flex items-center gap-3 p-2 bg-slate-800/30 rounded-lg"
+                                                >
+                                                    {/* Icône job */}
+                                                    <div
+                                                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
+                                                        style={{
+                                                            backgroundColor: (client.ref_job?.color || '#64748B') + '20',
+                                                            color: client.ref_job?.color || '#64748B',
+                                                        }}
+                                                    >
+                                                        {client.ref_job?.icon || '👤'}
+                                                    </div>
+                                                    {/* Infos contact */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-white truncate">
+                                                            {client.nom}
+                                                        </p>
+                                                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                            {client.entreprise && (
+                                                                <span className="truncate">{client.entreprise}</span>
+                                                            )}
+                                                            {client.ref_job && (
+                                                                <>
+                                                                    {client.entreprise && <span>•</span>}
+                                                                    <span
+                                                                        className="px-1.5 py-0.5 rounded text-xs"
+                                                                        style={{
+                                                                            backgroundColor: (client.ref_job.color || '#64748B') + '20',
+                                                                            color: client.ref_job.color || '#64748B',
+                                                                        }}
+                                                                    >
+                                                                        {client.ref_job.label}
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {/* Coordonnées */}
+                                                    <div className="flex items-center gap-3 shrink-0 text-xs text-slate-400">
+                                                        {client.telephone && (
+                                                            <span className="flex items-center gap-1">
+                                                                <Phone className="w-3.5 h-3.5" />
+                                                                {client.telephone}
+                                                            </span>
+                                                        )}
+                                                        {client.email && (
+                                                            <a
+                                                                href={`mailto:${client.email}`}
+                                                                className="flex items-center gap-1 hover:text-blue-400 transition-colors"
+                                                                title={client.email}
+                                                            >
+                                                                <Mail className="w-3.5 h-3.5" />
+                                                                <span className="truncate max-w-[150px]">{client.email}</span>
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            </>
                         )}
                     </section>
                 )}

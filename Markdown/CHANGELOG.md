@@ -2,6 +2,17 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.1.7] - 2026-01-05
+
+### Ajout liste contacts chantier expandable
+
+### Nouvelles fonctionnalités
+- ✨ Section "Contacts chantier" expandable dans les coordonnées
+- ✨ Affichage nom, entreprise, fonction (icône/couleur)
+- ✨ Téléphone et email visibles avec icônes
+
+---
+
 ## [1.1.6] - 2026-01-05
 
 ### Fix KPI Non planifiés
