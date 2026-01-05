@@ -21,7 +21,7 @@ import {
     File,
 } from 'lucide-react';
 import { DocumentUploadModal } from './DocumentUploadModal';
-import { supabase } from '../../lib/supabase';
+import { supabase, isUsingMock } from '../../lib/supabase';
 import type { Tables } from '../../lib/database.types';
 
 type Note = Tables<'notes_chantiers'> & {
@@ -184,20 +184,21 @@ export function ChantierDetail({
         setNotesRefresh((n) => n + 1);
     };
 
-    const handleImageUpload = (
-        e: React.ChangeEvent<HTMLInputElement>,
-        slot: 'photo1' | 'photo2'
-    ) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    // Process image file (compress and convert to base64)
+    // Dev mode: small size for localStorage limits
+    // Production: larger size for better quality
+    const processImageFile = (file: File, slot: 'photo1' | 'photo2') => {
+        if (!file.type.startsWith('image/')) return;
 
-        // Compress and convert to base64 (small size for localStorage)
+        // Parameters based on environment
+        const maxSize = isUsingMock ? 300 : 800;  // Dev: 300px, Prod: 800px
+        const quality = isUsingMock ? 0.5 : 0.8;  // Dev: 50%, Prod: 80%
+
         const img = document.createElement('img');
         const reader = new FileReader();
         reader.onload = (event) => {
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const maxSize = 300; // Reduced for localStorage limits
                 let { width, height } = img;
 
                 if (width > height && width > maxSize) {
@@ -213,7 +214,7 @@ export function ChantierDetail({
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
 
-                const compressed = canvas.toDataURL('image/jpeg', 0.5);
+                const compressed = canvas.toDataURL('image/jpeg', quality);
                 if (slot === 'photo1') {
                     setNotePhoto1(compressed);
                 } else {
@@ -223,6 +224,46 @@ export function ChantierDetail({
             img.src = event.target?.result as string;
         };
         reader.readAsDataURL(file);
+    };
+
+    const handleImageUpload = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        slot: 'photo1' | 'photo2'
+    ) => {
+        const file = e.target.files?.[0];
+        if (file) processImageFile(file, slot);
+    };
+
+    // Drag & Drop handler
+    const handleDrop = (e: React.DragEvent, slot: 'photo1' | 'photo2') => {
+        e.preventDefault();
+        e.stopPropagation();
+        const file = e.dataTransfer.files?.[0];
+        if (file) processImageFile(file, slot);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    // Paste handler (Ctrl+V)
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.startsWith('image/')) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    // Add to first empty slot
+                    if (!notePhoto1) {
+                        processImageFile(file, 'photo1');
+                    } else if (!notePhoto2) {
+                        processImageFile(file, 'photo2');
+                    }
+                }
+                break;
+            }
+        }
     };
 
     // Document handlers
@@ -502,8 +543,15 @@ export function ChantierDetail({
                                         rows={3}
                                         data-testid="note-content-input"
                                     />
-                                    <div className="flex gap-2">
-                                        <div className="flex-1">
+                                    <div
+                                        className="flex gap-2"
+                                        onPaste={handlePaste}
+                                    >
+                                        <div
+                                            className="flex-1"
+                                            onDrop={(e) => handleDrop(e, 'photo1')}
+                                            onDragOver={handleDragOver}
+                                        >
                                             <input
                                                 ref={photo1InputRef}
                                                 type="file"
@@ -522,16 +570,21 @@ export function ChantierDetail({
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <button
+                                                <div
                                                     onClick={() => photo1InputRef.current?.click()}
-                                                    className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-slate-600 text-sm"
+                                                    className="flex flex-col items-center gap-1 px-3 py-3 bg-slate-800/50 border-2 border-dashed border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-blue-500 text-sm cursor-pointer transition-colors"
                                                 >
-                                                    <Image className="w-4 h-4" />
-                                                    Photo 1
-                                                </button>
+                                                    <Image className="w-5 h-5" />
+                                                    <span className="text-xs">Photo 1</span>
+                                                    <span className="text-[10px] text-slate-500">Drop ou Ctrl+V</span>
+                                                </div>
                                             )}
                                         </div>
-                                        <div className="flex-1">
+                                        <div
+                                            className="flex-1"
+                                            onDrop={(e) => handleDrop(e, 'photo2')}
+                                            onDragOver={handleDragOver}
+                                        >
                                             <input
                                                 ref={photo2InputRef}
                                                 type="file"
@@ -550,13 +603,14 @@ export function ChantierDetail({
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <button
+                                                <div
                                                     onClick={() => photo2InputRef.current?.click()}
-                                                    className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-slate-600 text-sm"
+                                                    className="flex flex-col items-center gap-1 px-3 py-3 bg-slate-800/50 border-2 border-dashed border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-blue-500 text-sm cursor-pointer transition-colors"
                                                 >
-                                                    <Image className="w-4 h-4" />
-                                                    Photo 2
-                                                </button>
+                                                    <Image className="w-5 h-5" />
+                                                    <span className="text-xs">Photo 2</span>
+                                                    <span className="text-[10px] text-slate-500">Drop ou Ctrl+V</span>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
