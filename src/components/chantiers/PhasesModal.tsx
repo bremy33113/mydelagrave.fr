@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Plus, Trash2, Calendar, Clock, User, Edit } from 'lucide-react';
+import { X, Plus, Clock, Layers } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { PhaseGauge } from './PhaseGauge';
+import { PhaseGroup } from './PhaseGroup';
+import { ConfirmModal } from '../ui/ConfirmModal';
 import type { Tables } from '../../lib/database.types';
 
 type Phase = Tables<'phases_chantiers'> & {
@@ -16,17 +19,8 @@ interface PhasesModalProps {
 
 // French public holidays for 2026 (can be extended)
 const HOLIDAYS_2026 = [
-    '2026-01-01', // Jour de l'An
-    '2026-04-06', // Lundi de Pâques
-    '2026-05-01', // Fête du Travail
-    '2026-05-08', // Victoire 1945
-    '2026-05-14', // Ascension
-    '2026-05-25', // Lundi de Pentecôte
-    '2026-07-14', // Fête Nationale
-    '2026-08-15', // Assomption
-    '2026-11-01', // Toussaint
-    '2026-11-11', // Armistice
-    '2026-12-25', // Noël
+    '2026-01-01', '2026-04-06', '2026-05-01', '2026-05-08', '2026-05-14',
+    '2026-05-25', '2026-07-14', '2026-08-15', '2026-11-01', '2026-11-11', '2026-12-25',
 ];
 
 // Working hours configuration
@@ -35,18 +29,14 @@ const WORK_END_MORNING = 12;
 const WORK_START_AFTERNOON = 13;
 const WORK_END_AFTERNOON = 17;
 
-// Check if a date is a working day
 function isWorkingDay(date: Date): boolean {
     const day = date.getDay();
-    if (day === 0 || day === 6) return false; // Weekend
-
+    if (day === 0 || day === 6) return false;
     const dateStr = date.toISOString().split('T')[0];
-    if (HOLIDAYS_2026.includes(dateStr)) return false; // Holiday
-
+    if (HOLIDAYS_2026.includes(dateStr)) return false;
     return true;
 }
 
-// Calculate end date and time from start date, start time, and duration
 function calculateEndDateTime(
     startDate: string,
     startHour: number,
@@ -56,7 +46,6 @@ function calculateEndDateTime(
     const currentDate = new Date(startDate);
     let currentHour = startHour;
 
-    // Validate start hour is in working hours
     if (currentHour < WORK_START_MORNING) currentHour = WORK_START_MORNING;
     if (currentHour >= WORK_END_MORNING && currentHour < WORK_START_AFTERNOON) {
         currentHour = WORK_START_AFTERNOON;
@@ -66,33 +55,28 @@ function calculateEndDateTime(
         currentHour = WORK_START_MORNING;
     }
 
-    // Skip to next working day if needed
     while (!isWorkingDay(currentDate)) {
         currentDate.setDate(currentDate.getDate() + 1);
     }
 
     while (remainingHours > 0) {
         if (currentHour >= WORK_START_MORNING && currentHour < WORK_END_MORNING) {
-            // Morning
             const morningHours = Math.min(WORK_END_MORNING - currentHour, remainingHours);
             remainingHours -= morningHours;
             currentHour = WORK_END_MORNING;
 
             if (remainingHours > 0) {
-                // Continue to afternoon
                 const afternoonHours = Math.min(WORK_END_AFTERNOON - WORK_START_AFTERNOON, remainingHours);
                 remainingHours -= afternoonHours;
                 currentHour = WORK_START_AFTERNOON + afternoonHours;
             }
         } else if (currentHour >= WORK_START_AFTERNOON && currentHour < WORK_END_AFTERNOON) {
-            // Afternoon only
             const afternoonHours = Math.min(WORK_END_AFTERNOON - currentHour, remainingHours);
             remainingHours -= afternoonHours;
             currentHour += afternoonHours;
         }
 
         if (remainingHours > 0) {
-            // Move to next working day
             currentDate.setDate(currentDate.getDate() + 1);
             while (!isWorkingDay(currentDate)) {
                 currentDate.setDate(currentDate.getDate() + 1);
@@ -107,16 +91,6 @@ function calculateEndDateTime(
     };
 }
 
-// Get week number (ISO)
-function getWeekNumber(date: Date): number {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
-
-// Format date in French short format
 function formatDateShort(dateStr: string): string {
     const date = new Date(dateStr);
     return date.toLocaleDateString('fr-FR', {
@@ -127,22 +101,33 @@ function formatDateShort(dateStr: string): string {
     });
 }
 
-import { ConfirmModal } from '../ui/ConfirmModal';
-
-// ... other imports
+interface PhaseGroupData {
+    groupNumber: number;
+    label: string;
+    budgetHours: number | null;
+    subPhases: Phase[];
+}
 
 export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: PhasesModalProps) {
     const [phases, setPhases] = useState<Phase[]>([]);
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<Tables<'users'>[]>([]);
-    const [showAddForm, setShowAddForm] = useState(false);
-    const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
 
-    // Delete modal state
+    // Forms
+    const [showSubPhaseForm, setShowSubPhaseForm] = useState(false);
+    const [showGroupForm, setShowGroupForm] = useState(false);
+    const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
+    const [editingGroupNumber, setEditingGroupNumber] = useState<number | null>(null);
+    const [targetGroupNumber, setTargetGroupNumber] = useState<number>(1);
+
+    // Delete modals
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [phaseIdToDelete, setPhaseIdToDelete] = useState<string | null>(null);
+    const [showDeleteGroupModal, setShowDeleteGroupModal] = useState(false);
+    const [groupToDelete, setGroupToDelete] = useState<number | null>(null);
 
-    const [formData, setFormData] = useState({
+    // Sub-phase form data
+    const [subPhaseForm, setSubPhaseForm] = useState({
         libelle: '',
         date_debut: '',
         heure_debut: 8,
@@ -150,19 +135,96 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
         poseur_id: '',
     });
 
-    // Calculate end date/time from form data
+    // Group form data
+    const [groupForm, setGroupForm] = useState({
+        label: '',
+        heures_budget: '',
+    });
+
+    // Calculated end date for sub-phase form
     const calculatedEnd = useMemo(() => {
-        if (!formData.date_debut) return null;
-        return calculateEndDateTime(formData.date_debut, formData.heure_debut, formData.duree_heures);
-    }, [formData.date_debut, formData.heure_debut, formData.duree_heures]);
+        if (!subPhaseForm.date_debut) return null;
+        return calculateEndDateTime(subPhaseForm.date_debut, subPhaseForm.heure_debut, subPhaseForm.duree_heures);
+    }, [subPhaseForm.date_debut, subPhaseForm.heure_debut, subPhaseForm.duree_heures]);
+
+    // Group phases by groupe_phase
+    const groupedPhases = useMemo<PhaseGroupData[]>(() => {
+        const groups = new Map<number, Phase[]>();
+
+        phases.forEach((phase) => {
+            const group = phase.groupe_phase || 1;
+            const existing = groups.get(group) || [];
+            existing.push(phase);
+            groups.set(group, existing);
+        });
+
+        // Sort sub-phases within each group
+        groups.forEach((subPhases, _) => {
+            subPhases.sort((a, b) => {
+                const dateA = new Date(a.date_debut + 'T' + a.heure_debut);
+                const dateB = new Date(b.date_debut + 'T' + b.heure_debut);
+                return dateA.getTime() - dateB.getTime();
+            });
+        });
+
+        // Convert to array and sort by group number
+        return Array.from(groups.entries())
+            .sort(([a], [b]) => a - b)
+            .map(([groupNumber, subPhases]) => {
+                // Get group label and budget from first sub-phase that has them
+                const firstWithLabel = subPhases.find((p) => p.libelle && p.numero_phase === 1);
+                const firstWithBudget = subPhases.find((p) => p.heures_budget !== null);
+
+                return {
+                    groupNumber,
+                    label: firstWithLabel?.libelle || '',
+                    budgetHours: firstWithBudget?.heures_budget || null,
+                    subPhases,
+                };
+            });
+    }, [phases]);
+
+    // Total hours consumed (only real sub-phases with duree_heures > 0)
+    const totalConsumed = useMemo(() => {
+        return phases
+            .filter((p) => p.duree_heures > 0)
+            .reduce((sum, p) => sum + p.duree_heures, 0);
+    }, [phases]);
+
+    // Total budget (sum of all phase budgets)
+    const totalBudget = useMemo(() => {
+        return groupedPhases.reduce((sum, g) => sum + (g.budgetHours || 0), 0);
+    }, [groupedPhases]);
+
+    // Next available group number
+    const nextGroupNumber = useMemo(() => {
+        if (groupedPhases.length === 0) return 1;
+        return Math.max(...groupedPhases.map((g) => g.groupNumber)) + 1;
+    }, [groupedPhases]);
 
     useEffect(() => {
         if (isOpen) {
-            fetchAndRenumberPhases();
+            fetchPhases();
             fetchUsers();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, chantierId]);
+
+    const fetchPhases = async () => {
+        setLoading(true);
+        try {
+            const { data } = await supabase
+                .from('phases_chantiers')
+                .select('*, poseur:users(id, first_name, last_name)')
+                .eq('chantier_id', chantierId)
+                .order('groupe_phase', { ascending: true })
+                .order('date_debut', { ascending: true });
+
+            setPhases((data as Phase[]) || []);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchUsers = async () => {
         const { data } = await supabase
@@ -170,12 +232,14 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
             .select('*')
             .eq('suspended', false)
             .order('last_name');
-
         setUsers((data as Tables<'users'>[]) || []);
     };
 
-    const resetForm = () => {
-        setFormData({
+    const poseurs = users.filter((u) => u.role === 'poseur' || u.role === 'admin');
+
+    // Reset forms
+    const resetSubPhaseForm = () => {
+        setSubPhaseForm({
             libelle: '',
             date_debut: '',
             heure_debut: 8,
@@ -183,76 +247,165 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
             poseur_id: '',
         });
         setEditingPhase(null);
-        setShowAddForm(false);
+        setShowSubPhaseForm(false);
     };
 
-    const openEditForm = (phase: Phase) => {
+    const resetGroupForm = () => {
+        setGroupForm({ label: '', heures_budget: '' });
+        setEditingGroupNumber(null);
+        setShowGroupForm(false);
+    };
+
+    // Handle add sub-phase
+    const handleAddSubPhase = (groupNumber: number) => {
+        setTargetGroupNumber(groupNumber);
+        resetSubPhaseForm();
+        setShowSubPhaseForm(true);
+    };
+
+    // Handle edit sub-phase
+    const handleEditSubPhase = (phase: Phase) => {
         setEditingPhase(phase);
+        setTargetGroupNumber(phase.groupe_phase);
         const startHour = parseInt(phase.heure_debut.split(':')[0]) || 8;
-        setFormData({
+        setSubPhaseForm({
             libelle: phase.libelle || '',
             date_debut: phase.date_debut,
             heure_debut: startHour,
             duree_heures: phase.duree_heures,
             poseur_id: phase.poseur_id || '',
         });
-        setShowAddForm(true);
+        setShowSubPhaseForm(true);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    // Handle submit sub-phase
+    const handleSubmitSubPhase = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!calculatedEnd) return;
 
         try {
+            // Get next numero_phase for this group
+            const groupPhases = phases.filter((p) => p.groupe_phase === targetGroupNumber);
+            const nextNumero = editingPhase
+                ? editingPhase.numero_phase
+                : (groupPhases.length > 0 ? Math.max(...groupPhases.map((p) => p.numero_phase)) + 1 : 1);
+
             const dataToSave = {
                 chantier_id: chantierId,
-                libelle: formData.libelle || null,
-                date_debut: formData.date_debut,
+                groupe_phase: targetGroupNumber,
+                numero_phase: nextNumero,
+                libelle: subPhaseForm.libelle || null,
+                heures_budget: null, // Budget is set on the group level via first sub-phase
+                date_debut: subPhaseForm.date_debut,
                 date_fin: calculatedEnd.endDate,
-                heure_debut: `${formData.heure_debut.toString().padStart(2, '0')}:00:00`,
+                heure_debut: `${subPhaseForm.heure_debut.toString().padStart(2, '0')}:00:00`,
                 heure_fin: `${calculatedEnd.endHour.toString().padStart(2, '0')}:00:00`,
-                duree_heures: formData.duree_heures,
-                poseur_id: formData.poseur_id || null,
+                duree_heures: subPhaseForm.duree_heures,
+                poseur_id: subPhaseForm.poseur_id || null,
             };
 
             if (editingPhase) {
                 await supabase
                     .from('phases_chantiers')
-                    .update({
-                        ...dataToSave,
-                        updated_at: new Date().toISOString(),
-                    })
+                    .update({ ...dataToSave, updated_at: new Date().toISOString() })
                     .eq('id', editingPhase.id);
             } else {
-                // Insert with temporary number (will be renumbered)
-                await supabase.from('phases_chantiers').insert([
-                    {
-                        ...dataToSave,
-                        numero_phase: 0, // Temporary, will be renumbered
-                    },
-                ]);
+                await supabase.from('phases_chantiers').insert([dataToSave]);
             }
 
-            resetForm();
-            // Fetch and renumber to ensure chronological order
-            await fetchAndRenumberPhases();
+            resetSubPhaseForm();
+            await fetchPhases();
         } catch (err) {
             alert('Erreur: ' + (err as Error).message);
         }
     };
 
-    const handleDelete = (phaseId: string) => {
+    // Handle add new group
+    const handleAddGroup = () => {
+        setTargetGroupNumber(nextGroupNumber);
+        resetGroupForm();
+        setShowGroupForm(true);
+    };
+
+    // Handle edit group
+    const handleEditGroup = (groupNumber: number) => {
+        const group = groupedPhases.find((g) => g.groupNumber === groupNumber);
+        if (group) {
+            setEditingGroupNumber(groupNumber);
+            setGroupForm({
+                label: group.label,
+                heures_budget: group.budgetHours?.toString() || '',
+            });
+            setShowGroupForm(true);
+        }
+    };
+
+    // Handle submit group
+    const handleSubmitGroup = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        try {
+            const budgetValue = groupForm.heures_budget ? parseInt(groupForm.heures_budget) : null;
+
+            if (editingGroupNumber !== null) {
+                // Update: find the first sub-phase of this group and update its label/budget
+                const groupPhases = phases.filter((p) => p.groupe_phase === editingGroupNumber);
+                const firstPhase = groupPhases.find((p) => p.numero_phase === 1);
+
+                if (firstPhase) {
+                    await supabase
+                        .from('phases_chantiers')
+                        .update({
+                            libelle: groupForm.label || null,
+                            heures_budget: budgetValue,
+                            updated_at: new Date().toISOString(),
+                        })
+                        .eq('id', firstPhase.id);
+                } else if (groupPhases.length > 0) {
+                    // If no phase 1, update the first available
+                    await supabase
+                        .from('phases_chantiers')
+                        .update({
+                            heures_budget: budgetValue,
+                            updated_at: new Date().toISOString(),
+                        })
+                        .eq('id', groupPhases[0].id);
+                }
+            } else {
+                // Create new group with a placeholder sub-phase
+                await supabase.from('phases_chantiers').insert([{
+                    chantier_id: chantierId,
+                    groupe_phase: targetGroupNumber,
+                    numero_phase: 1,
+                    libelle: groupForm.label || `Phase ${targetGroupNumber}`,
+                    heures_budget: budgetValue,
+                    date_debut: new Date().toISOString().split('T')[0],
+                    date_fin: new Date().toISOString().split('T')[0],
+                    heure_debut: '08:00:00',
+                    heure_fin: '08:00:00',
+                    duree_heures: 0,
+                    poseur_id: null,
+                }]);
+            }
+
+            resetGroupForm();
+            await fetchPhases();
+        } catch (err) {
+            alert('Erreur: ' + (err as Error).message);
+        }
+    };
+
+    // Handle delete sub-phase
+    const handleDeleteSubPhase = (phaseId: string) => {
         setPhaseIdToDelete(phaseId);
         setShowDeleteModal(true);
     };
 
-    const confirmDeletePhase = async () => {
+    const confirmDeleteSubPhase = async () => {
         if (!phaseIdToDelete) return;
-
         try {
             await supabase.from('phases_chantiers').delete().eq('id', phaseIdToDelete);
-            // Fetch and renumber after delete
-            await fetchAndRenumberPhases();
+            await fetchPhases();
             setShowDeleteModal(false);
             setPhaseIdToDelete(null);
         } catch {
@@ -260,89 +413,68 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
         }
     };
 
-    // Sort phases chronologically
-    const sortedPhases = useMemo(() => {
-        return [...phases].sort((a, b) => {
-            const dateA = new Date(a.date_debut + 'T' + a.heure_debut);
-            const dateB = new Date(b.date_debut + 'T' + b.heure_debut);
-            return dateA.getTime() - dateB.getTime();
-        });
-    }, [phases]);
-
-    // Renumber phases chronologically in the database
-    const renumberPhases = async (phasesToRenumber: Phase[]) => {
-        // Sort chronologically
-        const sorted = [...phasesToRenumber].sort((a, b) => {
-            const dateA = new Date(a.date_debut + 'T' + a.heure_debut);
-            const dateB = new Date(b.date_debut + 'T' + b.heure_debut);
-            return dateA.getTime() - dateB.getTime();
-        });
-
-        // Update each phase with its new number
-        for (let i = 0; i < sorted.length; i++) {
-            const phase = sorted[i];
-            const newNumber = i + 1;
-            if (phase.numero_phase !== newNumber) {
-                await supabase
-                    .from('phases_chantiers')
-                    .update({ numero_phase: newNumber })
-                    .eq('id', phase.id);
-            }
-        }
+    // Handle delete group
+    const handleDeleteGroup = (groupNumber: number) => {
+        setGroupToDelete(groupNumber);
+        setShowDeleteGroupModal(true);
     };
 
-    // Fetch phases and renumber them
-    const fetchAndRenumberPhases = async () => {
-        setLoading(true);
+    const confirmDeleteGroup = async () => {
+        if (groupToDelete === null) return;
         try {
-            const { data } = await supabase
-                .from('phases_chantiers')
-                .select('*, poseur:users(id, first_name, last_name)')
-                .eq('chantier_id', chantierId)
-                .order('date_debut', { ascending: true });
-
-            const fetchedPhases = (data as Phase[]) || [];
-
-            // Renumber if needed
-            await renumberPhases(fetchedPhases);
-
-            // Refetch to get updated numbers
-            const { data: updatedData } = await supabase
-                .from('phases_chantiers')
-                .select('*, poseur:users(id, first_name, last_name)')
-                .eq('chantier_id', chantierId)
-                .order('date_debut', { ascending: true });
-
-            setPhases((updatedData as Phase[]) || []);
-        } catch (err) {
-            console.error('Error fetching phases:', err);
-        } finally {
-            setLoading(false);
+            // Delete all sub-phases of this group
+            const groupPhases = phases.filter((p) => p.groupe_phase === groupToDelete);
+            for (const phase of groupPhases) {
+                await supabase.from('phases_chantiers').delete().eq('id', phase.id);
+            }
+            await fetchPhases();
+            setShowDeleteGroupModal(false);
+            setGroupToDelete(null);
+        } catch {
+            alert('Erreur lors de la suppression');
         }
     };
-
-    const poseurs = users.filter((u) => u.role === 'poseur' || u.role === 'admin');
 
     if (!isOpen) return null;
+
+    // Note: heuresAllouees du chantier n'est plus utilisé pour la jauge
+    // On utilise totalBudget (somme des budgets des phases) à la place
 
     return (
         <div className="modal-backdrop">
             <div
-                className="glass-card w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-fadeIn"
+                className="glass-card w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-fadeIn"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
-                    <div>
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-purple-400" />
-                            Gestion des phases
-                        </h2>
-                        <p className="text-sm text-slate-400">{chantierNom}</p>
+                <div className="p-6 border-b border-slate-700/50">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <Layers className="w-5 h-5 text-purple-400" />
+                                Gestion des phases
+                            </h2>
+                            <p className="text-sm text-slate-400">{chantierNom}</p>
+                        </div>
+                        <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400">
+                            <X className="w-5 h-5" />
+                        </button>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400">
-                        <X className="w-5 h-5" />
-                    </button>
+
+                    {/* Global gauge */}
+                    {totalBudget > 0 && (
+                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-slate-300 font-medium">
+                                    Budget total phases
+                                </span>
+                                <span className={`text-sm font-medium ${totalConsumed > totalBudget ? 'text-red-400' : 'text-green-400'}`}>
+                                    Reste: {totalBudget - totalConsumed}h
+                                </span>
+                            </div>
+                            <PhaseGauge consumed={totalConsumed} allocated={totalBudget} />
+                        </div>
+                    )}
                 </div>
 
                 {/* Content */}
@@ -353,105 +485,110 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {/* Phases list */}
-                            {sortedPhases.length === 0 && !showAddForm ? (
+                            {/* Phase groups */}
+                            {groupedPhases.length === 0 && !showGroupForm ? (
                                 <div className="text-center py-12 text-slate-400">
                                     <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
                                     <p>Aucune phase planifiée</p>
                                     <button
-                                        onClick={() => setShowAddForm(true)}
+                                        onClick={handleAddGroup}
                                         className="mt-4 btn-primary"
                                     >
                                         <Plus className="w-4 h-4 mr-2" />
-                                        Ajouter une phase
+                                        Créer Phase 1
                                     </button>
                                 </div>
                             ) : (
                                 <>
-                                    {sortedPhases.map((phase) => {
-                                        const startDate = new Date(phase.date_debut);
-                                        const weekNum = getWeekNumber(startDate);
-                                        const startHour = parseInt(phase.heure_debut.split(':')[0]);
-                                        const endHour = parseInt(phase.heure_fin.split(':')[0]);
+                                    {groupedPhases.map((group) => (
+                                        <PhaseGroup
+                                            key={group.groupNumber}
+                                            groupNumber={group.groupNumber}
+                                            groupLabel={group.label}
+                                            budgetHours={group.budgetHours}
+                                            subPhases={group.subPhases.filter((p) => p.duree_heures > 0)}
+                                            onAddSubPhase={handleAddSubPhase}
+                                            onEditSubPhase={handleEditSubPhase}
+                                            onDeleteSubPhase={handleDeleteSubPhase}
+                                            onEditGroup={handleEditGroup}
+                                            onDeleteGroup={handleDeleteGroup}
+                                        />
+                                    ))}
 
-                                        return (
-                                            <div
-                                                key={phase.id}
-                                                className="p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 group hover:border-purple-500/30 transition-colors"
-                                            >
-                                                <div className="flex items-start justify-between">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-xs font-medium">
-                                                                Phase {phase.numero_phase}
-                                                            </span>
-                                                            <span className="px-2 py-0.5 rounded bg-slate-700/50 text-slate-300 text-xs">
-                                                                Sem. {weekNum}
-                                                            </span>
-                                                            {phase.poseur && (
-                                                                <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-xs">
-                                                                    <User className="w-3 h-3" />
-                                                                    {phase.poseur.first_name} {phase.poseur.last_name}
-                                                                </span>
-                                                            )}
-                                                        </div>
-
-                                                        <p className="font-medium text-white mb-1">
-                                                            {phase.libelle || `Phase ${phase.numero_phase}`}
-                                                        </p>
-
-                                                        <div className="flex items-center gap-2 text-sm">
-                                                            <Calendar className="w-4 h-4 text-slate-500" />
-                                                            <span className="text-slate-300">
-                                                                {formatDateShort(phase.date_debut)} - {startHour}h
-                                                            </span>
-                                                            <span className="text-slate-500">→</span>
-                                                            <span className="text-slate-300">
-                                                                {formatDateShort(phase.date_fin)} - {endHour}h
-                                                            </span>
-                                                            <span className="ml-2 px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs font-medium">
-                                                                {phase.duree_heures}h
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={() => openEditForm(phase)}
-                                                            className="p-2 rounded-lg bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(phase.id)}
-                                                            className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                    {/* Add new phase button */}
+                                    {!showGroupForm && !showSubPhaseForm && (
+                                        <button
+                                            onClick={handleAddGroup}
+                                            className="w-full p-4 rounded-xl border-2 border-dashed border-slate-700 text-slate-400 hover:border-purple-500/50 hover:text-purple-400 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Plus className="w-5 h-5" />
+                                            Nouvelle Phase {nextGroupNumber}
+                                        </button>
+                                    )}
                                 </>
                             )}
 
-                            {/* Add/Edit form */}
-                            {showAddForm && (
-                                <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 mt-4">
+                            {/* Group form */}
+                            {showGroupForm && (
+                                <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
                                     <h3 className="text-sm font-semibold text-purple-400 mb-4">
-                                        {editingPhase ? 'Modifier la phase' : 'Nouvelle phase'}
+                                        {editingGroupNumber ? `Modifier Phase ${editingGroupNumber}` : `Nouvelle Phase ${targetGroupNumber}`}
                                     </h3>
-                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                    <form onSubmit={handleSubmitGroup} className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="input-label">Nom de la phase</label>
+                                                <input
+                                                    type="text"
+                                                    value={groupForm.label}
+                                                    onChange={(e) => setGroupForm({ ...groupForm, label: e.target.value })}
+                                                    className="input-field"
+                                                    placeholder={`Ex: Préparation`}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="input-label">Budget heures</label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={groupForm.heures_budget}
+                                                        onChange={(e) => setGroupForm({ ...groupForm, heures_budget: e.target.value })}
+                                                        className="input-field pr-8"
+                                                        placeholder="Ex: 120"
+                                                    />
+                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">h</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={resetGroupForm} className="btn-secondary">
+                                                Annuler
+                                            </button>
+                                            <button type="submit" className="btn-primary">
+                                                {editingGroupNumber ? 'Enregistrer' : 'Créer'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+
+                            {/* Sub-phase form */}
+                            {showSubPhaseForm && (
+                                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                                    <h3 className="text-sm font-semibold text-blue-400 mb-4">
+                                        {editingPhase
+                                            ? `Modifier sous-phase ${targetGroupNumber}.${editingPhase.numero_phase}`
+                                            : `Nouvelle sous-phase ${targetGroupNumber}.X`}
+                                    </h3>
+                                    <form onSubmit={handleSubmitSubPhase} className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="col-span-2">
                                                 <label className="input-label">Libellé</label>
                                                 <input
                                                     type="text"
-                                                    value={formData.libelle}
-                                                    onChange={(e) =>
-                                                        setFormData({ ...formData, libelle: e.target.value })
-                                                    }
+                                                    value={subPhaseForm.libelle}
+                                                    onChange={(e) => setSubPhaseForm({ ...subPhaseForm, libelle: e.target.value })}
                                                     className="input-field"
                                                     placeholder="Ex: Installation mobilier"
                                                 />
@@ -460,10 +597,8 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                                 <label className="input-label">Date de début *</label>
                                                 <input
                                                     type="date"
-                                                    value={formData.date_debut}
-                                                    onChange={(e) =>
-                                                        setFormData({ ...formData, date_debut: e.target.value })
-                                                    }
+                                                    value={subPhaseForm.date_debut}
+                                                    onChange={(e) => setSubPhaseForm({ ...subPhaseForm, date_debut: e.target.value })}
                                                     className="input-field"
                                                     required
                                                 />
@@ -471,10 +606,8 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                             <div>
                                                 <label className="input-label">Heure de début</label>
                                                 <select
-                                                    value={formData.heure_debut}
-                                                    onChange={(e) =>
-                                                        setFormData({ ...formData, heure_debut: parseInt(e.target.value) })
-                                                    }
+                                                    value={subPhaseForm.heure_debut}
+                                                    onChange={(e) => setSubPhaseForm({ ...subPhaseForm, heure_debut: parseInt(e.target.value) })}
                                                     className="input-field"
                                                 >
                                                     <option value={8}>8h (Matin)</option>
@@ -491,13 +624,8 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                                 <label className="input-label">Durée (heures) *</label>
                                                 <input
                                                     type="number"
-                                                    value={formData.duree_heures}
-                                                    onChange={(e) =>
-                                                        setFormData({
-                                                            ...formData,
-                                                            duree_heures: parseInt(e.target.value) || 8,
-                                                        })
-                                                    }
+                                                    value={subPhaseForm.duree_heures}
+                                                    onChange={(e) => setSubPhaseForm({ ...subPhaseForm, duree_heures: parseInt(e.target.value) || 8 })}
                                                     className="input-field"
                                                     min="1"
                                                     max="500"
@@ -507,10 +635,8 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                             <div>
                                                 <label className="input-label">Poseur assigné</label>
                                                 <select
-                                                    value={formData.poseur_id}
-                                                    onChange={(e) =>
-                                                        setFormData({ ...formData, poseur_id: e.target.value })
-                                                    }
+                                                    value={subPhaseForm.poseur_id}
+                                                    onChange={(e) => setSubPhaseForm({ ...subPhaseForm, poseur_id: e.target.value })}
                                                     className="input-field"
                                                 >
                                                     <option value="">Non assigné</option>
@@ -523,7 +649,6 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                             </div>
                                         </div>
 
-                                        {/* Calculated end preview */}
                                         {calculatedEnd && (
                                             <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
                                                 <p className="text-sm text-slate-400">Fin calculée :</p>
@@ -534,7 +659,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                         )}
 
                                         <div className="flex justify-end gap-3">
-                                            <button type="button" onClick={resetForm} className="btn-secondary">
+                                            <button type="button" onClick={resetSubPhaseForm} className="btn-secondary">
                                                 Annuler
                                             </button>
                                             <button type="submit" className="btn-primary">
@@ -544,17 +669,6 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                     </form>
                                 </div>
                             )}
-
-                            {/* Add button */}
-                            {sortedPhases.length > 0 && !showAddForm && (
-                                <button
-                                    onClick={() => setShowAddForm(true)}
-                                    className="w-full p-4 rounded-xl border-2 border-dashed border-slate-700 text-slate-400 hover:border-purple-500/50 hover:text-purple-400 transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <Plus className="w-5 h-5" />
-                                    Ajouter une phase
-                                </button>
-                            )}
                         </div>
                     )}
                 </div>
@@ -562,7 +676,8 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                 {/* Footer */}
                 <div className="p-6 border-t border-slate-700/50 flex justify-between items-center">
                     <p className="text-sm text-slate-400">
-                        {phases.length} phase{phases.length !== 1 ? 's' : ''} planifiée{phases.length !== 1 ? 's' : ''}
+                        {groupedPhases.length} phase{groupedPhases.length !== 1 ? 's' : ''} •{' '}
+                        {phases.filter((p) => p.duree_heures > 0).length} sous-phase{phases.filter((p) => p.duree_heures > 0).length !== 1 ? 's' : ''}
                     </p>
                     <button onClick={onClose} className="btn-secondary">
                         Fermer
@@ -570,16 +685,31 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                 </div>
             </div>
 
+            {/* Delete sub-phase modal */}
             <ConfirmModal
                 isOpen={showDeleteModal}
                 onClose={() => {
                     setShowDeleteModal(false);
                     setPhaseIdToDelete(null);
                 }}
-                onConfirm={confirmDeletePhase}
-                title="Supprimer la phase"
-                message="Voulez-vous vraiment supprimer cette phase ?"
+                onConfirm={confirmDeleteSubPhase}
+                title="Supprimer la sous-phase"
+                message="Voulez-vous vraiment supprimer cette sous-phase ?"
                 confirmText="Supprimer"
+                variant="danger"
+            />
+
+            {/* Delete group modal */}
+            <ConfirmModal
+                isOpen={showDeleteGroupModal}
+                onClose={() => {
+                    setShowDeleteGroupModal(false);
+                    setGroupToDelete(null);
+                }}
+                onConfirm={confirmDeleteGroup}
+                title="Supprimer la phase"
+                message="Voulez-vous vraiment supprimer cette phase et toutes ses sous-phases ?"
+                confirmText="Supprimer tout"
                 variant="danger"
             />
         </div>

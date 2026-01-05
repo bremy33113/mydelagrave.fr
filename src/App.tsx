@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { Layout } from './components/layout/Layout';
@@ -8,15 +8,51 @@ import { ContactsPage } from './pages/ContactsPage';
 import { AdminPage } from './pages/AdminPage';
 import { TrashPage } from './pages/TrashPage';
 import { PlanningPage } from './pages/PlanningPage';
+import { MobileChantiersList } from './pages/mobile/MobileChantiersList';
+import { MobilePlanning } from './pages/mobile/MobilePlanning';
+import { useMobileMode } from './hooks/useMobileMode';
+import { useUserRole } from './hooks/useUserRole';
 
 interface User {
     id: string;
     email: string;
 }
 
+// Composant pour gérer la redirection mobile
+function MobileRedirect() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { isMobile } = useMobileMode();
+    const { isChargeAffaire, isPoseur, loading: roleLoading } = useUserRole();
+
+    useEffect(() => {
+        if (roleLoading) return;
+
+        // Si on est en mode mobile et qu'on est sur une route desktop
+        if (isMobile && !location.pathname.startsWith('/m/')) {
+            if (isChargeAffaire) {
+                navigate('/m/chantiers', { replace: true });
+            } else if (isPoseur) {
+                navigate('/m/planning', { replace: true });
+            }
+        }
+
+        // Si on est en mode desktop et qu'on est sur une route mobile
+        if (!isMobile && location.pathname.startsWith('/m/')) {
+            navigate('/', { replace: true });
+        }
+    }, [isMobile, isChargeAffaire, isPoseur, roleLoading, location.pathname, navigate]);
+
+    return null;
+}
+
 function App() {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const { isMobile } = useMobileMode();
+
+    // Détecter si on est dans la fenêtre simulateur mobile
+    const isMobileSimulator = window.name === 'MobileSimulator';
 
     useEffect(() => {
         // Check initial session
@@ -69,18 +105,40 @@ function App() {
         );
     }
 
-    // Mode normal : avec Layout
+    // Mode mobile : routes dédiées sans sidebar (viewport mobile OU simulateur)
+    if (isMobile || isMobileSimulator) {
+        return (
+            <>
+                <MobileRedirect />
+                <Routes>
+                    <Route path="/login" element={<Navigate to="/m/chantiers" replace />} />
+                    <Route path="/m/chantiers" element={<MobileChantiersList />} />
+                    <Route path="/m/planning" element={<MobilePlanning />} />
+                    {/* Fallback vers la page appropriée selon le rôle */}
+                    <Route path="*" element={<MobileChantiersList />} />
+                </Routes>
+            </>
+        );
+    }
+
+    // Mode desktop : avec Layout
     return (
-        <Layout userEmail={user.email} userId={user.id}>
-            <Routes>
-                <Route path="/login" element={<Navigate to="/" replace />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/contacts" element={<ContactsPage />} />
-                <Route path="/planning" element={<PlanningPage />} />
-                <Route path="/corbeille" element={<TrashPage />} />
-                <Route path="/*" element={<DashboardPage />} />
-            </Routes>
-        </Layout>
+        <>
+            <MobileRedirect />
+            <Layout userEmail={user.email} userId={user.id}>
+                <Routes>
+                    <Route path="/login" element={<Navigate to="/" replace />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/contacts" element={<ContactsPage />} />
+                    <Route path="/planning" element={<PlanningPage />} />
+                    <Route path="/corbeille" element={<TrashPage />} />
+                    {/* Routes mobiles accessibles aussi en desktop pour debug */}
+                    <Route path="/m/chantiers" element={<MobileChantiersList />} />
+                    <Route path="/m/planning" element={<MobilePlanning />} />
+                    <Route path="/*" element={<DashboardPage />} />
+                </Routes>
+            </Layout>
+        </>
     );
 }
 

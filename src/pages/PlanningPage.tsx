@@ -138,11 +138,15 @@ export function PlanningPage() {
     }, [refreshKey]);
 
     // Filter phases for calendar view (within date range)
+    // Only show real sub-phases (duree_heures > 0), not phase group headers
     const calendarPhases = useMemo(() => {
         const startStr = dateRange.start.toISOString().split('T')[0];
         const endStr = dateRange.end.toISOString().split('T')[0];
 
         return phases.filter((p) => {
+            // Exclude phase group headers (placeholder with 0 hours)
+            if (p.duree_heures === 0) return false;
+
             // Phase overlaps with date range if:
             // phase.date_debut <= endStr AND phase.date_fin >= startStr
             const phaseStart = p.date_debut;
@@ -159,9 +163,56 @@ export function PlanningPage() {
         });
     }, [phases, dateRange, selectedPoseur]);
 
-    // Unassigned phases (no poseur, excluding "fourniture seule" which have their own row)
-    const unassignedPhases = useMemo(() => {
-        return phases.filter((p) => !p.poseur_id && p.chantier?.type !== 'fourniture');
+    // Group unassigned sub-phases by their parent phase (groupe_phase)
+    // Only include phases that have at least one unassigned sub-phase
+    const unassignedPhasesGrouped = useMemo(() => {
+        // Get all real sub-phases (duree_heures > 0) without poseur, excluding "fourniture seule"
+        const unassignedSubPhases = phases.filter(
+            (p) => !p.poseur_id && p.chantier?.type !== 'fourniture' && p.duree_heures > 0
+        );
+
+        // Group by chantier_id + groupe_phase
+        const groups = new Map<string, {
+            chantierId: string;
+            chantierNom: string;
+            chantierRef: string | null;
+            groupePhase: number;
+            phaseLabel: string;
+            subPhases: typeof unassignedSubPhases;
+        }>();
+
+        unassignedSubPhases.forEach((subPhase) => {
+            const key = `${subPhase.chantier_id}-${subPhase.groupe_phase || 1}`;
+            if (!groups.has(key)) {
+                // Find the phase header (duree_heures = 0) for this group to get the label
+                const phaseHeader = phases.find(
+                    (p) => p.chantier_id === subPhase.chantier_id &&
+                           p.groupe_phase === (subPhase.groupe_phase || 1) &&
+                           p.numero_phase === 1
+                );
+                groups.set(key, {
+                    chantierId: subPhase.chantier_id,
+                    chantierNom: subPhase.chantier?.nom || 'Chantier',
+                    chantierRef: subPhase.chantier?.reference || null,
+                    groupePhase: subPhase.groupe_phase || 1,
+                    phaseLabel: phaseHeader?.libelle || `Phase ${subPhase.groupe_phase || 1}`,
+                    subPhases: [],
+                });
+            }
+            groups.get(key)?.subPhases.push(subPhase);
+        });
+
+        // Sort sub-phases within each group
+        groups.forEach((group) => {
+            group.subPhases.sort((a, b) => a.numero_phase - b.numero_phase);
+        });
+
+        return Array.from(groups.values()).sort((a, b) => {
+            // Sort by chantier name, then by groupe_phase
+            const nameCompare = a.chantierNom.localeCompare(b.chantierNom);
+            if (nameCompare !== 0) return nameCompare;
+            return a.groupePhase - b.groupePhase;
+        });
     }, [phases]);
 
     // Navigate: Hebdo = 1 day, 3Sem/Mois = 7 days, 3Mois = 30 days, Annuel = 90 days
@@ -335,7 +386,7 @@ export function PlanningPage() {
             <div className="flex-1 flex overflow-hidden">
                 {/* Unassigned phases panel */}
                 <UnassignedPhasesPanel
-                    phases={unassignedPhases}
+                    groupedPhases={unassignedPhasesGrouped}
                     onPhaseUpdate={handlePhaseUpdate}
                     onPhaseClick={handlePhaseClick}
                 />

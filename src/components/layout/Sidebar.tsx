@@ -10,10 +10,12 @@ import {
     ChevronRight,
     CalendarDays,
     MonitorUp,
+    Smartphone,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
+import { useMobileMode } from '../../hooks/useMobileMode';
 import { OnlineUsers } from './OnlineUsers';
 
 // Type for Screen Details API (experimental)
@@ -42,6 +44,9 @@ export function Sidebar({ userEmail, userId }: SidebarProps) {
     const [planningWindowRef, setPlanningWindowRef] = useState<Window | null>(null);
     const [isPlanningExternalOpen, setIsPlanningExternalOpen] = useState(false);
     const { isAdmin, isSuperviseur, canViewAllChantiers, role } = useUserRole();
+    const { showDevToggle } = useMobileMode();
+    const [isMobileWindowOpen, setIsMobileWindowOpen] = useState(false);
+    const [mobileWindowRef, setMobileWindowRef] = useState<Window | null>(null);
 
     // Detect multiple screens
     useEffect(() => {
@@ -133,6 +138,52 @@ export function Sidebar({ userEmail, userId }: SidebarProps) {
         if (newWindow) {
             setPlanningWindowRef(newWindow);
             setIsPlanningExternalOpen(true);
+        }
+    };
+
+    // Watch for mobile window closure
+    useEffect(() => {
+        if (!mobileWindowRef) return;
+
+        const checkInterval = setInterval(() => {
+            if (mobileWindowRef.closed) {
+                setIsMobileWindowOpen(false);
+                setMobileWindowRef(null);
+                clearInterval(checkInterval);
+            }
+        }, 500);
+
+        return () => clearInterval(checkInterval);
+    }, [mobileWindowRef]);
+
+    // Open mobile simulator window (Samsung Galaxy S21 dimensions: 360x800)
+    const openMobileSimulator = () => {
+        if (mobileWindowRef && !mobileWindowRef.closed) {
+            mobileWindowRef.focus();
+            return;
+        }
+
+        const baseUrl = window.location.origin + window.location.pathname;
+        // Route par défaut selon le rôle qu'on simule (chargé d'affaires)
+        const mobileUrl = `${baseUrl}#/m/chantiers`;
+
+        // Samsung Galaxy S21 dimensions
+        const width = 360;
+        const height = 800;
+
+        // Center the window
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+
+        const features = `left=${left},top=${top},width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no,resizable=yes`;
+        const newWindow = window.open(mobileUrl, 'MobileSimulator', features);
+
+        if (newWindow) {
+            setMobileWindowRef(newWindow);
+            setIsMobileWindowOpen(true);
+
+            // Force mobile mode in the new window
+            newWindow.localStorage.setItem('force_mobile_mode', 'true');
         }
     };
 
@@ -292,6 +343,21 @@ export function Sidebar({ userEmail, userId }: SidebarProps) {
                         <LogOut className="w-4 h-4" />
                         {!collapsed && <span className="text-sm">Déconnexion</span>}
                     </button>
+
+                    {/* Toggle mode mobile (dev only) - ouvre simulateur Galaxy */}
+                    {showDevToggle && (
+                        <button
+                            onClick={openMobileSimulator}
+                            className={`p-2 rounded-lg transition-all ${
+                                isMobileWindowOpen
+                                    ? 'bg-blue-500/20 text-blue-400'
+                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                            }`}
+                            title={isMobileWindowOpen ? 'Simulateur mobile ouvert' : 'Ouvrir simulateur mobile (Galaxy)'}
+                        >
+                            <Smartphone className="w-4 h-4" />
+                        </button>
+                    )}
 
                     <button
                         onClick={() => setCollapsed(!collapsed)}

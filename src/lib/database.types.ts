@@ -36,6 +36,7 @@ export interface Database {
                     date_fin: string | null;
                     reserves_levees: boolean;
                     doe_fourni: boolean;
+                    heures_allouees: number | null;
                     deleted_at: string | null;
                     created_at: string;
                     updated_at: string;
@@ -66,8 +67,10 @@ export interface Database {
                 Row: {
                     id: string;
                     chantier_id: string;
+                    groupe_phase: number;
                     numero_phase: number;
                     libelle: string | null;
+                    heures_budget: number | null;
                     date_debut: string;
                     date_fin: string;
                     heure_debut: string;

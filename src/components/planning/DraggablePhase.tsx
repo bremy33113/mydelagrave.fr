@@ -210,6 +210,9 @@ export function DraggablePhase({
         >
             <div className="h-full flex items-center justify-center px-1 gap-0.5">
                 {isFournitureSeule && <Truck className="w-3 h-3 text-white/80 flex-shrink-0" />}
+                <span className="text-[10px] bg-black/30 px-1 rounded text-white/80 flex-shrink-0">
+                    {phase.groupe_phase || 1}.{phase.numero_phase}
+                </span>
                 <p className="text-xs font-medium text-white text-center truncate">
                     {phase.chantier?.reference || phase.chantier?.nom?.slice(0, 15) || 'Chantier'}
                 </p>

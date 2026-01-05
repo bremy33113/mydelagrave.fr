@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent, useRef } from 'react';
-import { X, Building2, MapPin, User, Tag, Map, Plus, Search, Hash, Layers, Settings, Briefcase, Wrench } from 'lucide-react';
+import { X, Building2, MapPin, User, Tag, Map, Plus, Search, Hash, Layers, Settings, Briefcase, Wrench, Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { AddressSelectorModal } from './AddressSelectorModal';
 import { CreateContactModal } from './CreateContactModal';
@@ -330,6 +330,18 @@ export function CreateChantierModal({
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+                            <div>
+                                <label className="input-label"><Clock className="w-4 h-4 inline mr-1 opacity-70" />Budget heures</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={editingChantier ? "Voir gestion des phases" : "À définir"}
+                                        disabled
+                                        className="input-field pr-12 bg-slate-800/30 text-slate-500 cursor-not-allowed"
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">Σ phases</span>
+                                </div>
                             </div>
                         </div>
                     </section>

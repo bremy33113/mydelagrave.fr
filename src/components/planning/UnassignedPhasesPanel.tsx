@@ -1,22 +1,32 @@
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import type { PhaseWithRelations } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
 
+export interface PhaseGroup {
+    chantierId: string;
+    chantierNom: string;
+    chantierRef: string | null;
+    groupePhase: number;
+    phaseLabel: string;
+    subPhases: PhaseWithRelations[];
+}
+
 interface UnassignedPhasesPanelProps {
-    phases: PhaseWithRelations[];
+    groupedPhases: PhaseGroup[];
     onPhaseUpdate: (phaseId: string, updates: Partial<Tables<'phases_chantiers'>>) => Promise<void>;
     onPhaseClick: (phase: PhaseWithRelations) => void;
 }
 
-interface DraggableUnassignedPhaseProps {
+interface DraggableSubPhaseProps {
     phase: PhaseWithRelations;
+    groupePhase: number;
     onClick: () => void;
 }
 
-function DraggableUnassignedPhase({ phase, onClick }: DraggableUnassignedPhaseProps) {
+function DraggableSubPhase({ phase, groupePhase, onClick }: DraggableSubPhaseProps) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: phase.id,
     });
@@ -37,17 +47,19 @@ function DraggableUnassignedPhase({ phase, onClick }: DraggableUnassignedPhasePr
             {...attributes}
             {...listeners}
             onClick={onClick}
-            title={!hasDate ? 'Phase non planifiée' : undefined}
+            title={!hasDate ? 'Sous-phase non planifiée' : undefined}
             className={`p-2 rounded-lg border cursor-pointer hover:bg-slate-700/50 transition-colors ${
                 isDragging ? 'opacity-80 shadow-xl cursor-grabbing' : ''
             } ${hasDate ? 'bg-slate-800/50 border-slate-700/50' : 'bg-red-500/10 border-red-500/30'}`}
         >
-            <p className="text-sm font-medium text-white truncate">
-                {phase.libelle || `Phase ${phase.numero_phase}`}
-            </p>
-            <p className="text-xs text-slate-400 truncate mt-0.5">
-                {phase.chantier?.nom}
-            </p>
+            <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-slate-500 bg-slate-700/50 px-1 rounded">
+                    {groupePhase}.{phase.numero_phase}
+                </span>
+                <p className="text-sm font-medium text-white truncate flex-1">
+                    {phase.libelle || `Sous-phase ${phase.numero_phase}`}
+                </p>
+            </div>
             <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
                 {hasDate ? (
                     <>
@@ -74,82 +86,107 @@ function DraggableUnassignedPhase({ phase, onClick }: DraggableUnassignedPhasePr
     );
 }
 
-export function UnassignedPhasesPanel({ phases, onPhaseClick }: UnassignedPhasesPanelProps) {
-    // Group phases by chantier
-    const groupedPhases = useMemo(() => {
-        const groups: Record<string, { chantier: PhaseWithRelations['chantier']; phases: PhaseWithRelations[] }> = {};
+interface PhaseTreeProps {
+    group: PhaseGroup;
+    onPhaseClick: (phase: PhaseWithRelations) => void;
+}
 
-        phases.forEach((phase) => {
-            const chantierId = phase.chantier_id;
-            if (!groups[chantierId]) {
-                groups[chantierId] = {
-                    chantier: phase.chantier,
-                    phases: [],
-                };
-            }
-            groups[chantierId].phases.push(phase);
-        });
-
-        // Sort phases within each group by numero_phase
-        Object.values(groups).forEach((group) => {
-            group.phases.sort((a, b) => a.numero_phase - b.numero_phase);
-        });
-
-        return Object.values(groups);
-    }, [phases]);
-
-    // Status icons
-    const getStatusIcon = (statut: string): string => {
-        const icons: Record<string, string> = {
-            nouveau: '🆕',
-            planifie: '📅',
-            en_cours: '🔄',
-            pose_en_cours: '🔨',
-            a_terminer: '⏳',
-            termine: '✅',
-        };
-        return icons[statut] || '📦';
-    };
+function PhaseTree({ group, onPhaseClick }: PhaseTreeProps) {
+    const [expanded, setExpanded] = useState(true);
 
     return (
-        <div className="w-64 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/30 flex flex-col">
+        <div className="space-y-1">
+            {/* Phase header (clickable to expand/collapse) */}
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full flex items-center gap-2 p-2 rounded-lg bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 transition-colors text-left"
+            >
+                {expanded ? (
+                    <ChevronDown className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                ) : (
+                    <ChevronRight className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                )}
+                <span className="text-xs font-mono text-purple-300 bg-purple-500/20 px-1.5 py-0.5 rounded flex-shrink-0">
+                    P{group.groupePhase}
+                </span>
+                <span className="text-sm font-medium text-white truncate flex-1">
+                    {group.phaseLabel}
+                </span>
+                <span className="text-xs text-slate-400 bg-slate-700/50 px-1.5 py-0.5 rounded">
+                    {group.subPhases.length}
+                </span>
+            </button>
+
+            {/* Sub-phases (tree children) */}
+            {expanded && (
+                <div className="space-y-1.5 pl-4 ml-2 border-l-2 border-purple-500/30">
+                    {group.subPhases.map((subPhase) => (
+                        <DraggableSubPhase
+                            key={subPhase.id}
+                            phase={subPhase}
+                            groupePhase={group.groupePhase}
+                            onClick={() => onPhaseClick(subPhase)}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+export function UnassignedPhasesPanel({ groupedPhases, onPhaseClick }: UnassignedPhasesPanelProps) {
+    // Group phases by chantier for display
+    const byChantier = groupedPhases.reduce((acc, group) => {
+        if (!acc[group.chantierId]) {
+            acc[group.chantierId] = {
+                nom: group.chantierNom,
+                ref: group.chantierRef,
+                phases: [],
+            };
+        }
+        acc[group.chantierId].phases.push(group);
+        return acc;
+    }, {} as Record<string, { nom: string; ref: string | null; phases: PhaseGroup[] }>);
+
+    // Total count of unassigned sub-phases
+    const totalCount = groupedPhases.reduce((sum, g) => sum + g.subPhases.length, 0);
+
+    return (
+        <div className="w-72 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/30 flex flex-col">
             {/* Header */}
             <div className="p-3 border-b border-slate-700/50">
                 <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-amber-500" />
                     À attribuer
                     <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs">
-                        {phases.length}
+                        {totalCount}
                     </span>
                 </h3>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-auto p-3 space-y-4">
-                {groupedPhases.length === 0 ? (
+                {Object.keys(byChantier).length === 0 ? (
                     <div className="text-center py-8">
-                        <p className="text-sm text-slate-500">Toutes les phases sont attribuées</p>
+                        <p className="text-sm text-slate-500">Toutes les sous-phases sont attribuées</p>
                     </div>
                 ) : (
-                    groupedPhases.map((group) => (
-                        <div key={group.chantier?.id || 'unknown'} className="space-y-2">
+                    Object.entries(byChantier).map(([chantierId, data]) => (
+                        <div key={chantierId} className="space-y-2">
                             {/* Chantier header */}
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm">
-                                    {getStatusIcon(group.chantier?.statut || 'nouveau')}
-                                </span>
-                                <p className="text-xs font-medium text-slate-400 truncate flex-1">
-                                    {group.chantier?.nom || 'Chantier inconnu'}
+                            <div className="flex items-center gap-2 pb-1 border-b border-slate-700/30">
+                                <p className="text-xs font-semibold text-slate-300 truncate flex-1">
+                                    {data.ref || data.nom}
                                 </p>
                             </div>
 
-                            {/* Phases */}
-                            <div className="space-y-1.5 pl-2 border-l-2 border-slate-700/50">
-                                {group.phases.map((phase) => (
-                                    <DraggableUnassignedPhase
-                                        key={phase.id}
-                                        phase={phase}
-                                        onClick={() => onPhaseClick(phase)}
+                            {/* Phases tree */}
+                            <div className="space-y-2">
+                                {data.phases.map((phaseGroup) => (
+                                    <PhaseTree
+                                        key={`${phaseGroup.chantierId}-${phaseGroup.groupePhase}`}
+                                        group={phaseGroup}
+                                        onPhaseClick={onPhaseClick}
                                     />
                                 ))}
                             </div>
@@ -161,7 +198,7 @@ export function UnassignedPhasesPanel({ phases, onPhaseClick }: UnassignedPhases
             {/* Footer hint */}
             <div className="p-3 border-t border-slate-700/50 bg-slate-800/30">
                 <p className="text-xs text-slate-500 text-center">
-                    Glissez une phase vers un poseur pour l'attribuer
+                    Glissez une sous-phase vers un poseur pour l'attribuer
                 </p>
             </div>
         </div>

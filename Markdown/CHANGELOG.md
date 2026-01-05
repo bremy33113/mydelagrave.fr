@@ -2,6 +2,32 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.4.0] - 2026-01-05
+
+### Sous-phases et Suivi des Heures
+
+### Nouvelles fonctionnalités
+- ✨ Système de sous-phases (1.1, 1.2, 1.3...) pour découper les phases principales
+- ✨ Budget heures par phase avec jauge de progression (vert/hachuré rouge)
+- ✨ Jauge globale chantier = Σ heures sous-phases / Σ budgets phases
+- ✨ Affichage arborescent des sous-phases dans panneau "À attribuer"
+- ✨ Pages mobiles (pmca/pmpo) pour utilisateurs terrain
+- ✨ Simulateur mobile Galaxy (360x800) en mode développement
+
+### Améliorations
+- ⚡ Numérotation X.Y sur les phases du planning calendrier
+- ⚡ Filtre des phases placeholder (0h) dans le planning
+- ⚡ Refonte du modal "Gestion des phases" avec groupes et jauges
+- ⚡ Champ "Budget heures" en lecture seule (calculé depuis les phases)
+
+### Technique
+- 🔧 Nouveaux champs DB: `groupe_phase`, `heures_budget` (phases_chantiers)
+- 🔧 Composants: `PhaseGauge.tsx`, `PhaseGroup.tsx`
+- 🔧 Hook: `useMobileMode.ts` pour détection mobile
+- 🔧 Layout mobile: `MobileLayout.tsx`
+
+---
+
 ## [1.3.0] - 2026-01-05
 
 ### Utilisateurs en ligne temps réel
