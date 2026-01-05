@@ -192,7 +192,7 @@ export function DashboardPage() {
                     break;
                 case 'non_attribue':
                     result = result.filter(
-                        (c) => !c.charge_affaire_id && c.statut !== 'termine'
+                        (c) => !c.poseur_id && c.statut !== 'termine'
                     );
                     break;
                 case 'en_cours':

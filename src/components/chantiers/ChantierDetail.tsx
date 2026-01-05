@@ -20,7 +20,6 @@ import {
     Eye,
     File,
 } from 'lucide-react';
-import { ChantierStatusBadge } from '../ui/ChantierStatusBadge';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { supabase } from '../../lib/supabase';
 import type { Tables } from '../../lib/database.types';
@@ -77,6 +76,7 @@ export function ChantierDetail({
     const [documentsRefresh, setDocumentsRefresh] = useState(0);
     const [showDocumentModal, setShowDocumentModal] = useState(false);
     const [documentPreview, setDocumentPreview] = useState<Document | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
     // Fetch notes
     useEffect(() => {
@@ -105,6 +105,21 @@ export function ChantierDetail({
         };
         fetchDocuments();
     }, [chantier.id, documentsRefresh]);
+
+    // Load signed URL for document preview
+    useEffect(() => {
+        const loadPreviewUrl = async () => {
+            if (!documentPreview?.storage_path) {
+                setPreviewUrl(null);
+                return;
+            }
+            const { data } = await supabase.storage
+                .from('Documents')
+                .createSignedUrl(documentPreview.storage_path, 3600);
+            setPreviewUrl(data?.signedUrl || null);
+        };
+        loadPreviewUrl();
+    }, [documentPreview]);
 
     const resetNoteForm = () => {
         setShowNoteForm(false);
@@ -220,17 +235,32 @@ export function ChantierDetail({
         setDocumentsRefresh((n) => n + 1);
     };
 
-    const handleDownloadDocument = (doc: Document) => {
-        // Get file from storage
-        const { data } = supabase.storage.from('documents').getPublicUrl(doc.storage_path);
-        if (data.publicUrl) {
-            // Create download link
-            const link = document.createElement('a');
-            link.href = data.publicUrl;
-            link.download = doc.nom;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+    const handleDownloadDocument = async (doc: Document) => {
+        try {
+            // Get signed URL for private bucket (valid for 1 hour)
+            const { data, error } = await supabase.storage
+                .from('Documents')
+                .createSignedUrl(doc.storage_path, 3600);
+
+            if (error) {
+                console.error('Erreur création URL signée:', error);
+                alert('Erreur lors du téléchargement: ' + error.message);
+                return;
+            }
+
+            if (data?.signedUrl) {
+                // Create download link
+                const link = document.createElement('a');
+                link.href = data.signedUrl;
+                link.download = doc.nom;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        } catch (err) {
+            console.error('Erreur téléchargement:', err);
+            alert('Erreur lors du téléchargement');
         }
     };
 
@@ -274,66 +304,63 @@ export function ChantierDetail({
                             {chantier.reference && (
                                 <p className="text-slate-400">Réf: {chantier.reference}</p>
                             )}
-                            <div className="mt-2">
-                                <ChantierStatusBadge statut={chantier.statut} />
-                            </div>
+                            {chantier.ref_categories_chantier && (
+                                <div className="mt-2">
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-700/50 text-sm text-slate-300">
+                                        <span>{chantier.ref_categories_chantier.icon}</span>
+                                        {chantier.ref_categories_chantier.label}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
-                        {onEdit && (
+                    <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                            {onEdit && (
+                                <button
+                                    onClick={onEdit}
+                                    className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
+                                    title="Modifier"
+                                >
+                                    <Edit className="w-5 h-5" />
+                                </button>
+                            )}
+                            {onDelete && (
+                                <button
+                                    onClick={onDelete}
+                                    className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                                    title="Supprimer"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
                             <button
-                                onClick={onEdit}
-                                className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
-                                title="Modifier"
+                                onClick={onManagePhases}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors text-sm"
+                                title="Gérer les phases"
                             >
-                                <Edit className="w-5 h-5" />
+                                <Clock className="w-4 h-4" />
+                                Phases
                             </button>
-                        )}
-                        {onDelete && (
                             <button
-                                onClick={onDelete}
-                                className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-red-500/20 hover:text-red-400 transition-colors"
-                                title="Supprimer"
+                                onClick={onManageContacts}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors text-sm"
+                                title="Gérer les contacts"
                             >
-                                <Trash2 className="w-5 h-5" />
+                                <Users className="w-4 h-4" />
+                                Contacts
                             </button>
-                        )}
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-auto p-6 space-y-6">
-                {/* Quick actions */}
-                <div className="grid grid-cols-2 gap-3">
-                    <button
-                        onClick={onManagePhases}
-                        className="flex items-center gap-3 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:bg-slate-800/50 hover:border-purple-500/30 transition-all group"
-                    >
-                        <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
-                            <Clock className="w-5 h-5 text-purple-400" />
-                        </div>
-                        <div className="text-left">
-                            <p className="font-medium text-white">Phases</p>
-                            <p className="text-xs text-slate-400">Gérer le planning</p>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={onManageContacts}
-                        className="flex items-center gap-3 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:bg-slate-800/50 hover:border-blue-500/30 transition-all group"
-                    >
-                        <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
-                            <Users className="w-5 h-5 text-blue-400" />
-                        </div>
-                        <div className="text-left">
-                            <p className="font-medium text-white">Contacts</p>
-                            <p className="text-xs text-slate-400">Gérer les intervenants</p>
-                        </div>
-                    </button>
-                </div>
 
                 {/* Coordonnées chantier */}
                 {(chantier.client || chantier.adresse_livraison) && (
@@ -799,9 +826,9 @@ export function ChantierDetail({
                         </button>
                         <div className="bg-slate-900 rounded-lg p-4">
                             <p className="text-white font-medium mb-2" data-testid="preview-filename">{documentPreview.nom}</p>
-                            {documentPreview.mime_type.startsWith('image/') && (
+                            {documentPreview.mime_type.startsWith('image/') && previewUrl && (
                                 <img
-                                    src={supabase.storage.from('documents').getPublicUrl(documentPreview.storage_path).data.publicUrl}
+                                    src={previewUrl}
                                     alt={documentPreview.nom}
                                     className="max-w-full max-h-[75vh] object-contain rounded-lg"
                                     onClick={(e) => e.stopPropagation()}

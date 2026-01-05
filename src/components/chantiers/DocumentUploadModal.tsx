@@ -123,7 +123,7 @@ export function DocumentUploadModal({ chantierId, onClose, onSuccess }: Document
 
             // Upload file to storage
             const { error: uploadError } = await supabase.storage
-                .from('documents')
+                .from('Documents')
                 .upload(storagePath, file);
 
             if (uploadError) {

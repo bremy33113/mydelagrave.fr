@@ -17,7 +17,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
         (c) => !c.date_debut && c.statut !== 'termine'
     ).length;
     const nonAttribues = chantiers.filter(
-        (c) => !c.charge_affaire_id && c.statut !== 'termine'
+        (c) => !c.poseur_id && c.statut !== 'termine'
     ).length;
     const enCours = chantiers.filter(
         (c) => c.statut === 'en_cours' || c.statut === 'pose_en_cours'

@@ -713,6 +713,17 @@ class MockStorageBucket {
         const base64 = storage[path] || '';
         return { data: { publicUrl: base64 } };
     }
+
+    async createSignedUrl(path: string, _expiresIn: number): Promise<{ data: { signedUrl: string } | null; error: Error | null }> {
+        const storageKey = `mock_storage_${this.bucketName}`;
+        const storage = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        const base64 = storage[path];
+        if (!base64) {
+            return { data: null, error: new Error('File not found') };
+        }
+        // In mock mode, return base64 directly as the "signed URL"
+        return { data: { signedUrl: base64 }, error: null };
+    }
 }
 
 class MockStorage {

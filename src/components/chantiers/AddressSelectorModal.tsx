@@ -129,7 +129,7 @@ export function AddressSelectorModal({
         map.setView([lat, lng], map.getZoom());
     };
 
-    const handleSearch = async (query?: string) => {
+    const handleSearch = async (query?: string, autoSelect = false) => {
         const q = query || searchQuery;
         if (!q || q.length < 3) {
             setSearchResults([]);
@@ -144,11 +144,36 @@ export function AddressSelectorModal({
             const data = await response.json();
             if (data.features) {
                 setSearchResults(data.features);
+                // Auto-select first result if requested (Enter key or search button)
+                if (autoSelect && data.features.length > 0) {
+                    handleSelectResult(data.features[0]);
+                }
             }
         } catch (err) {
             console.error('Search failed:', err);
         } finally {
             setSearching(false);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // If there are results, select the first one
+            if (searchResults.length > 0) {
+                handleSelectResult(searchResults[0]);
+            } else {
+                // Otherwise, search and auto-select
+                handleSearch(searchQuery, true);
+            }
+        }
+    };
+
+    const handleSearchClick = () => {
+        if (searchResults.length > 0) {
+            handleSelectResult(searchResults[0]);
+        } else {
+            handleSearch(searchQuery, true);
         }
     };
 
@@ -238,7 +263,8 @@ export function AddressSelectorModal({
                                     setSearchQuery(e.target.value);
                                     handleSearch(e.target.value);
                                 }}
-                                placeholder="Rechercher une adresse..."
+                                onKeyDown={handleKeyDown}
+                                placeholder="Rechercher une adresse... (Entrée pour valider)"
                                 className="input-field py-2"
                                 style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
                             />
@@ -263,6 +289,14 @@ export function AddressSelectorModal({
                                 </div>
                             )}
                         </div>
+                        <button
+                            onClick={handleSearchClick}
+                            disabled={searching || !searchQuery || searchQuery.length < 3}
+                            className="btn-primary px-3"
+                            title="Rechercher et centrer sur la carte"
+                        >
+                            <Search className={`w-4 h-4 ${searching ? 'animate-spin' : ''}`} />
+                        </button>
                         <button
                             onClick={handleLocateMe}
                             disabled={locating}

@@ -107,7 +107,7 @@ export function TrashPage() {
 
                 // If it's a document, also delete from storage
                 if (itemType === 'document' && storagePath) {
-                    await supabase.storage.from('documents').remove([storagePath]);
+                    await supabase.storage.from('Documents').remove([storagePath]);
                 }
 
                 await supabase.from(table).delete().eq('id', id);
