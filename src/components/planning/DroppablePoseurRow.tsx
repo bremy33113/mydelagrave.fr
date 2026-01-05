@@ -235,6 +235,7 @@ export function DroppablePoseurRow({
                             onClick={() => onPoseurClick?.(poseur)}
                             className="text-sm font-medium text-white truncate hover:text-blue-400 transition-colors text-left"
                             title="Voir la tournee"
+                            data-testid={`poseur-name-${poseur.id}`}
                         >
                             {poseur.first_name} {poseur.last_name}
                         </button>

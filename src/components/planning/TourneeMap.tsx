@@ -96,10 +96,13 @@ export function TourneeMap({ steps, routeGeometry, selectedStepId, onStepClick }
         markersRef.current = [];
 
         // Create new markers
-        const validSteps = steps.filter((s) => s.latitude && s.longitude);
+        const validSteps = steps.filter(
+            (s): s is typeof s & { latitude: number; longitude: number } =>
+                s.latitude !== null && s.longitude !== null
+        );
 
         validSteps.forEach((step) => {
-            const marker = L.marker([step.latitude!, step.longitude!], {
+            const marker = L.marker([step.latitude, step.longitude], {
                 icon: createNumberedIcon(step.order, step.id === selectedStepId),
             });
 
@@ -120,7 +123,7 @@ export function TourneeMap({ steps, routeGeometry, selectedStepId, onStepClick }
         // Fit bounds
         if (validSteps.length > 0) {
             const bounds = L.latLngBounds(
-                validSteps.map((s) => [s.latitude!, s.longitude!] as [number, number])
+                validSteps.map((s) => [s.latitude, s.longitude] as [number, number])
             );
             map.fitBounds(bounds, { padding: [50, 50] });
         }

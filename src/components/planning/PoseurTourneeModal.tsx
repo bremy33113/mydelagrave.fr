@@ -94,8 +94,9 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
     // Load route when steps change
     useEffect(() => {
         const coordinates: [number, number][] = steps
-            .filter((s) => s.latitude && s.longitude)
-            .map((s) => [s.latitude!, s.longitude!]);
+            .filter((s): s is typeof s & { latitude: number; longitude: number } =>
+                s.latitude !== null && s.longitude !== null)
+            .map((s) => [s.latitude, s.longitude]);
 
         fetchRoute(coordinates);
     }, [steps, fetchRoute]);
@@ -116,6 +117,7 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
             <div
                 className="glass-card w-full max-w-5xl h-[85vh] flex flex-col animate-fadeIn"
                 onClick={(e) => e.stopPropagation()}
+                data-testid="tournee-modal"
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
@@ -144,6 +146,7 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
                                         ? 'bg-blue-600 text-white'
                                         : 'text-slate-400 hover:text-white'
                                 }`}
+                                data-testid="week-current"
                             >
                                 Semaine courante
                             </button>
@@ -154,6 +157,7 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
                                         ? 'bg-blue-600 text-white'
                                         : 'text-slate-400 hover:text-white'
                                 }`}
+                                data-testid="week-next"
                             >
                                 Semaine suivante
                             </button>
@@ -162,6 +166,7 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
                         <button
                             onClick={onClose}
                             className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400"
+                            data-testid="close-tournee-modal"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -171,7 +176,7 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
                 {/* Body */}
                 <div className="flex-1 flex overflow-hidden">
                     {/* Steps list (1/3) */}
-                    <div className="w-80 flex-shrink-0 border-r border-slate-700/50 p-4 overflow-y-auto">
+                    <div className="w-80 flex-shrink-0 border-r border-slate-700/50 p-4 overflow-y-auto" data-testid="tournee-steps-panel">
                         <div className="text-xs text-slate-500 mb-3 uppercase tracking-wider">
                             Semaine du {weekBounds.label}
                         </div>
@@ -193,7 +198,7 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
                     </div>
 
                     {/* Map (2/3) */}
-                    <div className="flex-1 relative">
+                    <div className="flex-1 relative" data-testid="tournee-map-container">
                         {routeLoading && (
                             <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center z-10">
                                 <div className="flex items-center gap-2 text-slate-400">

@@ -2,6 +2,22 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.2.0] - 2026-01-05
+
+### Vue Tournée Poseur
+
+### Nouvelles fonctionnalités
+- ✨ Clic sur nom poseur ouvre modal tournée hebdomadaire
+- ✨ Carte Leaflet avec marqueurs numérotés par ordre chronologique
+- ✨ Itinéraires routiers réels via API OSRM
+- ✨ Liste étapes avec temps de trajet estimés entre chantiers
+- ✨ Sélecteur semaine courante / semaine suivante
+
+### Tests
+- ✅ 4 nouveaux tests E2E pour la tournée poseur
+
+---
+
 ## [1.1.9] - 2026-01-05
 
 ### Fix suppression contacts superviseur

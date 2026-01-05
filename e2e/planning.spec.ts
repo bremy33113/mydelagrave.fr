@@ -169,3 +169,94 @@ test.describe('Planning Page', () => {
         await expect(externalButton).toBeVisible();
     });
 });
+
+test.describe('Poseur Tournee Modal', () => {
+    test.beforeEach(async ({ page }) => {
+        await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
+        await page.getByRole('link', { name: 'Planning' }).click();
+        await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
+    });
+
+    test('should open tournee modal when clicking poseur name', async ({ page }) => {
+        // Wait for planning to load
+        await page.waitForTimeout(500);
+
+        // Click on a poseur name (first one available)
+        const poseurButton = page.locator('button[data-testid^="poseur-name-"]').first();
+        await expect(poseurButton).toBeVisible({ timeout: 5000 });
+        await poseurButton.click();
+
+        // Modal should open
+        await expect(page.locator('[data-testid="tournee-modal"]')).toBeVisible();
+
+        // Modal should have title with "Tournee de"
+        await expect(page.getByText(/Tournee de/)).toBeVisible();
+
+        // Week selector should be visible
+        await expect(page.locator('[data-testid="week-current"]')).toBeVisible();
+        await expect(page.locator('[data-testid="week-next"]')).toBeVisible();
+
+        // Steps panel should be visible
+        await expect(page.locator('[data-testid="tournee-steps-panel"]')).toBeVisible();
+
+        // Map container should be visible
+        await expect(page.locator('[data-testid="tournee-map-container"]')).toBeVisible();
+    });
+
+    test('should close tournee modal with close button', async ({ page }) => {
+        await page.waitForTimeout(500);
+
+        // Open modal
+        const poseurButton = page.locator('button[data-testid^="poseur-name-"]').first();
+        await expect(poseurButton).toBeVisible({ timeout: 5000 });
+        await poseurButton.click();
+        await expect(page.locator('[data-testid="tournee-modal"]')).toBeVisible();
+
+        // Close modal
+        await page.locator('[data-testid="close-tournee-modal"]').click();
+
+        // Modal should be closed
+        await expect(page.locator('[data-testid="tournee-modal"]')).not.toBeVisible();
+    });
+
+    test('should switch between current and next week', async ({ page }) => {
+        await page.waitForTimeout(500);
+
+        // Open modal
+        const poseurButton = page.locator('button[data-testid^="poseur-name-"]').first();
+        await expect(poseurButton).toBeVisible({ timeout: 5000 });
+        await poseurButton.click();
+        await expect(page.locator('[data-testid="tournee-modal"]')).toBeVisible();
+
+        // Current week should be active by default
+        await expect(page.locator('[data-testid="week-current"]')).toHaveClass(/bg-blue-600/);
+
+        // Click next week
+        await page.locator('[data-testid="week-next"]').click();
+
+        // Next week should be active
+        await expect(page.locator('[data-testid="week-next"]')).toHaveClass(/bg-blue-600/);
+
+        // Click current week again
+        await page.locator('[data-testid="week-current"]').click();
+
+        // Current week should be active again
+        await expect(page.locator('[data-testid="week-current"]')).toHaveClass(/bg-blue-600/);
+    });
+
+    test('should close modal when clicking backdrop', async ({ page }) => {
+        await page.waitForTimeout(500);
+
+        // Open modal
+        const poseurButton = page.locator('button[data-testid^="poseur-name-"]').first();
+        await expect(poseurButton).toBeVisible({ timeout: 5000 });
+        await poseurButton.click();
+        await expect(page.locator('[data-testid="tournee-modal"]')).toBeVisible();
+
+        // Click on backdrop (outside modal)
+        await page.locator('.modal-backdrop').click({ position: { x: 10, y: 10 } });
+
+        // Modal should be closed
+        await expect(page.locator('[data-testid="tournee-modal"]')).not.toBeVisible();
+    });
+});
