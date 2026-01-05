@@ -2,6 +2,17 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.1.5] - 2026-01-05
+
+### Drag & drop images et qualité adaptative
+
+### Nouvelles fonctionnalités
+- ✨ Drag & drop pour ajouter des images aux notes
+- ✨ Copier/coller (Ctrl+V) pour ajouter des images aux notes
+- ✨ Qualité photos adaptative selon l'environnement (Dev: 300px/50%, Prod: 800px/80%)
+
+---
+
 ## [1.1.4] - 2026-01-05
 
 ### Fix bucket storage Supabase
