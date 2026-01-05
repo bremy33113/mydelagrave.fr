@@ -63,8 +63,8 @@ test.describe('Gestion des Documents', () => {
         // Check document type select has options
         const select = page.locator('[data-testid="document-type-select"]');
 
-        // Verify the 4 document types are available
-        await expect(select.locator('option')).toHaveCount(4);
+        // Verify document types are available (5 types: plan, devis, rapport, reserve, feuille_pointage)
+        await expect(select.locator('option')).toHaveCount(5);
     });
 
     test('should close modal on cancel', async ({ page }) => {

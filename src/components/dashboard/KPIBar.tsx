@@ -33,6 +33,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
             value: total,
             icon: '📊',
             color: '#94A3B8',
+            testId: 'kpi-total',
         },
         {
             id: 'nouveau',
@@ -40,6 +41,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
             value: nouveaux,
             icon: '🆕',
             color: '#3B82F6',
+            testId: 'kpi-nouveaux',
         },
         {
             id: 'non_planifie',
@@ -47,6 +49,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
             value: nonPlanifies,
             icon: '📅',
             color: '#EF4444',
+            testId: 'kpi-non-planifies',
         },
         {
             id: 'non_attribue',
@@ -54,6 +57,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
             value: nonAttribues,
             icon: '👤',
             color: '#F97316',
+            testId: 'kpi-non-attribues',
         },
         {
             id: 'en_cours',
@@ -61,6 +65,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
             value: enCours,
             icon: '🔨',
             color: '#EC4899',
+            testId: 'kpi-en-cours',
         },
         {
             id: 'planifie',
@@ -68,6 +73,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
             value: planifies,
             icon: '📅',
             color: '#8B5CF6',
+            testId: 'kpi-planifies',
         },
         {
             id: 'a_terminer',
@@ -75,6 +81,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
             value: aTerminer,
             icon: '⏳',
             color: '#F59E0B',
+            testId: 'kpi-a-terminer',
         },
         {
             id: 'termine',
@@ -82,6 +89,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
             value: termines,
             icon: '✅',
             color: '#10B981',
+            testId: 'kpi-termines',
         },
     ];
 
@@ -95,6 +103,7 @@ export function KPIBar({ chantiers, activeFilter, onFilterChange }: KPIBarProps)
                     icon={kpi.icon}
                     color={kpi.color}
                     isActive={activeFilter === kpi.id}
+                    testId={kpi.testId}
                     onClick={() =>
                         onFilterChange(activeFilter === kpi.id ? null : kpi.id)
                     }

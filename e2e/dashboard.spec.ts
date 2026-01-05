@@ -8,15 +8,15 @@ test.describe('Dashboard', () => {
     });
 
     test('should display all KPI cards', async ({ page }) => {
-        // Check KPI cards are visible by their button role with partial names
-        await expect(page.getByRole('button', { name: /total/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /nouveaux/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /non planifiés/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /non attribués/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /en cours/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /^[\d\s📅]*planifiés$/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /à terminer/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /terminés/i })).toBeVisible();
+        // Check KPI cards are visible by their data-testid
+        await expect(page.locator('[data-testid="kpi-total"]')).toBeVisible();
+        await expect(page.locator('[data-testid="kpi-nouveaux"]')).toBeVisible();
+        await expect(page.locator('[data-testid="kpi-non-planifies"]')).toBeVisible();
+        await expect(page.locator('[data-testid="kpi-non-attribues"]')).toBeVisible();
+        await expect(page.locator('[data-testid="kpi-en-cours"]')).toBeVisible();
+        await expect(page.locator('[data-testid="kpi-planifies"]')).toBeVisible();
+        await expect(page.locator('[data-testid="kpi-a-terminer"]')).toBeVisible();
+        await expect(page.locator('[data-testid="kpi-termines"]')).toBeVisible();
     });
 
     test('should display chantier list', async ({ page }) => {
@@ -25,11 +25,12 @@ test.describe('Dashboard', () => {
     });
 
     test('should select a chantier and show details', async ({ page }) => {
-        const firstCard = page.locator('[class*="glass-card"]').first();
+        const firstCard = page.locator('[data-testid="chantier-card"]').first();
         await firstCard.waitFor({ state: 'visible', timeout: 5000 });
         await firstCard.click();
 
-        await expect(page.getByRole('button', { name: /modifier/i })).toBeVisible();
+        // Check for edit button in chantier detail panel (specific data-testid)
+        await expect(page.locator('[data-testid="btn-edit-chantier"]')).toBeVisible();
     });
 
     test('should filter chantiers by search', async ({ page }) => {
@@ -43,10 +44,10 @@ test.describe('Dashboard', () => {
     });
 
     test('should filter chantiers by KPI click', async ({ page }) => {
-        await page.locator('[class*="glass-card"]').first().waitFor({ state: 'visible', timeout: 5000 });
+        await page.locator('[data-testid="chantier-card"]').first().waitFor({ state: 'visible', timeout: 5000 });
 
-        // Click on "Terminés" KPI button
-        await page.getByRole('button', { name: /terminés/i }).click();
+        // Click on "Terminés" KPI button using data-testid
+        await page.locator('[data-testid="kpi-termines"]').click();
 
         await page.waitForTimeout(300);
     });
@@ -70,7 +71,7 @@ test.describe('Dashboard', () => {
     });
 
     test('should open phases modal from chantier detail', async ({ page }) => {
-        const firstCard = page.locator('[class*="glass-card"]').first();
+        const firstCard = page.locator('[data-testid="chantier-card"]').first();
         await firstCard.waitFor({ state: 'visible', timeout: 5000 });
         await firstCard.click();
 
@@ -82,7 +83,7 @@ test.describe('Dashboard', () => {
     });
 
     test('should open contacts modal from chantier detail', async ({ page }) => {
-        const firstCard = page.locator('[class*="glass-card"]').first();
+        const firstCard = page.locator('[data-testid="chantier-card"]').first();
         await firstCard.waitFor({ state: 'visible', timeout: 5000 });
         await firstCard.click();
 

@@ -5,12 +5,14 @@ interface KPICardProps {
     color: string;
     onClick?: () => void;
     isActive?: boolean;
+    testId?: string;
 }
 
-export function KPICard({ title, value, icon, color, onClick, isActive }: KPICardProps) {
+export function KPICard({ title, value, icon, color, onClick, isActive, testId }: KPICardProps) {
     return (
         <button
             onClick={onClick}
+            data-testid={testId}
             className={`glass-card glass-hover p-4 text-left transition-all duration-300 ${isActive
                     ? 'ring-2 ring-offset-2 ring-offset-app-bg'
                     : 'hover:scale-[1.02]'

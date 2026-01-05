@@ -412,6 +412,7 @@ export function ChantierDetail({
                                     onClick={onEdit}
                                     className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
                                     title="Modifier"
+                                    data-testid="btn-edit-chantier"
                                 >
                                     <Edit className="w-5 h-5" />
                                 </button>
@@ -421,6 +422,7 @@ export function ChantierDetail({
                                     onClick={onDelete}
                                     className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-red-500/20 hover:text-red-400 transition-colors"
                                     title="Supprimer"
+                                    data-testid="btn-delete-chantier"
                                 >
                                     <Trash2 className="w-5 h-5" />
                                 </button>

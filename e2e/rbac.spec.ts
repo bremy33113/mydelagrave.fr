@@ -109,9 +109,9 @@ test.describe('RBAC - Chantier Edit/Delete Buttons', () => {
         if (await firstCard.isVisible()) {
             await firstCard.click();
 
-            // Check for edit button in detail panel
-            await expect(page.getByTitle(/modifier/i)).toBeVisible();
-            await expect(page.getByTitle(/supprimer/i)).toBeVisible();
+            // Check for edit/delete buttons in chantier detail panel (specific data-testid)
+            await expect(page.locator('[data-testid="btn-edit-chantier"]')).toBeVisible();
+            await expect(page.locator('[data-testid="btn-delete-chantier"]')).toBeVisible();
         }
     });
 
@@ -125,9 +125,9 @@ test.describe('RBAC - Chantier Edit/Delete Buttons', () => {
         if (await firstCard.isVisible()) {
             await firstCard.click();
 
-            // Edit and delete buttons should NOT be visible
-            await expect(page.getByTitle(/modifier/i)).not.toBeVisible();
-            await expect(page.getByTitle(/supprimer/i)).not.toBeVisible();
+            // Chantier edit and delete buttons should NOT be visible (specific data-testid)
+            await expect(page.locator('[data-testid="btn-edit-chantier"]')).not.toBeVisible();
+            await expect(page.locator('[data-testid="btn-delete-chantier"]')).not.toBeVisible();
         }
     });
 });
