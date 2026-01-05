@@ -2,6 +2,24 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.3.0] - 2026-01-05
+
+### Utilisateurs en ligne temps réel
+
+### Nouvelles fonctionnalités
+- ✨ Affichage des utilisateurs connectés en temps réel dans la sidebar
+- ✨ Badges colorés par rôle (rouge=admin, violet=superviseur, bleu=chargé d'affaires, vert=poseur)
+- ✨ Supabase Realtime Presence pour synchronisation multi-appareils (production)
+- ✨ BroadcastChannel + localStorage pour synchronisation multi-onglets (dev)
+- ✨ Visible uniquement pour superviseurs et admins
+
+### Technique
+- 🔧 Hook `usePresence` pour gestion de présence
+- 🔧 Composant `OnlineUsers` dans la sidebar
+- 🔧 Heartbeat toutes les 10s, timeout 30s
+
+---
+
 ## [1.2.2] - 2026-01-05
 
 ### Formulaire chantier + Référentiel Rôles

@@ -71,7 +71,7 @@ function App() {
 
     // Mode normal : avec Layout
     return (
-        <Layout userEmail={user.email}>
+        <Layout userEmail={user.email} userId={user.id}>
             <Routes>
                 <Route path="/login" element={<Navigate to="/" replace />} />
                 <Route path="/admin" element={<AdminPage />} />

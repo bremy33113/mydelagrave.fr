@@ -14,6 +14,7 @@ import {
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
+import { OnlineUsers } from './OnlineUsers';
 
 // Type for Screen Details API (experimental)
 interface ScreenDetailed {
@@ -31,9 +32,10 @@ interface ScreenDetails {
 
 interface SidebarProps {
     userEmail?: string;
+    userId?: string;
 }
 
-export function Sidebar({ userEmail }: SidebarProps) {
+export function Sidebar({ userEmail, userId }: SidebarProps) {
     const [collapsed, setCollapsed] = useState(false);
     const [hasMultipleScreens, setHasMultipleScreens] = useState(false);
     const [screenDetails, setScreenDetails] = useState<ScreenDetails | null>(null);
@@ -263,6 +265,11 @@ export function Sidebar({ userEmail }: SidebarProps) {
                         </div>
                     ))}
             </nav>
+
+            {/* Online Users - visible pour superviseurs/admins */}
+            {(isSuperviseur || isAdmin) && (
+                <OnlineUsers currentUserId={userId || null} collapsed={collapsed} />
+            )}
 
             {/* User section */}
             <div className="p-4 border-t border-slate-700/50">
