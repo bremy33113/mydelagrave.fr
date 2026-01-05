@@ -1,18 +1,28 @@
 import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, LogOut, Building2, Monitor } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { ChevronLeft, Monitor, User } from 'lucide-react';
 import { useMobileMode } from '../../hooks/useMobileMode';
+import { MobileBottomNav } from './MobileBottomNav';
 
 interface MobileLayoutProps {
     children: ReactNode;
     title: string;
     showBack?: boolean;
     onBack?: () => void;
-    userEmail?: string;
+    showBottomNav?: boolean;
+    onFabClick?: () => void;
+    subtitle?: string;
 }
 
-export function MobileLayout({ children, title, showBack, onBack, userEmail }: MobileLayoutProps) {
+export function MobileLayout({
+    children,
+    title,
+    showBack,
+    onBack,
+    showBottomNav = false,
+    onFabClick,
+    subtitle
+}: MobileLayoutProps) {
     const navigate = useNavigate();
     const { forceMobile, toggleForceMobile, showDevToggle } = useMobileMode();
 
@@ -24,43 +34,38 @@ export function MobileLayout({ children, title, showBack, onBack, userEmail }: M
         }
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-    };
-
     return (
-        <div className="min-h-screen bg-app-bg flex flex-col">
-            {/* Header fixe */}
-            <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-xl border-b border-slate-700/50 px-4 py-3 safe-area-top">
+        <div className="min-h-screen bg-slate-950 flex flex-col text-slate-100">
+            {/* Header style Gemini Canvas */}
+            <header className="sticky top-0 z-40 bg-slate-900/40 backdrop-blur-md border-b border-slate-700/50 p-4 pt-6">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         {showBack ? (
                             <button
                                 onClick={handleBack}
-                                className="p-2 -ml-2 rounded-lg hover:bg-slate-800/50 transition-colors"
+                                className="p-2 rounded-xl bg-slate-800/50"
                             >
-                                <ChevronLeft className="w-5 h-5 text-slate-400" />
+                                <ChevronLeft size={20} />
                             </button>
                         ) : (
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                                <Building2 className="w-4 h-4 text-white" />
+                            <div className="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center font-black text-white">
+                                D
                             </div>
                         )}
-                        <h1 className="text-lg font-semibold text-white truncate">{title}</h1>
+                        <div>
+                            <h1 className="font-black text-sm tracking-tight uppercase">{title}</h1>
+                            {subtitle && (
+                                <p className="text-[9px] text-slate-500 font-bold uppercase">{subtitle}</p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {userEmail && (
-                            <span className="text-xs text-slate-400 truncate max-w-[100px] hidden sm:block">
-                                {userEmail.split('@')[0]}
-                            </span>
-                        )}
-
                         {/* Toggle vers mode desktop (dev only) */}
                         {showDevToggle && forceMobile && (
                             <button
                                 onClick={toggleForceMobile}
-                                className="p-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+                                className="p-2 rounded-lg bg-blue-500/20 text-blue-400"
                                 title="Revenir en mode desktop"
                             >
                                 <Monitor className="w-5 h-5" />
@@ -68,20 +73,22 @@ export function MobileLayout({ children, title, showBack, onBack, userEmail }: M
                         )}
 
                         <button
-                            onClick={handleLogout}
-                            className="p-2 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
-                            title="Déconnexion"
+                            onClick={() => navigate('/m/profil')}
+                            className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shadow-inner"
                         >
-                            <LogOut className="w-5 h-5" />
+                            <User size={18} className="text-slate-400" />
                         </button>
                     </div>
                 </div>
             </header>
 
             {/* Contenu scrollable */}
-            <main className="flex-1 overflow-auto">
+            <main className={`flex-1 overflow-y-auto ${showBottomNav ? 'pb-28' : ''}`}>
                 {children}
             </main>
+
+            {/* Bottom Navigation */}
+            {showBottomNav && <MobileBottomNav onFabClick={onFabClick} />}
         </div>
     );
 }

@@ -87,16 +87,49 @@ export interface Database {
                 Row: {
                     id: string;
                     chantier_id: string;
+                    // Type de note (note standard, réserve, rapport journalier)
+                    type: 'note' | 'reserve' | 'rapport';
                     contenu: string | null;
                     photo_1_url: string | null;
                     photo_2_url: string | null;
                     created_by: string | null;
+                    // Champs pour réserves
+                    localisation: string | null;
+                    statut_reserve: 'ouverte' | 'en_cours' | 'levee' | 'rejetee' | null;
+                    traite_par: string | null;
+                    date_traitement: string | null;
+                    date_resolution: string | null;
+                    commentaire_resolution: string | null;
+                    // Champs pour rapports journaliers
+                    phase_id: string | null;
+                    heure_arrivee: string | null;
+                    heure_depart: string | null;
+                    // Soft delete
                     deleted_at: string | null;
                     created_at: string;
                     updated_at: string;
                 };
                 Insert: Omit<Database['public']['Tables']['notes_chantiers']['Row'], 'id' | 'created_at' | 'updated_at'>;
                 Update: Partial<Database['public']['Tables']['notes_chantiers']['Insert']>;
+            };
+            pointages: {
+                Row: {
+                    id: string;
+                    poseur_id: string;
+                    chantier_id: string;
+                    date: string;
+                    periode: 'matin' | 'apres_midi';
+                    type: 'trajet' | 'travail';
+                    heure_debut: string | null;
+                    heure_fin: string | null;
+                    duree_minutes: number;
+                    mode_saisie: 'chrono' | 'manuel';
+                    type_trajet: 'domicile_chantier' | 'entre_chantiers' | 'chantier_domicile' | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: Omit<Database['public']['Tables']['pointages']['Row'], 'id' | 'created_at' | 'updated_at'>;
+                Update: Partial<Database['public']['Tables']['pointages']['Insert']>;
             };
             chantiers_contacts: {
                 Row: {

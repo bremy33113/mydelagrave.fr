@@ -10,6 +10,13 @@ import { TrashPage } from './pages/TrashPage';
 import { PlanningPage } from './pages/PlanningPage';
 import { MobileChantiersList } from './pages/mobile/MobileChantiersList';
 import { MobilePlanning } from './pages/mobile/MobilePlanning';
+import { MobilePlanningV2 } from './pages/mobile/MobilePlanningV2';
+import { MobileChantierDetail } from './pages/mobile/MobileChantierDetail';
+import { MobileReserveForm } from './pages/mobile/MobileReserveForm';
+import { MobileRapportForm } from './pages/mobile/MobileRapportForm';
+import { MobilePointagePage } from './pages/mobile/MobilePointagePage';
+import { MobilePointageWeek } from './pages/mobile/MobilePointageWeek';
+import { MobileProfilPage } from './pages/mobile/MobileProfilPage';
 import { useMobileMode } from './hooks/useMobileMode';
 import { useUserRole } from './hooks/useUserRole';
 
@@ -111,11 +118,22 @@ function App() {
             <>
                 <MobileRedirect />
                 <Routes>
-                    <Route path="/login" element={<Navigate to="/m/chantiers" replace />} />
+                    <Route path="/login" element={<Navigate to="/m/planning" replace />} />
+                    {/* Planning V2 (nouveau design Gemini) */}
+                    <Route path="/m/planning" element={<MobilePlanningV2 />} />
+                    <Route path="/m/planning-old" element={<MobilePlanning />} />
+                    {/* Chantiers */}
                     <Route path="/m/chantiers" element={<MobileChantiersList />} />
-                    <Route path="/m/planning" element={<MobilePlanning />} />
-                    {/* Fallback vers la page appropriée selon le rôle */}
-                    <Route path="*" element={<MobileChantiersList />} />
+                    <Route path="/m/chantier/:id" element={<MobileChantierDetail />} />
+                    <Route path="/m/chantier/:id/reserve" element={<MobileReserveForm />} />
+                    <Route path="/m/chantier/:id/rapport" element={<MobileRapportForm />} />
+                    {/* Pointage */}
+                    <Route path="/m/pointage" element={<MobilePointagePage />} />
+                    <Route path="/m/pointage/semaine" element={<MobilePointageWeek />} />
+                    {/* Profil */}
+                    <Route path="/m/profil" element={<MobileProfilPage />} />
+                    {/* Fallback vers planning */}
+                    <Route path="*" element={<Navigate to="/m/planning" replace />} />
                 </Routes>
             </>
         );
@@ -134,7 +152,14 @@ function App() {
                     <Route path="/corbeille" element={<TrashPage />} />
                     {/* Routes mobiles accessibles aussi en desktop pour debug */}
                     <Route path="/m/chantiers" element={<MobileChantiersList />} />
-                    <Route path="/m/planning" element={<MobilePlanning />} />
+                    <Route path="/m/planning" element={<MobilePlanningV2 />} />
+                    <Route path="/m/planning-old" element={<MobilePlanning />} />
+                    <Route path="/m/chantier/:id" element={<MobileChantierDetail />} />
+                    <Route path="/m/chantier/:id/reserve" element={<MobileReserveForm />} />
+                    <Route path="/m/chantier/:id/rapport" element={<MobileRapportForm />} />
+                    <Route path="/m/pointage" element={<MobilePointagePage />} />
+                    <Route path="/m/pointage/semaine" element={<MobilePointageWeek />} />
+                    <Route path="/m/profil" element={<MobileProfilPage />} />
                     <Route path="/*" element={<DashboardPage />} />
                 </Routes>
             </Layout>

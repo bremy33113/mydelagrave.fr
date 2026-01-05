@@ -5,6 +5,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide scrollbar for time picker */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 :root {
   --app-bg: #0f172a;
   --app-secondary: #1e293b;

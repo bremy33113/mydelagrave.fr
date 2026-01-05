@@ -2,6 +2,35 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.0.0] - 2026-01-06
+
+### 🚀 Application Mobile Poseur (MAJOR RELEASE)
+
+### ⚠️ Breaking Changes
+- 🚀 Nouvelle architecture mobile complète avec routes `/m/*` dédiées
+- 🚀 Nouvelle table `pointages` pour le suivi temps des poseurs
+- 🚀 Extension du type `notes_chantiers` (réserves, rapports journaliers)
+
+### Nouvelles fonctionnalités
+- ✨ **9 pages mobiles** : Planning V2, Chantier détail, Pointage, Profil, Réserves, Rapports
+- ✨ **5 composants mobiles** : BottomNav, GlassCard, StatusBadge, TimePicker, Layout
+- ✨ **Système de pointage** : Chronomètre/manuel, trajets, périodes matin/après-midi
+- ✨ **Gestion des réserves** : Création, suivi, résolution depuis mobile
+- ✨ **Rapports journaliers** : Saisie terrain avec photos
+- ✨ Dossier `public/` pour assets statiques (favicon, icons)
+
+### Technique
+- 🔧 Extension `database.types.ts` avec types pointages et notes étendues
+- 🔧 Extension `mockData.ts` avec données de démo mobile
+- 🔧 Extension `supabase.ts` avec méthodes CRUD pointages
+- 🔧 Amélioration CLAUDE.md avec liste tests E2E et documentation ref_tables
+- 🔧 Ajout data-testid sur KPICard et ChantierDetail
+
+### Tests
+- 🧪 139 tests E2E passent (corrections sélecteurs dashboard, rbac, documents)
+
+---
+
 ## [1.4.0] - 2026-01-05
 
 ### Sous-phases et Suivi des Heures

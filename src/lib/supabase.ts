@@ -27,6 +27,7 @@ import {
     initial_notes_chantiers,
     initial_chantiers_contacts,
     initial_documents_chantiers,
+    initial_pointages,
 } from './mockData';
 
 // ============ TYPES ============
@@ -120,6 +121,43 @@ function migrateIfNeeded(): void {
     if (!localStorage.getItem(STORAGE_PREFIX + 'documents_chantiers')) {
         setTable('documents_chantiers', initial_documents_chantiers);
         console.info('📦 Migration: documents_chantiers ajouté');
+    }
+
+    // Migration v1.5.0: Ajouter pointages si manquant
+    if (!localStorage.getItem(STORAGE_PREFIX + 'pointages')) {
+        setTable('pointages', initial_pointages);
+        console.info('📦 Migration: pointages ajouté');
+    }
+
+    // Migration v1.5.1: Réinitialiser phases et chantiers pour les dates de cette semaine
+    if (!localStorage.getItem(STORAGE_PREFIX + 'migration_v1_5_1')) {
+        setTable('phases_chantiers', initial_phases_chantiers);
+        setTable('chantiers', initial_chantiers);
+        localStorage.setItem(STORAGE_PREFIX + 'migration_v1_5_1', 'true');
+        console.info('📦 Migration v1.5.1: phases_chantiers et chantiers mis à jour');
+    }
+
+    // Migration v1.5.0: Mettre à jour notes_chantiers avec nouveaux champs
+    const notes = getTable<Record<string, unknown>>('notes_chantiers');
+    let notesMigrated = false;
+    notes.forEach((note) => {
+        if (note.type === undefined) {
+            note.type = 'note';
+            notesMigrated = true;
+        }
+        if (note.localisation === undefined) note.localisation = null;
+        if (note.statut_reserve === undefined) note.statut_reserve = null;
+        if (note.traite_par === undefined) note.traite_par = null;
+        if (note.date_traitement === undefined) note.date_traitement = null;
+        if (note.date_resolution === undefined) note.date_resolution = null;
+        if (note.commentaire_resolution === undefined) note.commentaire_resolution = null;
+        if (note.phase_id === undefined) note.phase_id = null;
+        if (note.heure_arrivee === undefined) note.heure_arrivee = null;
+        if (note.heure_depart === undefined) note.heure_depart = null;
+    });
+    if (notesMigrated) {
+        setTable('notes_chantiers', notes);
+        console.info('📦 Migration: notes_chantiers mis à jour avec nouveaux champs');
     }
 }
 
@@ -376,6 +414,26 @@ class MockQueryBuilder {
         return this;
     }
 
+    gte(column: string, value: unknown): this {
+        this.state.filters.push({ column, operator: 'gte', value });
+        return this;
+    }
+
+    lte(column: string, value: unknown): this {
+        this.state.filters.push({ column, operator: 'lte', value });
+        return this;
+    }
+
+    gt(column: string, value: unknown): this {
+        this.state.filters.push({ column, operator: 'gt', value });
+        return this;
+    }
+
+    lt(column: string, value: unknown): this {
+        this.state.filters.push({ column, operator: 'lt', value });
+        return this;
+    }
+
     order(column: string, options?: { ascending?: boolean }): this {
         this.state.orderColumn = column;
         this.state.orderAscending = options?.ascending ?? true;
@@ -529,6 +587,14 @@ class MockQueryBuilder {
                     return value !== filter.value;
                 case 'in':
                     return (filter.value as unknown[]).includes(value);
+                case 'gte':
+                    return value !== null && value !== undefined && value >= (filter.value as string | number);
+                case 'lte':
+                    return value !== null && value !== undefined && value <= (filter.value as string | number);
+                case 'gt':
+                    return value !== null && value !== undefined && value > (filter.value as string | number);
+                case 'lt':
+                    return value !== null && value !== undefined && value < (filter.value as string | number);
                 default:
                     return true;
             }

@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**1.4.0**
+**2.0.0**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v1.4.0 - Sous-phases et Suivi des Heures
+MyDelagrave v2.0.0 - Application Mobile Poseur
 
 ## Mode d'Exécution
 
@@ -55,6 +55,10 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.0.0 | 2026-01-06 | 🚀 Application Mobile Poseur (MAJOR) |
+| 1.4.0 | 2026-01-05 | Sous-phases et Suivi des Heures |
+| 1.3.0 | 2026-01-05 | Utilisateurs en ligne temps réel |
+| 1.2.2 | 2026-01-05 | Verrouillage poseur fourniture + Référentiels |
 | 1.1.1 | 2026-01-04 | Corrections production (PostgREST, auth sync, session admin) |
 | 1.1.0 | 2026-01-04 | Infrastructure Production Supabase |
 | 1.0.0 | 2026-01-04 | 🚀 MyDelagrave Production Ready |
