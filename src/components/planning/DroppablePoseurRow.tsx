@@ -19,6 +19,7 @@ interface DroppablePoseurRowProps {
     statusColors: Record<string, string>;
     onPhaseUpdate: (phaseId: string, updates: Partial<Tables<'phases_chantiers'>>) => Promise<void>;
     isCompact: boolean;
+    onPoseurClick?: (poseur: Tables<'users'>) => void;
 }
 
 // Convert hour to fraction of working day (0-1)
@@ -166,6 +167,7 @@ export function DroppablePoseurRow({
     statusColors,
     onPhaseUpdate,
     isCompact,
+    onPoseurClick,
 }: DroppablePoseurRowProps) {
     const poseurId = poseur?.id || 'unassigned';
 
@@ -229,14 +231,18 @@ export function DroppablePoseurRow({
             <div className="flex-shrink-0 px-3 py-2 border-r border-slate-700/50 flex items-start" style={{ width: poseurColumnWidth }}>
                 {poseur ? (
                     <div>
-                        <p className="text-sm font-medium text-white truncate">
+                        <button
+                            onClick={() => onPoseurClick?.(poseur)}
+                            className="text-sm font-medium text-white truncate hover:text-blue-400 transition-colors text-left"
+                            title="Voir la tournee"
+                        >
                             {poseur.first_name} {poseur.last_name}
-                        </p>
+                        </button>
                         <p className="text-xs text-slate-500">{phases.length} phase(s)</p>
                     </div>
                 ) : (
                     <div>
-                        <p className="text-sm font-medium text-slate-400 italic">Non attribué</p>
+                        <p className="text-sm font-medium text-slate-400 italic">Non attribue</p>
                         <p className="text-xs text-slate-500">{phases.length} phase(s)</p>
                     </div>
                 )}

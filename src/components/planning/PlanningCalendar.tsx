@@ -21,6 +21,7 @@ interface PlanningCalendarProps {
     viewMode: ViewMode;
     onPhaseUpdate: (phaseId: string, updates: Partial<Tables<'phases_chantiers'>>) => Promise<void>;
     onNavigate: (days: number) => void;
+    onPoseurClick?: (poseur: Tables<'users'>) => void;
 }
 
 // Status colors
@@ -188,6 +189,7 @@ export function PlanningCalendar({
     viewMode,
     onPhaseUpdate,
     onNavigate,
+    onPoseurClick,
 }: PlanningCalendarProps) {
     const [activePhase, setActivePhase] = useState<PhaseWithRelations | null>(null);
     const [isShiftPressed, setIsShiftPressed] = useState(false);
@@ -484,6 +486,7 @@ export function PlanningCalendar({
                         statusColors={STATUS_COLORS}
                         onPhaseUpdate={onPhaseUpdate}
                         isCompact={isCompact}
+                        onPoseurClick={onPoseurClick}
                     />
                 ))}
 

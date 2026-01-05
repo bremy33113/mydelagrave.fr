@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
 import { PlanningCalendar } from '../components/planning/PlanningCalendar';
 import { UnassignedPhasesPanel } from '../components/planning/UnassignedPhasesPanel';
+import { PoseurTourneeModal } from '../components/planning/PoseurTourneeModal';
 import type { Tables } from '../lib/database.types';
 
 export type PhaseWithRelations = Tables<'phases_chantiers'> & {
@@ -13,6 +14,7 @@ export type PhaseWithRelations = Tables<'phases_chantiers'> & {
         nom: string;
         reference: string | null;
         statut: string;
+        adresse_livraison?: string | null;
         adresse_livraison_latitude: number | null;
         adresse_livraison_longitude: number | null;
     } | null;
@@ -56,6 +58,10 @@ export function PlanningPage() {
     const [poseurs, setPoseurs] = useState<Tables<'users'>[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [tourneeModal, setTourneeModal] = useState<{
+        isOpen: boolean;
+        poseur: Tables<'users'>;
+    } | null>(null);
 
     // Calculate date range based on view mode
     const dateRange = useMemo(() => {
@@ -110,7 +116,7 @@ export function PlanningPage() {
                 .select(`
                     *,
                     poseur:users!poseur_id(id, first_name, last_name),
-                    chantier:chantiers(id, nom, reference, statut, adresse_livraison_latitude, adresse_livraison_longitude)
+                    chantier:chantiers(id, nom, reference, statut, adresse_livraison, adresse_livraison_latitude, adresse_livraison_longitude)
                 `)
                 .order('date_debut', { ascending: true });
 
@@ -220,6 +226,11 @@ export function PlanningPage() {
         } else {
             alert('Cette phase n\'est pas encore planifiée');
         }
+    };
+
+    // Handle poseur click (open tournee modal)
+    const handlePoseurClick = (poseur: Tables<'users'>) => {
+        setTourneeModal({ isOpen: true, poseur });
     };
 
     // Access denied for non-supervisors
@@ -342,10 +353,21 @@ export function PlanningPage() {
                             viewMode={viewMode}
                             onPhaseUpdate={handlePhaseUpdate}
                             onNavigate={handleCalendarNavigate}
+                            onPoseurClick={handlePoseurClick}
                         />
                     )}
                 </div>
             </div>
+
+            {/* Poseur Tournee Modal */}
+            {tourneeModal && (
+                <PoseurTourneeModal
+                    isOpen={tourneeModal.isOpen}
+                    onClose={() => setTourneeModal(null)}
+                    poseur={tourneeModal.poseur}
+                    phases={phases.filter((p) => p.poseur_id === tourneeModal.poseur.id)}
+                />
+            )}
         </div>
     );
 }
