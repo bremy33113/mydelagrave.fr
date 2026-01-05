@@ -2,6 +2,16 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [1.2.2] - 2026-01-05
+
+### Formulaire chantier + Référentiel Rôles
+
+### Améliorations
+- 🔧 Champ "Poseur" verrouillé si type = "Fourniture seule"
+- 🔧 Table "Rôles" ajoutée dans l'onglet Référentiels (Administration)
+
+---
+
 ## [1.2.1] - 2026-01-05
 
 ### Ligne "Sans pose" sur le Planning

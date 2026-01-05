@@ -312,7 +312,15 @@ export function CreateChantierModal({
                                 <label className="input-label"><Settings className="w-4 h-4 inline mr-1 opacity-70" />Type</label>
                                 <select
                                     value={formData.type}
-                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                    onChange={(e) => {
+                                        const newType = e.target.value;
+                                        // Si fourniture seule, on vide le poseur
+                                        if (newType === 'fourniture') {
+                                            setFormData({ ...formData, type: newType, poseur_id: '' });
+                                        } else {
+                                            setFormData({ ...formData, type: newType });
+                                        }
+                                    }}
                                     className="input-field"
                                 >
                                     <option value="">Sélectionner...</option>
@@ -483,11 +491,18 @@ export function CreateChantierModal({
                                 </select>
                             </div>
                             <div>
-                                <label className="input-label"><Wrench className="w-4 h-4 inline mr-1 opacity-70" />Poseur principal</label>
+                                <label className="input-label">
+                                    <Wrench className="w-4 h-4 inline mr-1 opacity-70" />
+                                    Poseur principal
+                                    {formData.type === 'fourniture' && (
+                                        <span className="ml-2 text-xs text-amber-400">(Non applicable - Fourniture seule)</span>
+                                    )}
+                                </label>
                                 <select
                                     value={formData.poseur_id}
                                     onChange={(e) => setFormData({ ...formData, poseur_id: e.target.value })}
-                                    className="input-field"
+                                    className={`input-field ${formData.type === 'fourniture' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={formData.type === 'fourniture'}
                                 >
                                     <option value="">Non attribué</option>
                                     {poseurs.map((u) => (

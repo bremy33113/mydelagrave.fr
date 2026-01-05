@@ -92,6 +92,17 @@ const REF_TABLES_CONFIG: TableConfig[] = [
             { key: 'ordre', label: 'Ordre', type: 'number', hidden: true },
         ],
     },
+    {
+        key: 'ref_roles_user',
+        title: 'Rôles',
+        icon: '🔐',
+        fields: [
+            { key: 'code', label: 'Code', type: 'text', primaryKey: true },
+            { key: 'label', label: 'Label', type: 'text', required: true },
+            { key: 'level', label: 'Niveau', type: 'number', required: true },
+            { key: 'description', label: 'Description', type: 'text' },
+        ],
+    },
 ];
 
 type User = Tables<'users'> & {
