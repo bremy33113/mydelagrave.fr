@@ -246,7 +246,7 @@ export function AddressSelectorModal({
                         <MapPin className="w-5 h-5 text-green-400" />
                         Sélectionner une adresse
                     </h2>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400">
+                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400" data-testid="address-modal-close">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -267,6 +267,7 @@ export function AddressSelectorModal({
                                 placeholder="Rechercher une adresse... (Entrée pour valider)"
                                 className="input-field py-2"
                                 style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
+                                data-testid="address-search-input"
                             />
                             {searching && (
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -275,12 +276,13 @@ export function AddressSelectorModal({
                             )}
                             {/* Suggestions Dropdown */}
                             {searchResults.length > 0 && (
-                                <div className="absolute z-[1000] w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-48 overflow-auto">
+                                <div className="absolute z-[1000] w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-48 overflow-auto" data-testid="address-search-results">
                                     {searchResults.map((result, index) => (
                                         <button
                                             key={index}
                                             onClick={() => handleSelectResult(result)}
                                             className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors text-sm text-slate-200 border-b border-slate-700/50 last:border-0"
+                                            data-testid={`address-result-${index}`}
                                         >
                                             <p className="font-medium text-white">{result.properties.label}</p>
                                             <p className="text-xs text-slate-400">{result.properties.context}</p>
@@ -294,6 +296,7 @@ export function AddressSelectorModal({
                             disabled={searching || !searchQuery || searchQuery.length < 3}
                             className="btn-primary px-3"
                             title="Rechercher et centrer sur la carte"
+                            data-testid="address-search-button"
                         >
                             <Search className={`w-4 h-4 ${searching ? 'animate-spin' : ''}`} />
                         </button>
@@ -302,6 +305,7 @@ export function AddressSelectorModal({
                             disabled={locating}
                             className="btn-secondary px-3"
                             title="Ma position"
+                            data-testid="address-locate-button"
                         >
                             <Locate className={`w-4 h-4 ${locating ? 'animate-pulse' : ''}`} />
                         </button>
@@ -310,19 +314,19 @@ export function AddressSelectorModal({
 
                 {/* Map */}
                 <div className="flex-1 min-h-[300px]">
-                    <div ref={mapRef} className="w-full h-full" style={{ minHeight: '300px' }} />
+                    <div ref={mapRef} className="w-full h-full" style={{ minHeight: '300px' }} data-testid="address-map" />
                 </div>
 
                 {/* Selected address */}
                 {selectedAddress && (
-                    <div className="p-4 border-t border-slate-700/50 bg-green-500/10">
+                    <div className="p-4 border-t border-slate-700/50 bg-green-500/10" data-testid="address-selected">
                         <div className="flex items-start gap-3">
                             <MapPin className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <p className="text-sm text-slate-400">Adresse sélectionnée :</p>
-                                <p className="text-white">{selectedAddress}</p>
+                                <p className="text-white" data-testid="address-selected-label">{selectedAddress}</p>
                                 {selectedCoords && (
-                                    <p className="text-xs text-slate-500 mt-1">
+                                    <p className="text-xs text-slate-500 mt-1" data-testid="address-selected-coords">
                                         Coordonnées: {selectedCoords.lat.toFixed(6)}, {selectedCoords.lng.toFixed(6)}
                                     </p>
                                 )}
@@ -333,13 +337,14 @@ export function AddressSelectorModal({
 
                 {/* Footer */}
                 <div className="p-4 border-t border-slate-700/50 flex justify-end gap-3">
-                    <button onClick={onClose} className="btn-secondary">
+                    <button onClick={onClose} className="btn-secondary" data-testid="address-cancel-button">
                         Annuler
                     </button>
                     <button
                         onClick={handleConfirm}
                         disabled={!selectedAddress}
                         className="btn-primary flex items-center gap-2"
+                        data-testid="address-confirm-button"
                     >
                         <Check className="w-4 h-4" />
                         Confirmer
