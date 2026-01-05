@@ -3,7 +3,7 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**1.1.3**
+**1.1.4**
 
 ## ÉTAT DU SYSTÈME
 MyDelagrave Production Ready - Dual Environment (Mock/Supabase)
