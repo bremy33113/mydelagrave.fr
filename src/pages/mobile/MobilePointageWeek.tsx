@@ -91,7 +91,7 @@ export function MobilePointageWeek() {
             setPointages((pointagesData as Pointage[]) || []);
 
             // Charger les chantiers associés
-            const chantierIds = [...new Set((pointagesData || []).map(p => p.chantier_id))];
+            const chantierIds = [...new Set((pointagesData || []).map((p: Pointage) => p.chantier_id))];
             if (chantierIds.length > 0) {
                 const { data: chantiersData } = await supabase
                     .from('chantiers')

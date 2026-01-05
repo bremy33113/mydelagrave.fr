@@ -37,15 +37,7 @@ export function MobileChantiersList() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [search, setSearch] = useState('');
-    const [userEmail, setUserEmail] = useState<string>('');
     const { userId } = useUserRole();
-
-    const fetchUserEmail = useCallback(async () => {
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.user?.email) {
-            setUserEmail(data.session.user.email);
-        }
-    }, []);
 
     const fetchChantiers = useCallback(async () => {
         if (!userId) return;
@@ -80,9 +72,8 @@ export function MobileChantiersList() {
     }, [userId]);
 
     useEffect(() => {
-        fetchUserEmail();
         fetchChantiers();
-    }, [fetchUserEmail, fetchChantiers]);
+    }, [fetchChantiers]);
 
     const handleRefresh = () => {
         setRefreshing(true);
@@ -117,7 +108,7 @@ export function MobileChantiersList() {
 
     if (loading) {
         return (
-            <MobileLayout title="Mes Chantiers" userEmail={userEmail}>
+            <MobileLayout title="Mes Chantiers">
                 <div className="flex items-center justify-center h-64">
                     <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 </div>
@@ -126,7 +117,7 @@ export function MobileChantiersList() {
     }
 
     return (
-        <MobileLayout title="Mes Chantiers" userEmail={userEmail}>
+        <MobileLayout title="Mes Chantiers">
             <div className="p-4 space-y-4">
                 {/* Barre de recherche */}
                 <div className="relative">

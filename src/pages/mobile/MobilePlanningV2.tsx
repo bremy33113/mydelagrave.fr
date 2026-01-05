@@ -154,7 +154,7 @@ export function MobilePlanningV2() {
             setPhases((data as PhaseWithChantier[]) || []);
 
             // Charger les réserves ouvertes pour les chantiers
-            const chantierIds = [...new Set((data || []).map(p => p.chantier?.id).filter(Boolean))];
+            const chantierIds = [...new Set((data || []).map((p: PhaseWithChantier) => p.chantier?.id).filter(Boolean))];
             if (chantierIds.length > 0) {
                 const { data: reservesData } = await supabase
                     .from('notes_chantiers')

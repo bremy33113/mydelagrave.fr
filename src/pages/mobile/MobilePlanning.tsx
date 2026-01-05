@@ -24,7 +24,6 @@ export function MobilePlanning() {
     const [phases, setPhases] = useState<Phase[]>([]);
     const [loading, setLoading] = useState(true);
     const [weekOffset, setWeekOffset] = useState(0);
-    const [userEmail, setUserEmail] = useState<string>('');
     const { userId } = useUserRole();
 
     // Calculer les dates de la semaine
@@ -63,13 +62,6 @@ export function MobilePlanning() {
     const canGoNext = weekOffset < 2;
     const canGoPrev = true; // Illimité vers le passé
 
-    const fetchUserEmail = useCallback(async () => {
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.user?.email) {
-            setUserEmail(data.session.user.email);
-        }
-    }, []);
-
     const fetchPhases = useCallback(async () => {
         if (!userId) return;
 
@@ -106,10 +98,6 @@ export function MobilePlanning() {
             setLoading(false);
         }
     }, [userId, weekDates]);
-
-    useEffect(() => {
-        fetchUserEmail();
-    }, [fetchUserEmail]);
 
     useEffect(() => {
         if (userId) {
@@ -177,7 +165,7 @@ export function MobilePlanning() {
     };
 
     return (
-        <MobileLayout title="Mon Planning" userEmail={userEmail}>
+        <MobileLayout title="Mon Planning">
             <div className="p-4 space-y-4">
                 {/* Navigation semaine */}
                 <div className="flex items-center justify-between bg-slate-800/50 border border-slate-700/50 rounded-xl p-3">
