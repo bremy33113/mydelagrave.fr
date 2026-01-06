@@ -435,13 +435,82 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
         }
     };
 
+    // Renumber phases chronologically within each group before closing
+    const renumberPhasesChronologically = async () => {
+        // Fetch fresh data from database to ensure we have the latest state
+        const { data: freshPhases } = await supabase
+            .from('phases_chantiers')
+            .select('*')
+            .eq('chantier_id', chantierId);
+
+        if (!freshPhases || freshPhases.length === 0) return false;
+
+        type PhaseRow = Tables<'phases_chantiers'>;
+
+        // Group phases by groupe_phase
+        const groups = new Map<number, PhaseRow[]>();
+        freshPhases.forEach((phase: PhaseRow) => {
+            const group = phase.groupe_phase || 1;
+            const existing = groups.get(group) || [];
+            existing.push(phase);
+            groups.set(group, existing);
+        });
+
+        const updates: { id: string; numero_phase: number }[] = [];
+
+        // For each group, sort by date and renumber
+        groups.forEach((subPhases) => {
+            // Separate placeholder (duree=0) from real phases
+            const placeholder = subPhases.find(p => p.duree_heures === 0);
+            const realPhases = subPhases.filter(p => p.duree_heures > 0);
+
+            // If placeholder exists and occupies numero_phase > 0, move it to 0
+            if (placeholder && placeholder.numero_phase !== 0) {
+                updates.push({ id: placeholder.id, numero_phase: 0 });
+            }
+
+            // Sort real phases by date + time
+            const sorted = [...realPhases].sort((a, b) => {
+                const dateA = new Date(a.date_debut + 'T' + (a.heure_debut || '08:00:00'));
+                const dateB = new Date(b.date_debut + 'T' + (b.heure_debut || '08:00:00'));
+                return dateA.getTime() - dateB.getTime();
+            });
+
+            // Renumber real phases starting from 1
+            sorted.forEach((phase, index) => {
+                const expectedNumero = index + 1;
+                if (phase.numero_phase !== expectedNumero) {
+                    updates.push({ id: phase.id, numero_phase: expectedNumero });
+                }
+            });
+        });
+
+        // Apply updates if needed
+        if (updates.length > 0) {
+            for (const update of updates) {
+                await supabase
+                    .from('phases_chantiers')
+                    .update({ numero_phase: update.numero_phase, updated_at: new Date().toISOString() })
+                    .eq('id', update.id);
+            }
+        }
+
+        return updates.length > 0;
+    };
+
+    // Handle close with chronological renumbering
+    const handleClose = async () => {
+        await renumberPhasesChronologically();
+        onClose();
+    };
+
     if (!isOpen) return null;
 
     // Note: heuresAllouees du chantier n'est plus utilisé pour la jauge
     // On utilise totalBudget (somme des budgets des phases) à la place
 
     return (
-        <div className="modal-backdrop">
+        <div className="modal-backdrop" data-testid="phases-modal">
             <div
                 className="glass-card w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-fadeIn"
                 onClick={(e) => e.stopPropagation()}
@@ -456,7 +525,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                             </h2>
                             <p className="text-sm text-slate-400">{chantierNom}</p>
                         </div>
-                        <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400">
+                        <button onClick={handleClose} className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400" data-testid="phases-modal-close">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
@@ -493,6 +562,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                     <button
                                         onClick={handleAddGroup}
                                         className="mt-4 btn-primary"
+                                        data-testid="btn-create-first-phase"
                                     >
                                         <Plus className="w-4 h-4 mr-2" />
                                         Créer Phase 1
@@ -520,6 +590,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                         <button
                                             onClick={handleAddGroup}
                                             className="w-full p-4 rounded-xl border-2 border-dashed border-slate-700 text-slate-400 hover:border-purple-500/50 hover:text-purple-400 transition-colors flex items-center justify-center gap-2"
+                                            data-testid="btn-add-phase-group"
                                         >
                                             <Plus className="w-5 h-5" />
                                             Nouvelle Phase {nextGroupNumber}
@@ -530,7 +601,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
 
                             {/* Group form */}
                             {showGroupForm && (
-                                <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
+                                <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30" data-testid="phase-group-form">
                                     <h3 className="text-sm font-semibold text-purple-400 mb-4">
                                         {editingGroupNumber ? `Modifier Phase ${editingGroupNumber}` : `Nouvelle Phase ${targetGroupNumber}`}
                                     </h3>
@@ -544,6 +615,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                                     onChange={(e) => setGroupForm({ ...groupForm, label: e.target.value })}
                                                     className="input-field"
                                                     placeholder={`Ex: Préparation`}
+                                                    data-testid="input-phase-label"
                                                 />
                                             </div>
                                             <div>
@@ -556,16 +628,17 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                                         onChange={(e) => setGroupForm({ ...groupForm, heures_budget: e.target.value })}
                                                         className="input-field pr-8"
                                                         placeholder="Ex: 120"
+                                                        data-testid="input-phase-budget"
                                                     />
                                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">h</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="flex justify-end gap-3">
-                                            <button type="button" onClick={resetGroupForm} className="btn-secondary">
+                                            <button type="button" onClick={resetGroupForm} className="btn-secondary" data-testid="btn-cancel-phase">
                                                 Annuler
                                             </button>
-                                            <button type="submit" className="btn-primary">
+                                            <button type="submit" className="btn-primary" data-testid="btn-submit-phase">
                                                 {editingGroupNumber ? 'Enregistrer' : 'Créer'}
                                             </button>
                                         </div>
@@ -575,7 +648,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
 
                             {/* Sub-phase form */}
                             {showSubPhaseForm && (
-                                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30" data-testid="subphase-form">
                                     <h3 className="text-sm font-semibold text-blue-400 mb-4">
                                         {editingPhase
                                             ? `Modifier sous-phase ${targetGroupNumber}.${editingPhase.numero_phase}`
@@ -591,6 +664,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                                     onChange={(e) => setSubPhaseForm({ ...subPhaseForm, libelle: e.target.value })}
                                                     className="input-field"
                                                     placeholder="Ex: Installation mobilier"
+                                                    data-testid="input-subphase-libelle"
                                                 />
                                             </div>
                                             <div>
@@ -601,6 +675,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                                     onChange={(e) => setSubPhaseForm({ ...subPhaseForm, date_debut: e.target.value })}
                                                     className="input-field"
                                                     required
+                                                    data-testid="input-subphase-date"
                                                 />
                                             </div>
                                             <div>
@@ -630,6 +705,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                                     min="1"
                                                     max="500"
                                                     required
+                                                    data-testid="input-subphase-duree"
                                                 />
                                             </div>
                                             <div>
@@ -659,10 +735,10 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                         )}
 
                                         <div className="flex justify-end gap-3">
-                                            <button type="button" onClick={resetSubPhaseForm} className="btn-secondary">
+                                            <button type="button" onClick={resetSubPhaseForm} className="btn-secondary" data-testid="btn-cancel-subphase">
                                                 Annuler
                                             </button>
-                                            <button type="submit" className="btn-primary">
+                                            <button type="submit" className="btn-primary" data-testid="btn-submit-subphase">
                                                 {editingPhase ? 'Enregistrer' : 'Ajouter'}
                                             </button>
                                         </div>
@@ -674,12 +750,12 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-700/50 flex justify-between items-center">
-                    <p className="text-sm text-slate-400">
+                <div className="p-6 border-t border-slate-700/50 flex justify-between items-center" data-testid="phases-modal-footer">
+                    <p className="text-sm text-slate-400" data-testid="phases-count">
                         {groupedPhases.length} phase{groupedPhases.length !== 1 ? 's' : ''} •{' '}
                         {phases.filter((p) => p.duree_heures > 0).length} sous-phase{phases.filter((p) => p.duree_heures > 0).length !== 1 ? 's' : ''}
                     </p>
-                    <button onClick={onClose} className="btn-secondary">
+                    <button onClick={handleClose} className="btn-secondary" data-testid="btn-close-phases">
                         Fermer
                     </button>
                 </div>

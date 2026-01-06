@@ -144,7 +144,7 @@ export function DashboardPage() {
                 .from('users')
                 .select('*')
                 .eq('role', 'charge_affaire')
-                .is('deleted_at', null)
+                .eq('suspended', false)
                 .order('last_name');
             if (caData && Array.isArray(caData)) setChargeAffaireList(caData as Tables<'users'>[]);
 
@@ -153,7 +153,7 @@ export function DashboardPage() {
                 .from('users')
                 .select('*')
                 .eq('role', 'poseur')
-                .is('deleted_at', null)
+                .eq('suspended', false)
                 .order('last_name');
             if (poseurData && Array.isArray(poseurData)) setPoseurList(poseurData as Tables<'users'>[]);
 

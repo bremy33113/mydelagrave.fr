@@ -2,6 +2,20 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.2.1] - 2026-01-06
+
+### Améliorations phases et filtres utilisateurs
+
+### Corrections
+- 🐛 Correction du filtre utilisateurs suspendus (utilise `suspended` au lieu de `deleted_at`)
+- ✨ Renumérotation chronologique automatique des sous-phases à la fermeture du modal
+
+### Tests
+- 🧪 Ajout des `data-testid` pour les tests E2E des phases
+- 🧪 Nouveau fichier de test E2E `e2e/phases.spec.ts`
+
+---
+
 ## [2.2.0] - 2026-01-06
 
 ### Navigation et mise en évidence des phases

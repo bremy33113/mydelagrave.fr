@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.2.0**
+**2.2.1**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.2.0 - Navigation et mise en évidence des phases
+MyDelagrave v2.2.1 - Améliorations phases et filtres utilisateurs
 
 ## Mode d'Exécution
 
@@ -55,6 +55,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.2.1 | 2026-01-06 | Améliorations phases et filtres utilisateurs |
 | 2.1.0 | 2026-01-06 | Vue Carte Planning Poseur avec Tournée |
 | 2.0.0 | 2026-01-06 | 🚀 Application Mobile Poseur (MAJOR) |
 | 1.4.0 | 2026-01-05 | Sous-phases et Suivi des Heures |

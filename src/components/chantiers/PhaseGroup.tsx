@@ -46,7 +46,7 @@ export function PhaseGroup({
     const consumedHours = subPhases.reduce((sum, p) => sum + p.duree_heures, 0);
 
     return (
-        <div className="rounded-xl bg-slate-800/30 border border-slate-700/50 overflow-hidden">
+        <div className="rounded-xl bg-slate-800/30 border border-slate-700/50 overflow-hidden" data-testid={`phase-group-${groupNumber}`}>
             {/* Group Header */}
             <div
                 className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-700/30 transition-colors"
@@ -119,6 +119,7 @@ export function PhaseGroup({
                                     <div
                                         key={phase.id}
                                         className="p-3 pl-12 flex items-center justify-between group hover:bg-slate-700/20 transition-colors"
+                                        data-testid={`subphase-${groupNumber}-${phase.numero_phase}`}
                                     >
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
@@ -171,6 +172,7 @@ export function PhaseGroup({
                     <button
                         onClick={() => onAddSubPhase(groupNumber)}
                         className="w-full p-3 text-sm text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors flex items-center justify-center gap-2 border-t border-slate-700/30"
+                        data-testid={`btn-add-subphase-${groupNumber}`}
                     >
                         <Plus className="w-4 h-4" />
                         Ajouter sous-phase {groupNumber}.{subPhases.length + 1}
