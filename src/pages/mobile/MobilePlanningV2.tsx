@@ -241,14 +241,6 @@ export function MobilePlanningV2() {
         navigate(`/m/chantier/${chantierId}`);
     };
 
-    const handleFabClick = () => {
-        // Ouvrir formulaire réserve si un chantier est sélectionné
-        // Pour l'instant, on peut naviguer vers le premier chantier du jour
-        if (phases.length > 0 && phases[0].chantier) {
-            navigate(`/m/chantier/${phases[0].chantier.id}/reserve`);
-        }
-    };
-
     // Rendu d'une carte intervention
     const renderPhaseCard = (phase: PhaseWithChantier) => {
         console.log('📱 renderPhaseCard - phase:', phase);
@@ -344,7 +336,6 @@ export function MobilePlanningV2() {
             title="PLANNING"
             subtitle={formatDateNav()}
             showBottomNav
-            onFabClick={handleFabClick}
         >
             <div className="p-4 space-y-4">
                 {/* Toggles Vue */}

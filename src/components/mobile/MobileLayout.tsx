@@ -10,7 +10,6 @@ interface MobileLayoutProps {
     showBack?: boolean;
     onBack?: () => void;
     showBottomNav?: boolean;
-    onFabClick?: () => void;
     subtitle?: string;
 }
 
@@ -20,7 +19,6 @@ export function MobileLayout({
     showBack,
     onBack,
     showBottomNav = false,
-    onFabClick,
     subtitle
 }: MobileLayoutProps) {
     const navigate = useNavigate();
@@ -88,7 +86,7 @@ export function MobileLayout({
             </main>
 
             {/* Bottom Navigation */}
-            {showBottomNav && <MobileBottomNav onFabClick={onFabClick} />}
+            {showBottomNav && <MobileBottomNav />}
         </div>
     );
 }

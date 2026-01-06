@@ -7,85 +7,73 @@
 ## Derniers commits
 
 ```
-feat!: Application Mobile Poseur (v2.0.0)
+52ea77f feat: Vue Carte Planning Poseur avec Tournée (v2.1.0)
+92f47ce chore: Migration Supabase v2.0.0 - Table pointages
+06dbf31 fix: Corrections TypeScript pour build production
+696c998 feat!: Application Mobile Poseur (v2.0.0)
 b9821d8 test: Correction tests E2E + amélioration CLAUDE.md
-5609259 docs: Mise à jour documentation ZONES.md + tooling
-b29cfff feat: Sous-phases et Suivi des Heures (v1.4.0)
-4613b2a test: Ajout tests E2E pour utilisateurs en ligne
 ```
 
 ## Tâche en cours
 
-**Refonte Interface Mobile Poseur (Style Gemini Canvas) + Pointage + PWA** - ✅ TERMINÉ
+**Vue Carte Planning Poseur avec Tournée (v2.1.0)** - ✅ TERMINÉ
 
-### Progression des tâches
+### Fonctionnalités implémentées dans cette session
 
 | # | Tâche | Statut |
 |---|-------|--------|
-| 1 | Enrichir database.types.ts (NoteChantier + Pointage) | ✅ Terminé |
-| 2 | Ajouter mock data (réserves, rapports, pointages) | ✅ Terminé |
-| 3 | Créer composants UI (GlassCard, StatusBadge, BottomNav) | ✅ Terminé |
-| 4 | Créer MobilePlanningV2.tsx avec toggles jour/semaine/carte | ✅ Terminé |
-| 5 | Créer MobileChantierDetail.tsx avec réserves | ✅ Terminé |
-| 6 | Créer formulaires (ReserveForm, RapportForm) | ✅ Terminé |
-| 7 | Créer système pointage (chrono + saisie manuelle) | ✅ Terminé |
-| 8 | Créer génération PDF feuille de pointage | ✅ Terminé |
-| 9 | Ajouter MobileTimePicker (wheel picker) | ✅ Terminé |
-| 10 | Configurer PWA pour mode plein écran | ✅ Terminé |
-| 11 | Créer dashboard superviseur (ReservesPage) | ⏳ À faire |
+| 1 | Vue carte du planning mobile avec marqueurs numérotés | ✅ Terminé |
+| 2 | Calcul d'itinéraire routier via OSRM API | ✅ Terminé |
+| 3 | Affichage du trajet réel sur les routes | ✅ Terminé |
+| 4 | Liste de tournée avec temps/distance entre étapes | ✅ Terminé |
+| 5 | Géocodage automatique des adresses de livraison | ✅ Terminé |
+| 6 | Carte routière ESRI (style atlas routier) | ✅ Terminé |
+| 7 | Mode PWA fullscreen optimisé | ✅ Terminé |
+| 8 | Correction décalage de date planning mobile | ✅ Terminé |
+| 9 | Retrait du bouton + du menu mobile | ✅ Terminé |
 
 ### Fichiers créés/modifiés
 
 | Fichier | Description |
 |---------|-------------|
-| `src/components/mobile/MobileGlassCard.tsx` | Composant carte glassmorphism |
-| `src/components/mobile/MobileStatusBadge.tsx` | Badge statut avec gradients |
-| `src/components/mobile/MobileBottomNav.tsx` | Barre navigation bottom avec FAB |
-| `src/components/mobile/MobileTimePicker.tsx` | Wheel picker pour heures (react-mobile-picker) |
-| `src/pages/mobile/MobilePlanningV2.tsx` | Planning avec toggles jour/semaine/carte |
-| `src/pages/mobile/MobileChantierDetail.tsx` | Détail chantier avec réserves expandables |
-| `src/pages/mobile/MobileReserveForm.tsx` | Formulaire création réserve |
-| `src/pages/mobile/MobileRapportForm.tsx` | Formulaire rapport journalier |
-| `src/pages/mobile/MobilePointagePage.tsx` | Page pointage avec chrono + saisie manuelle |
-| `src/pages/mobile/MobilePointageWeek.tsx` | Récap semaine + génération PDF |
-| `src/pages/mobile/MobileProfilPage.tsx` | Page profil utilisateur |
-| `src/lib/supabase.ts` | Ajout opérateurs gte/lte/gt/lt + migrations |
-| `public/manifest.json` | Configuration PWA |
-| `index.html` | Meta tags PWA pour mode plein écran |
-
-### Routes mobiles configurées
-
-```
-/m/planning          → MobilePlanningV2.tsx (nouveau design)
-/m/planning-old      → MobilePlanning.tsx (ancien)
-/m/chantiers         → MobileChantiersList.tsx
-/m/chantier/:id      → MobileChantierDetail.tsx
-/m/chantier/:id/reserve → MobileReserveForm.tsx
-/m/chantier/:id/rapport → MobileRapportForm.tsx
-/m/pointage          → MobilePointagePage.tsx
-/m/pointage/semaine  → MobilePointageWeek.tsx
-/m/profil            → MobileProfilPage.tsx
-```
+| `src/components/mobile/MobilePlanningMap.tsx` | Composant carte Leaflet avec tournée numérotée |
+| `src/components/mobile/MobileBottomNav.tsx` | Barre navigation bottom (FAB retiré) |
+| `src/components/mobile/MobileLayout.tsx` | Layout mobile (onFabClick retiré) |
+| `src/pages/mobile/MobilePlanningV2.tsx` | Planning avec vue carte intégrée |
+| `src/pages/mobile/MobileChantierDetail.tsx` | Détail chantier (onFabClick retiré) |
+| `src/components/chantiers/CreateChantierModal.tsx` | Géocodage automatique adresse livraison |
+| `public/manifest.json` | PWA fullscreen + start_url mobile |
+| `index.html` | Safe-area iOS + theme-color |
+| `supabase/migrations/00009_phases_subphases_columns.sql` | Migration colonnes sous-phases |
 
 ### Corrections techniques importantes
 
-1. **Fuseau horaire** : Remplacer `toISOString().split('T')[0]` par `formatLocalDate()` pour éviter les décalages de date
-2. **Relations Supabase mock** : Format `chantier:chantiers!chantier_id(...)` au lieu de `chantier:chantier_id(...)`
-3. **Opérateurs mock** : Ajout de `gte`, `lte`, `gt`, `lt` dans MockQueryBuilder
+1. **Fuseau horaire** : Utiliser `formatLocalDate()` au lieu de `toISOString().split('T')[0]`
+2. **GeoJSON** : Coordonnées OSRM sont `[lon, lat]`, Leaflet attend `[lat, lon]`
+3. **OSRM API** : `https://router.project-osrm.org/route/v1/driving/{coords}?overview=full&geometries=geojson`
+4. **Carte routière** : ESRI World Street Map pour style atlas routier
 
-### Dépendances ajoutées
+### Modifications non committées
 
-```bash
-npm install jspdf jspdf-autotable react-mobile-picker
 ```
+M src/components/mobile/MobileBottomNav.tsx    (FAB retiré)
+M src/components/mobile/MobileLayout.tsx       (onFabClick retiré)
+M src/pages/mobile/MobileChantierDetail.tsx    (onFabClick retiré)
+M src/pages/mobile/MobilePlanningV2.tsx        (handleFabClick retiré)
+```
+
+## Déploiement
+
+- Site production : https://mydelagrave.fr
+- FTP : `admin@mydelagrave.fr` sur `node117-eu.n0c.com`
+- Build : `npm run build -- --mode production`
 
 ## Prochaines étapes
 
-1. **Créer icônes PWA** - icon-192.png et icon-512.png (actuellement placeholder)
+1. **Committer les modifications FAB** - Retrait du bouton + (modifications en cours)
 2. **Créer dashboard superviseur (ReservesPage)** - Gestion des réserves desktop
 3. **Nettoyer les console.log** - Supprimer les logs de debug
-4. **Tests E2E** - Ajouter des tests pour le parcours mobile
-5. **Commit** - Créer un commit pour cette fonctionnalité
+4. **Tests E2E** - Ajouter des tests pour le parcours mobile carte
 
 ## Comment tester
 
@@ -94,14 +82,16 @@ cd H:\MyDelagrave
 npm run dev
 ```
 
+### Vue carte mobile
+
+1. Accéder à `/#/m/planning`
+2. Basculer sur l'onglet "Carte"
+3. Voir les marqueurs numérotés + trajet routier
+4. Liste de tournée avec temps/distances en dessous
+
 ### Mode PWA (plein écran)
 
 Sur mobile :
-1. Ouvrir l'app dans le navigateur
-2. **iOS** : Safari → Partager → "Sur l'écran d'accueil"
-3. **Android** : Chrome → Menu → "Ajouter à l'écran d'accueil"
-4. Lancer depuis l'icône = mode plein écran sans barre de navigation
-
-### Test desktop
-
-Ouvrir le simulateur mobile via le bouton 📱 dans la Sidebar, ou accéder directement à `/#/m/planning`.
+1. **iOS** : Safari → Partager → "Sur l'écran d'accueil"
+2. **Android** : Chrome → Menu → "Ajouter à l'écran d'accueil"
+3. Lancer depuis l'icône = mode plein écran sans barre de navigation

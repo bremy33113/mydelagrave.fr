@@ -219,7 +219,6 @@ export function MobileChantierDetail() {
             subtitle={chantier.reference || undefined}
             showBack
             showBottomNav
-            onFabClick={openReserveForm}
         >
             <div className="p-4 space-y-4">
                 {/* Header Chantier */}

@@ -1,11 +1,7 @@
-import { Calendar, Clock, User, Plus } from 'lucide-react';
+import { Calendar, Clock, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-interface MobileBottomNavProps {
-    onFabClick?: () => void;
-}
-
-export function MobileBottomNav({ onFabClick }: MobileBottomNavProps) {
+export function MobileBottomNav() {
     const navigate = useNavigate();
     const location = useLocation();
     const currentPath = location.pathname;
@@ -32,16 +28,6 @@ export function MobileBottomNav({ onFabClick }: MobileBottomNavProps) {
                     <Clock size={20} strokeWidth={isActive('/m/pointage') ? 3 : 2} />
                     <span className="text-[8px] font-black uppercase tracking-widest">Pointage</span>
                 </button>
-
-                {/* FAB Central */}
-                <div className="relative -mt-10">
-                    <button
-                        onClick={onFabClick}
-                        className="w-14 h-14 bg-gradient-to-br from-sky-400 to-indigo-600 rounded-full shadow-2xl flex items-center justify-center text-white active:scale-90 border-[6px] border-slate-950"
-                    >
-                        <Plus size={30} strokeWidth={3} />
-                    </button>
-                </div>
 
                 {/* Profil */}
                 <button
