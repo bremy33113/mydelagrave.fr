@@ -2,12 +2,12 @@
 
 **Date** : 2026-01-06
 **Branche** : dev
-**Version** : 2.1.0
+**Version** : 2.2.0
 
 ## Derniers commits
 
 ```
-52ea77f feat: Vue Carte Planning Poseur avec Tournée (v2.1.0)
+52ea77f feat: Vue Carte Planning Poseur avec Tournée (v2.2.0)
 92f47ce chore: Migration Supabase v2.0.0 - Table pointages
 06dbf31 fix: Corrections TypeScript pour build production
 696c998 feat!: Application Mobile Poseur (v2.0.0)
@@ -16,7 +16,7 @@ b9821d8 test: Correction tests E2E + amélioration CLAUDE.md
 
 ## Tâche en cours
 
-**Vue Carte Planning Poseur avec Tournée (v2.1.0)** - ✅ TERMINÉ
+**Vue Carte Planning Poseur avec Tournée (v2.2.0)** - ✅ TERMINÉ
 
 ### Fonctionnalités implémentées dans cette session
 

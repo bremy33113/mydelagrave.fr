@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { DraggablePhase } from './DraggablePhase';
-import type { PhaseWithRelations } from '../../pages/PlanningPage';
+import type { PhaseWithRelations, ViewMode } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
 
 interface WorkingDateInfo {
@@ -20,6 +20,12 @@ interface DroppablePoseurRowProps {
     onPhaseUpdate: (phaseId: string, updates: Partial<Tables<'phases_chantiers'>>) => Promise<void>;
     isCompact: boolean;
     onPoseurClick?: (poseur: Tables<'users'>) => void;
+    highlightedChantierId?: string | null;
+    focusedPhaseId?: string | null;
+    allPhases?: PhaseWithRelations[];
+    viewMode?: ViewMode;
+    onPhaseNavigate?: (phaseId: string) => void;
+    onPhaseClick?: (phaseId: string) => void;
 }
 
 // Convert hour to fraction of working day (0-1)
@@ -168,7 +174,14 @@ export function DroppablePoseurRow({
     onPhaseUpdate,
     isCompact,
     onPoseurClick,
+    highlightedChantierId,
+    focusedPhaseId,
+    allPhases,
+    viewMode,
+    onPhaseNavigate,
+    onPhaseClick,
 }: DroppablePoseurRowProps) {
+    const showNavigationArrows = viewMode === 'week' || viewMode === '3weeks';
     const poseurId = poseur?.id || 'unassigned';
 
     const { setNodeRef, isOver } = useDroppable({
@@ -216,7 +229,7 @@ export function DroppablePoseurRow({
         }
     });
 
-    const rowHeight = 40;
+    const rowHeight = 30;
     const minHeight = Math.max(rows.length * rowHeight, rowHeight);
 
     return (
@@ -271,25 +284,35 @@ export function DroppablePoseurRow({
                 </div>
 
                 {/* Phases */}
-                {rows.flat().map(({ phase, position, row }) => (
-                    <div
-                        key={phase.id}
-                        className="absolute"
-                        style={{
-                            left: position.left,
-                            top: row * rowHeight + 4,
-                            width: position.width,
-                            height: rowHeight - 8,
-                        }}
-                    >
-                        <DraggablePhase
-                            phase={phase}
-                            statusColors={statusColors}
-                            onPhaseUpdate={onPhaseUpdate}
-                            isCompact={isCompact}
-                        />
-                    </div>
-                ))}
+                {rows.flat().map(({ phase, position, row }) => {
+                    // Get sibling phases from the same chantier
+                    const siblingPhases = allPhases?.filter(p => p.chantier_id === phase.chantier_id && p.duree_heures > 0);
+                    return (
+                        <div
+                            key={phase.id}
+                            className="absolute"
+                            style={{
+                                left: position.left,
+                                top: row * rowHeight + 4,
+                                width: position.width,
+                                height: rowHeight - 8,
+                            }}
+                        >
+                            <DraggablePhase
+                                phase={phase}
+                                statusColors={statusColors}
+                                onPhaseUpdate={onPhaseUpdate}
+                                isCompact={isCompact}
+                                isHighlighted={highlightedChantierId === phase.chantier_id}
+                                isFocused={focusedPhaseId === phase.id}
+                                siblingPhases={siblingPhases}
+                                showNavigationArrows={showNavigationArrows}
+                                onPhaseNavigate={onPhaseNavigate}
+                                onPhaseClick={onPhaseClick}
+                            />
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.1.0**
+**2.2.0**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.1.0 - Vue Carte Planning Poseur avec Tournée
+MyDelagrave v2.2.0 - Navigation et mise en évidence des phases
 
 ## Mode d'Exécution
 

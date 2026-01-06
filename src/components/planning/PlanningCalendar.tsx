@@ -23,6 +23,10 @@ interface PlanningCalendarProps {
     onPhaseUpdate: (phaseId: string, updates: Partial<Tables<'phases_chantiers'>>) => Promise<void>;
     onNavigate: (days: number) => void;
     onPoseurClick?: (poseur: Tables<'users'>) => void;
+    highlightedChantierId?: string | null;
+    focusedPhaseId?: string | null;
+    onPhaseNavigate?: (phaseId: string) => void;
+    onPhaseClick?: (phaseId: string) => void;
 }
 
 // Status colors
@@ -191,6 +195,10 @@ export function PlanningCalendar({
     onPhaseUpdate,
     onNavigate,
     onPoseurClick,
+    highlightedChantierId,
+    focusedPhaseId,
+    onPhaseNavigate,
+    onPhaseClick,
 }: PlanningCalendarProps) {
     const [activePhase, setActivePhase] = useState<PhaseWithRelations | null>(null);
     const [isShiftPressed, setIsShiftPressed] = useState(false);
@@ -495,19 +503,14 @@ export function PlanningCalendar({
                         onPhaseUpdate={onPhaseUpdate}
                         isCompact={isCompact}
                         onPoseurClick={onPoseurClick}
+                        highlightedChantierId={highlightedChantierId}
+                        focusedPhaseId={focusedPhaseId}
+                        allPhases={phases}
+                        viewMode={viewMode}
+                        onPhaseNavigate={onPhaseNavigate}
+                        onPhaseClick={onPhaseClick}
                     />
                 ))}
-
-                {/* Sans pose row (fourniture seule) - read only */}
-                <SansPoseRow
-                    phases={sansPosePhases}
-                    workingDates={workingDates}
-                    columnWidth={columnWidth}
-                    poseurColumnWidth={POSEUR_COLUMN_WIDTH}
-                    statusColors={STATUS_COLORS}
-                    isCompact={isCompact}
-                    onPhaseUpdate={onPhaseUpdate}
-                />
 
                 {/* Unassigned row */}
                 <DroppablePoseurRow
@@ -521,6 +524,32 @@ export function PlanningCalendar({
                     statusColors={STATUS_COLORS}
                     onPhaseUpdate={onPhaseUpdate}
                     isCompact={isCompact}
+                    highlightedChantierId={highlightedChantierId}
+                    focusedPhaseId={focusedPhaseId}
+                    allPhases={phases}
+                    viewMode={viewMode}
+                    onPhaseNavigate={onPhaseNavigate}
+                    onPhaseClick={onPhaseClick}
+                />
+
+                {/* Separator line */}
+                <div className="h-1 bg-gradient-to-r from-slate-700/50 via-amber-500/30 to-slate-700/50" />
+
+                {/* Sans pose row (fourniture seule) - read only, at the end */}
+                <SansPoseRow
+                    phases={sansPosePhases}
+                    workingDates={workingDates}
+                    columnWidth={columnWidth}
+                    poseurColumnWidth={POSEUR_COLUMN_WIDTH}
+                    statusColors={STATUS_COLORS}
+                    isCompact={isCompact}
+                    onPhaseUpdate={onPhaseUpdate}
+                    highlightedChantierId={highlightedChantierId}
+                    focusedPhaseId={focusedPhaseId}
+                    allPhases={phases}
+                    viewMode={viewMode}
+                    onPhaseNavigate={onPhaseNavigate}
+                    onPhaseClick={onPhaseClick}
                 />
             </div>
 

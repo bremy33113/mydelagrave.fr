@@ -8,6 +8,7 @@ import { ContactsPage } from './pages/ContactsPage';
 import { AdminPage } from './pages/AdminPage';
 import { TrashPage } from './pages/TrashPage';
 import { PlanningPage } from './pages/PlanningPage';
+import { ReservesPage } from './pages/ReservesPage';
 import { MobileChantiersList } from './pages/mobile/MobileChantiersList';
 import { MobilePlanning } from './pages/mobile/MobilePlanning';
 import { MobilePlanningV2 } from './pages/mobile/MobilePlanningV2';
@@ -150,6 +151,7 @@ function App() {
                     <Route path="/contacts" element={<ContactsPage />} />
                     <Route path="/planning" element={<PlanningPage />} />
                     <Route path="/corbeille" element={<TrashPage />} />
+                    <Route path="/reserves" element={<ReservesPage />} />
                     {/* Routes mobiles accessibles aussi en desktop pour debug */}
                     <Route path="/m/chantiers" element={<MobileChantiersList />} />
                     <Route path="/m/planning" element={<MobilePlanningV2 />} />

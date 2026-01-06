@@ -2,6 +2,25 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.2.0] - 2026-01-06
+
+### Navigation et mise en évidence des phases
+
+### Nouvelles fonctionnalités
+- ✨ Navigation entre phases du même chantier avec flèches (◀ ▶)
+- ✨ Mise en évidence au clic sur une phase (highlight chantier + focus phase)
+- ✨ Double niveau de highlight : phase focalisée (ring-4) vs phases du chantier (ring-2)
+
+### Améliorations
+- ⚡ Double-clic pour éditer une phase (remplace le chevron)
+- ⚡ Flèches de navigation visibles en vue Hebdo et 3 Semaines
+- 🐛 Correction ESLint : non-null assertions dans DraggablePhase et ReservesPage
+
+### Fix
+- 🔧 Retrait du bouton FAB du menu mobile
+
+---
+
 ## [2.1.0] - 2026-01-06
 
 ### Vue Carte Planning Poseur avec Tournée

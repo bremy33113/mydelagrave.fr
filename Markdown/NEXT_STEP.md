@@ -1,7 +1,7 @@
 # Prochaines Étapes MyDelagrave
 
 **Date** : 2026-01-06
-**Version** : 2.1.0
+**Version** : 2.2.0
 **Branche** : dev
 
 ---
@@ -25,22 +25,19 @@ git push
 
 ---
 
-## 2. Dashboard Superviseur - ReservesPage 📋 MOYENNE
+## 2. Dashboard Superviseur - ReservesPage 📋 ✅ Fait
 
-**Objectif** : Créer une page desktop pour gérer les réserves signalées par les poseurs
-
-**Fichier à créer** :
-- `src/pages/ReservesPage.tsx`
+**Implémenté** :
+- Section expandable "Réserves" dans ChantierDetail.tsx
+- Page dédiée `src/pages/ReservesPage.tsx`
+- Route `/reserves` dans App.tsx
+- Lien Sidebar (visible pour non-poseurs)
 
 **Fonctionnalités** :
-- Liste des réserves par chantier (tableau)
-- Filtres : statut (en attente, en cours, levée), chantier, poseur
-- Actions : Marquer comme "en cours", "levée"
+- Liste globale des réserves avec filtres (statut, chantier, recherche)
+- Actions : Traiter → En cours → Lever/Rejeter
+- Vignettes photos cliquables
 - Lien vers le chantier concerné
-
-**Route à ajouter** :
-- `/reserves` dans `App.tsx`
-- Lien dans la Sidebar pour superviseurs/admins
 
 ---
 
@@ -79,7 +76,7 @@ grep -r "console.log" src/ --include="*.tsx" --include="*.ts" | grep -v node_mod
 
 | # | Tâche | Priorité | Statut |
 |---|-------|----------|--------|
-| 1 | Commit modifications FAB | ⚡ HAUTE | ⏳ À faire |
-| 2 | Dashboard ReservesPage | 📋 MOYENNE | ⏳ À faire |
+| 1 | Commit modifications FAB | ⚡ HAUTE | ✅ Fait |
+| 2 | Dashboard ReservesPage | 📋 MOYENNE | ✅ Fait |
 | 3 | Nettoyer console.log | 🧹 BASSE | ⏳ À faire |
 | 4 | Tests E2E mobile | 🧪 BASSE | ⏳ À faire |

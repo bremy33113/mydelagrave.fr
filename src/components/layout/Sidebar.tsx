@@ -11,6 +11,7 @@ import {
     CalendarDays,
     MonitorUp,
     Smartphone,
+    AlertTriangle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
@@ -43,7 +44,7 @@ export function Sidebar({ userEmail, userId }: SidebarProps) {
     const [screenDetails, setScreenDetails] = useState<ScreenDetails | null>(null);
     const [planningWindowRef, setPlanningWindowRef] = useState<Window | null>(null);
     const [isPlanningExternalOpen, setIsPlanningExternalOpen] = useState(false);
-    const { isAdmin, isSuperviseur, canViewAllChantiers, role } = useUserRole();
+    const { isAdmin, isSuperviseur, canViewAllChantiers, isPoseur, role } = useUserRole();
     const { showDevToggle } = useMobileMode();
     const [isMobileWindowOpen, setIsMobileWindowOpen] = useState(false);
     const [mobileWindowRef, setMobileWindowRef] = useState<Window | null>(null);
@@ -209,6 +210,12 @@ export function Sidebar({ userEmail, userId }: SidebarProps) {
             icon: Contact,
             label: 'Contacts',
             show: true,
+        },
+        {
+            to: '/reserves',
+            icon: AlertTriangle,
+            label: 'Réserves',
+            show: !isPoseur,
         },
         {
             to: '/admin',

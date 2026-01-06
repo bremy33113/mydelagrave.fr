@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
 import { PlanningCalendar } from '../components/planning/PlanningCalendar';
@@ -63,6 +63,9 @@ export function PlanningPage() {
         isOpen: boolean;
         poseur: Tables<'users'>;
     } | null>(null);
+    const [highlightedChantierId, setHighlightedChantierId] = useState<string | null>(null);
+    const [focusedPhaseId, setFocusedPhaseId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Calculate date range based on view mode
     const dateRange = useMemo(() => {
@@ -154,14 +157,32 @@ export function PlanningPage() {
 
             const overlaps = phaseStart <= endStr && phaseEnd >= startStr;
 
-            // Apply poseur filter if selected
-            if (selectedPoseur && p.poseur_id !== selectedPoseur) {
+            // Apply poseur filter if selected (but always include unassigned phases)
+            if (selectedPoseur && p.poseur_id !== selectedPoseur && p.poseur_id !== null) {
                 return false;
             }
 
             return overlaps;
         });
     }, [phases, dateRange, selectedPoseur]);
+
+    // Filter phases based on search query
+    const searchFilteredPhases = useMemo(() => {
+        if (!searchQuery.trim()) return calendarPhases;
+
+        const query = searchQuery.toLowerCase().trim();
+        return calendarPhases.filter((p) => {
+            const chantierRef = p.chantier?.reference?.toLowerCase() || '';
+            const chantierNom = p.chantier?.nom?.toLowerCase() || '';
+            const poseurName = p.poseur ? `${p.poseur.first_name || ''} ${p.poseur.last_name || ''}`.toLowerCase() : '';
+            const phaseLabel = p.libelle?.toLowerCase() || '';
+
+            return chantierRef.includes(query) ||
+                   chantierNom.includes(query) ||
+                   poseurName.includes(query) ||
+                   phaseLabel.includes(query);
+        });
+    }, [calendarPhases, searchQuery]);
 
     // Group unassigned sub-phases by their parent phase (groupe_phase)
     // Only include phases that have at least one unassigned sub-phase
@@ -280,6 +301,29 @@ export function PlanningPage() {
         }
     };
 
+    // Handle chantier click (highlight all phases of this chantier)
+    const handleChantierHighlight = (chantierId: string | null) => {
+        setHighlightedChantierId(chantierId);
+    };
+
+    // Handle phase navigation (click on arrow to go to sibling phase)
+    const handlePhaseNavigate = (phaseId: string) => {
+        const targetPhase = phases.find(p => p.id === phaseId);
+        if (targetPhase?.chantier_id) {
+            setHighlightedChantierId(targetPhase.chantier_id);
+            setFocusedPhaseId(phaseId);
+        }
+    };
+
+    // Handle calendar phase click (highlight chantier and focus phase)
+    const handleCalendarPhaseClick = (phaseId: string) => {
+        const targetPhase = phases.find(p => p.id === phaseId);
+        if (targetPhase?.chantier_id) {
+            setHighlightedChantierId(targetPhase.chantier_id);
+            setFocusedPhaseId(phaseId);
+        }
+    };
+
     // Handle poseur click (open tournee modal)
     const handlePoseurClick = (poseur: Tables<'users'>) => {
         setTourneeModal({ isOpen: true, poseur });
@@ -356,6 +400,26 @@ export function PlanningPage() {
                             ))}
                         </div>
 
+                        {/* Search bar */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Rechercher..."
+                                className="pl-9 pr-8 py-2 w-48 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-slate-700"
+                                >
+                                    <X className="w-4 h-4 text-slate-400" />
+                                </button>
+                            )}
+                        </div>
+
                         {/* Poseur filter */}
                         <select
                             value={selectedPoseur || ''}
@@ -389,6 +453,8 @@ export function PlanningPage() {
                     groupedPhases={unassignedPhasesGrouped}
                     onPhaseUpdate={handlePhaseUpdate}
                     onPhaseClick={handlePhaseClick}
+                    highlightedChantierId={highlightedChantierId}
+                    onChantierHighlight={handleChantierHighlight}
                 />
 
                 {/* Calendar */}
@@ -399,13 +465,17 @@ export function PlanningPage() {
                         </div>
                     ) : (
                         <PlanningCalendar
-                            phases={calendarPhases}
+                            phases={searchFilteredPhases}
                             poseurs={poseurs}
                             dateRange={dateRange}
                             viewMode={viewMode}
                             onPhaseUpdate={handlePhaseUpdate}
                             onNavigate={handleCalendarNavigate}
                             onPoseurClick={handlePoseurClick}
+                            highlightedChantierId={highlightedChantierId}
+                            focusedPhaseId={focusedPhaseId}
+                            onPhaseNavigate={handlePhaseNavigate}
+                            onPhaseClick={handleCalendarPhaseClick}
                         />
                     )}
                 </div>
