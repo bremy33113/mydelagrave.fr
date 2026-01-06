@@ -50,6 +50,8 @@ export function CreateChantierModal({
         charge_affaire_id: '',
         poseur_id: '',
         adresse_livraison: '',
+        adresse_livraison_latitude: null as number | null,
+        adresse_livraison_longitude: null as number | null,
         categorie: '',
         type: '',
         statut: 'nouveau',
@@ -75,6 +77,8 @@ export function CreateChantierModal({
                     charge_affaire_id: editingChantier.charge_affaire_id || '',
                     poseur_id: editingChantier.poseur_id || '',
                     adresse_livraison: editingChantier.adresse_livraison || '',
+                    adresse_livraison_latitude: editingChantier.adresse_livraison_latitude || null,
+                    adresse_livraison_longitude: editingChantier.adresse_livraison_longitude || null,
                     categorie: editingChantier.categorie || '',
                     type: editingChantier.type || '',
                     statut: editingChantier.statut,
@@ -89,6 +93,8 @@ export function CreateChantierModal({
                     charge_affaire_id: '',
                     poseur_id: '',
                     adresse_livraison: '',
+                    adresse_livraison_latitude: null,
+                    adresse_livraison_longitude: null,
                     categorie: '',
                     type: '',
                     statut: 'nouveau',
@@ -166,8 +172,13 @@ export function CreateChantierModal({
         }
     };
 
-    const handleSelectAddress = (address: string) => {
-        setFormData({ ...formData, adresse_livraison: address });
+    const handleSelectAddress = (address: string, lat?: number, lon?: number) => {
+        setFormData({
+            ...formData,
+            adresse_livraison: address,
+            adresse_livraison_latitude: lat ?? null,
+            adresse_livraison_longitude: lon ?? null,
+        });
         setAddressSuggestions([]);
         setShowAddressDropdown(false);
     };
@@ -184,6 +195,8 @@ export function CreateChantierModal({
                 charge_affaire_id: formData.charge_affaire_id || null,
                 poseur_id: formData.poseur_id || null,
                 adresse_livraison: formData.adresse_livraison || null,
+                adresse_livraison_latitude: formData.adresse_livraison_latitude,
+                adresse_livraison_longitude: formData.adresse_livraison_longitude,
                 categorie: formData.categorie || null,
                 type: formData.type || null,
                 statut: formData.statut,
@@ -456,7 +469,11 @@ export function CreateChantierModal({
                                                         key={index}
                                                         type="button"
                                                         onMouseDown={(e) => e.preventDefault()}
-                                                        onClick={() => handleSelectAddress(suggestion.properties.label)}
+                                                        onClick={() => handleSelectAddress(
+                                                            suggestion.properties.label,
+                                                            suggestion.geometry.coordinates[1], // latitude
+                                                            suggestion.geometry.coordinates[0]  // longitude
+                                                        )}
                                                         className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors text-sm text-white"
                                                     >
                                                         {suggestion.properties.label}
@@ -547,8 +564,13 @@ export function CreateChantierModal({
             <AddressSelectorModal
                 isOpen={showAddressModal}
                 onClose={() => setShowAddressModal(false)}
-                onSelect={(address) => {
-                    setFormData({ ...formData, adresse_livraison: address });
+                onSelect={(address, coords) => {
+                    setFormData({
+                        ...formData,
+                        adresse_livraison: address,
+                        adresse_livraison_latitude: coords?.lat ?? null,
+                        adresse_livraison_longitude: coords?.lng ?? null,
+                    });
                 }}
                 initialAddress={formData.adresse_livraison}
             />

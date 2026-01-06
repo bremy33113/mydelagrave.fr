@@ -2,6 +2,24 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.1.0] - 2026-01-06
+
+### Vue Carte Planning Poseur avec Tournée
+
+### Nouvelles fonctionnalités
+- ✨ Vue carte du planning mobile avec marqueurs numérotés
+- ✨ Calcul d'itinéraire routier via OSRM API
+- ✨ Affichage du trajet réel sur les routes (pas en ligne droite)
+- ✨ Liste de tournée avec temps/distance entre étapes
+- ✨ Géocodage automatique des adresses de livraison
+
+### Améliorations
+- ⚡ Carte routière ESRI (style atlas routier)
+- ⚡ Mode PWA fullscreen optimisé avec safe-area iOS
+- 🐛 Correction décalage de date planning mobile (timezone UTC)
+
+---
+
 ## [2.0.0] - 2026-01-06
 
 ### 🚀 Application Mobile Poseur (MAJOR RELEASE)

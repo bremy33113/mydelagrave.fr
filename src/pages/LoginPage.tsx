@@ -158,7 +158,7 @@ export function LoginPage() {
 
                 {/* Version */}
                 <p className="text-center text-xs text-slate-500 mt-6">
-                    Version 2.0.0 {isUsingMock ? '(Mode Dev)' : '(Production)'}
+                    Version 2.1.0 {isUsingMock ? '(Mode Dev)' : '(Production)'}
                 </p>
             </div>
         </div>

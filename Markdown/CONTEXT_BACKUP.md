@@ -2,7 +2,7 @@
 
 **Date** : 2026-01-06
 **Branche** : dev
-**Version** : 2.0.0
+**Version** : 2.1.0
 
 ## Derniers commits
 

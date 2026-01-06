@@ -2,8 +2,10 @@
   "name": "MyDelagrave",
   "short_name": "Delagrave",
   "description": "Application de gestion de chantiers",
-  "start_url": "/",
-  "display": "standalone",
+  "start_url": "/#/m/planning",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
   "background_color": "#0f172a",
   "theme_color": "#0ea5e9",
   "orientation": "portrait",
@@ -15,7 +17,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icon-192.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

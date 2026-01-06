@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '../../components/mobile/MobileLayout';
 import { MobileGlassCard } from '../../components/mobile/MobileGlassCard';
 import { MobileStatusBadge, getCategoryGradient, getCategoryIcon } from '../../components/mobile/MobileStatusBadge';
+import { MobilePlanningMap } from '../../components/mobile/MobilePlanningMap';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
 import { ChevronLeft, ChevronRight, MapPin, List, Map, Clock, AlertTriangle } from 'lucide-react';
@@ -37,6 +38,14 @@ interface Reserve {
 }
 
 const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+// Formater en date locale (YYYY-MM-DD) sans problème de fuseau horaire
+const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
 
 type ViewMode = 'jour' | 'semaine';
 type DisplayMode = 'liste' | 'carte';
@@ -99,14 +108,6 @@ export function MobilePlanningV2() {
         try {
             let startDate: string;
             let endDate: string;
-
-            // Formater en date locale (YYYY-MM-DD) sans problème de fuseau horaire
-            const formatLocalDate = (date: Date) => {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
 
             if (viewMode === 'jour') {
                 startDate = formatLocalDate(selectedDate);
@@ -203,7 +204,7 @@ export function MobilePlanningV2() {
     const phasesByDay = useMemo(() => {
         const grouped: Record<string, PhaseWithChantier[]> = {};
         weekDates.forEach(day => {
-            grouped[day.toISOString().split('T')[0]] = [];
+            grouped[formatLocalDate(day)] = [];
         });
         phases.forEach(phase => {
             const dateKey = phase.date_debut.split('T')[0];
@@ -439,13 +440,11 @@ export function MobilePlanningV2() {
                         <div className="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
                     </div>
                 ) : displayMode === 'carte' ? (
-                    // Vue Carte (placeholder pour l'instant)
-                    <MobileGlassCard className="h-64 flex items-center justify-center">
-                        <div className="text-center text-slate-400">
-                            <Map size={48} className="mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">Vue carte à venir</p>
-                        </div>
-                    </MobileGlassCard>
+                    // Vue Carte
+                    <MobilePlanningMap
+                        phases={viewMode === 'jour' ? phases : Object.values(phasesByDay).flat()}
+                        onChantierClick={openChantierDetail}
+                    />
                 ) : viewMode === 'jour' ? (
                     // Vue Jour
                     <div className="space-y-3">
@@ -466,7 +465,7 @@ export function MobilePlanningV2() {
                     // Vue Semaine
                     <div className="space-y-4">
                         {weekDates.map(day => {
-                            const dateKey = day.toISOString().split('T')[0];
+                            const dateKey = formatLocalDate(day);
                             const dayPhases = phasesByDay[dateKey] || [];
                             const isToday = day.toDateString() === today.toDateString();
                             const isWeekend = day.getDay() === 0 || day.getDay() === 6;
