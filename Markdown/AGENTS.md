@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.2.2**
+**2.2.3**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.2.2 - Planning par chantier et focus phases
+MyDelagrave v2.2.3 - Correction nom phase vs libellé sous-phase
 
 ## Mode d'Exécution
 

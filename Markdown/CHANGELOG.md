@@ -2,6 +2,18 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.2.3] - 2026-01-09
+
+### Correction nom phase vs libellé sous-phase
+
+### Corrections
+- 🐛 Fix: Le nom de la phase affiche maintenant le nom défini (ex: "Batiment") et non le libellé de la sous-phase (ex: "RDC")
+- 🐛 Fix: Correction dans PhasesModal et PlanningPage pour utiliser le placeholder (duree_heures=0) comme source du nom de phase
+- ✨ Add: Scroll automatique vers le formulaire "Nouvelle sous-phase" lors de son ouverture
+- 📝 UX: Placeholders mis à jour dans les formulaires (Phase: "Batiment", Sous-phase: "RDC")
+
+---
+
 ## [2.2.2] - 2026-01-08
 
 ### Planning par chantier et focus phases

@@ -451,6 +451,7 @@ export function DashboardPage() {
                         onClose={() => setShowPhasesModal(false)}
                         chantierId={selectedChantier.id}
                         chantierNom={selectedChantier.nom}
+                        chantierBudgetHeures={selectedChantier.budget_heures}
                     />
 
                     <AddContactModal

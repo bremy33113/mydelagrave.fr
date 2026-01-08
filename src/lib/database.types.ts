@@ -37,6 +37,7 @@ export interface Database {
                     reserves_levees: boolean;
                     doe_fourni: boolean;
                     heures_allouees: number | null;
+                    budget_heures: number | null;
                     deleted_at: string | null;
                     created_at: string;
                     updated_at: string;

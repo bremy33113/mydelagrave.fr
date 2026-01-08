@@ -205,18 +205,18 @@ export function PlanningPage() {
         unassignedSubPhases.forEach((subPhase) => {
             const key = `${subPhase.chantier_id}-${subPhase.groupe_phase || 1}`;
             if (!groups.has(key)) {
-                // Find the phase header (duree_heures = 0) for this group to get the label
-                const phaseHeader = phases.find(
+                // Find the placeholder (duree_heures === 0) for this group to get the phase label
+                const placeholder = phases.find(
                     (p) => p.chantier_id === subPhase.chantier_id &&
                            p.groupe_phase === (subPhase.groupe_phase || 1) &&
-                           p.numero_phase === 1
+                           p.duree_heures === 0
                 );
                 groups.set(key, {
                     chantierId: subPhase.chantier_id,
                     chantierNom: subPhase.chantier?.nom || 'Chantier',
                     chantierRef: subPhase.chantier?.reference || null,
                     groupePhase: subPhase.groupe_phase || 1,
-                    phaseLabel: phaseHeader?.libelle || `Phase ${subPhase.groupe_phase || 1}`,
+                    phaseLabel: placeholder?.libelle || `Phase ${subPhase.groupe_phase || 1}`,
                     subPhases: [],
                 });
             }

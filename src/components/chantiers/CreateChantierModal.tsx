@@ -57,6 +57,7 @@ export function CreateChantierModal({
         statut: 'nouveau',
         date_debut: '',
         date_fin: '',
+        budget_heures: '' as string | number,
     });
 
     // Fetch reference data when modal opens
@@ -84,6 +85,7 @@ export function CreateChantierModal({
                     statut: editingChantier.statut,
                     date_debut: editingChantier.date_debut?.split('T')[0] || '',
                     date_fin: editingChantier.date_fin?.split('T')[0] || '',
+                    budget_heures: editingChantier.budget_heures ?? '',
                 });
             } else {
                 setFormData({
@@ -100,6 +102,7 @@ export function CreateChantierModal({
                     statut: 'nouveau',
                     date_debut: '',
                     date_fin: '',
+                    budget_heures: '',
                 });
                 setClientSearch('');
             }
@@ -202,6 +205,7 @@ export function CreateChantierModal({
                 statut: formData.statut,
                 date_debut: formData.date_debut || null,
                 date_fin: formData.date_fin || null,
+                budget_heures: formData.budget_heures ? Number(formData.budget_heures) : null,
                 deleted_at: null,
             };
 
@@ -348,12 +352,15 @@ export function CreateChantierModal({
                                 <label className="input-label"><Clock className="w-4 h-4 inline mr-1 opacity-70" />Budget heures</label>
                                 <div className="relative">
                                     <input
-                                        type="text"
-                                        value={editingChantier ? "Voir gestion des phases" : "À définir"}
-                                        disabled
-                                        className="input-field pr-12 bg-slate-800/30 text-slate-500 cursor-not-allowed"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value={formData.budget_heures}
+                                        onChange={(e) => setFormData({ ...formData, budget_heures: e.target.value })}
+                                        className="input-field pr-8"
+                                        placeholder="Ex: 120"
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">Σ phases</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">h</span>
                                 </div>
                             </div>
                         </div>

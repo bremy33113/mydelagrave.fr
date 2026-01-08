@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Plus, Clock, Layers } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { PhaseGauge } from './PhaseGauge';
@@ -15,6 +15,7 @@ interface PhasesModalProps {
     onClose: () => void;
     chantierId: string;
     chantierNom: string;
+    chantierBudgetHeures?: number | null;
 }
 
 // French public holidays for 2026 (can be extended)
@@ -108,7 +109,7 @@ interface PhaseGroupData {
     subPhases: Phase[];
 }
 
-export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: PhasesModalProps) {
+export function PhasesModal({ isOpen, onClose, chantierId, chantierNom, chantierBudgetHeures }: PhasesModalProps) {
     const [phases, setPhases] = useState<Phase[]>([]);
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<Tables<'users'>[]>([]);
@@ -125,6 +126,9 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
     const [phaseIdToDelete, setPhaseIdToDelete] = useState<string | null>(null);
     const [showDeleteGroupModal, setShowDeleteGroupModal] = useState(false);
     const [groupToDelete, setGroupToDelete] = useState<number | null>(null);
+
+    // Ref for sub-phase form scroll
+    const subPhaseFormRef = useRef<HTMLDivElement>(null);
 
     // Sub-phase form data
     const [subPhaseForm, setSubPhaseForm] = useState({
@@ -171,13 +175,13 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
         return Array.from(groups.entries())
             .sort(([a], [b]) => a - b)
             .map(([groupNumber, subPhases]) => {
-                // Get group label and budget from first sub-phase that has them
-                const firstWithLabel = subPhases.find((p) => p.libelle && p.numero_phase === 1);
+                // Get group label from placeholder (duree_heures === 0) which holds the phase name
+                const placeholder = subPhases.find((p) => p.duree_heures === 0);
                 const firstWithBudget = subPhases.find((p) => p.heures_budget !== null);
 
                 return {
                     groupNumber,
-                    label: firstWithLabel?.libelle || '',
+                    label: placeholder?.libelle || '',
                     budgetHours: firstWithBudget?.heures_budget || null,
                     subPhases,
                 };
@@ -209,6 +213,15 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, chantierId]);
+
+    // Scroll to sub-phase form when it opens
+    useEffect(() => {
+        if (showSubPhaseForm && subPhaseFormRef.current) {
+            setTimeout(() => {
+                subPhaseFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+    }, [showSubPhaseForm]);
 
     const fetchPhases = async () => {
         setLoading(true);
@@ -348,11 +361,11 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
             const budgetValue = groupForm.heures_budget ? parseInt(groupForm.heures_budget) : null;
 
             if (editingGroupNumber !== null) {
-                // Update: find the first sub-phase of this group and update its label/budget
+                // Update: find the placeholder (duree_heures === 0) and update its label/budget
                 const groupPhases = phases.filter((p) => p.groupe_phase === editingGroupNumber);
-                const firstPhase = groupPhases.find((p) => p.numero_phase === 1);
+                const placeholder = groupPhases.find((p) => p.duree_heures === 0);
 
-                if (firstPhase) {
+                if (placeholder) {
                     await supabase
                         .from('phases_chantiers')
                         .update({
@@ -360,23 +373,29 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                             heures_budget: budgetValue,
                             updated_at: new Date().toISOString(),
                         })
-                        .eq('id', firstPhase.id);
+                        .eq('id', placeholder.id);
                 } else if (groupPhases.length > 0) {
-                    // If no phase 1, update the first available
-                    await supabase
-                        .from('phases_chantiers')
-                        .update({
-                            heures_budget: budgetValue,
-                            updated_at: new Date().toISOString(),
-                        })
-                        .eq('id', groupPhases[0].id);
+                    // If no placeholder exists, create one
+                    await supabase.from('phases_chantiers').insert([{
+                        chantier_id: chantierId,
+                        groupe_phase: editingGroupNumber,
+                        numero_phase: 0,
+                        libelle: groupForm.label || null,
+                        heures_budget: budgetValue,
+                        date_debut: new Date().toISOString().split('T')[0],
+                        date_fin: new Date().toISOString().split('T')[0],
+                        heure_debut: '08:00:00',
+                        heure_fin: '08:00:00',
+                        duree_heures: 0,
+                        poseur_id: null,
+                    }]);
                 }
             } else {
-                // Create new group with a placeholder sub-phase
+                // Create new group with a placeholder sub-phase (numero_phase: 0, duree_heures: 0)
                 await supabase.from('phases_chantiers').insert([{
                     chantier_id: chantierId,
                     groupe_phase: targetGroupNumber,
-                    numero_phase: 1,
+                    numero_phase: 0,
                     libelle: groupForm.label || `Phase ${targetGroupNumber}`,
                     heures_budget: budgetValue,
                     date_debut: new Date().toISOString().split('T')[0],
@@ -522,6 +541,21 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                                 <Layers className="w-5 h-5 text-purple-400" />
                                 Gestion des phases
+                                {chantierBudgetHeures != null && (
+                                    <span
+                                        className={`ml-2 px-2.5 py-1 text-sm font-semibold rounded-full flex items-center gap-1 ${
+                                            totalConsumed > chantierBudgetHeures
+                                                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                                : totalConsumed >= chantierBudgetHeures * 0.8
+                                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                                : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                        }`}
+                                        title={`Budget chantier: ${chantierBudgetHeures}h - Consommé: ${totalConsumed}h`}
+                                    >
+                                        <Clock className="w-3.5 h-3.5" />
+                                        {chantierBudgetHeures}h
+                                    </span>
+                                )}
                             </h2>
                             <p className="text-sm text-slate-400">{chantierNom}</p>
                         </div>
@@ -614,7 +648,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                                     value={groupForm.label}
                                                     onChange={(e) => setGroupForm({ ...groupForm, label: e.target.value })}
                                                     className="input-field"
-                                                    placeholder={`Ex: Préparation`}
+                                                    placeholder="Ex: Batiment"
                                                     data-testid="input-phase-label"
                                                 />
                                             </div>
@@ -648,7 +682,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
 
                             {/* Sub-phase form */}
                             {showSubPhaseForm && (
-                                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30" data-testid="subphase-form">
+                                <div ref={subPhaseFormRef} className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30" data-testid="subphase-form">
                                     <h3 className="text-sm font-semibold text-blue-400 mb-4">
                                         {editingPhase
                                             ? `Modifier sous-phase ${targetGroupNumber}.${editingPhase.numero_phase}`
@@ -657,13 +691,13 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom }: Phases
                                     <form onSubmit={handleSubmitSubPhase} className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="col-span-2">
-                                                <label className="input-label">Libellé</label>
+                                                <label className="input-label">Libellé de la sous-phase</label>
                                                 <input
                                                     type="text"
                                                     value={subPhaseForm.libelle}
                                                     onChange={(e) => setSubPhaseForm({ ...subPhaseForm, libelle: e.target.value })}
                                                     className="input-field"
-                                                    placeholder="Ex: Installation mobilier"
+                                                    placeholder="Ex: RDC"
                                                     data-testid="input-subphase-libelle"
                                                 />
                                             </div>
