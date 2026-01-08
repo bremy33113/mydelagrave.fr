@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { DraggablePhase } from './DraggablePhase';
 import type { PhaseWithRelations, ViewMode } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
@@ -183,6 +185,7 @@ export function DroppablePoseurRow({
 }: DroppablePoseurRowProps) {
     const showNavigationArrows = viewMode === 'week' || viewMode === '3weeks';
     const poseurId = poseur?.id || 'unassigned';
+    const [isExpanded, setIsExpanded] = useState(true);
 
     const { setNodeRef, isOver } = useDroppable({
         id: poseurId,
@@ -201,36 +204,42 @@ export function DroppablePoseurRow({
         }))
         .filter((p) => p.position !== null);
 
-    // Detect overlapping phases and stack them
-    const rows: { phase: PhaseWithRelations; position: { left: number; width: number }; row: number }[][] = [[]];
+    // Group phases by chantier - each chantier gets its own row
+    const chantierRowMap = new Map<string, number>();
+    const rows: { phase: PhaseWithRelations; position: { left: number; width: number }; row: number }[][] = [];
 
     phasesWithPositions.forEach(({ phase, position }) => {
         if (!position) return;
 
-        // Find a row where this phase doesn't overlap
-        let rowIndex = 0;
-        let placed = false;
+        const chantierId = phase.chantier_id || 'unknown';
 
-        while (!placed) {
-            const row = rows[rowIndex] || [];
-            const overlaps = row.some((item) => {
-                const itemEnd = item.position.left + item.position.width;
-                const phaseEnd = position.left + position.width;
-                return !(position.left >= itemEnd || phaseEnd <= item.position.left);
-            });
+        // Get or assign row for this chantier
+        if (!chantierRowMap.has(chantierId)) {
+            chantierRowMap.set(chantierId, rows.length);
+            rows.push([]);
+        }
 
-            if (!overlaps) {
-                if (!rows[rowIndex]) rows[rowIndex] = [];
-                rows[rowIndex].push({ phase, position, row: rowIndex });
-                placed = true;
-            } else {
-                rowIndex++;
-            }
+        const rowIndex = chantierRowMap.get(chantierId)!;
+        rows[rowIndex].push({ phase, position, row: rowIndex });
+    });
+
+    // Build ordered list of chantier references matching row order
+    const orderedChantierRefs: { id: string; reference: string }[] = [];
+    chantierRowMap.forEach((rowIndex, chantierId) => {
+        const phase = phasesWithPositions.find(p => p.phase.chantier_id === chantierId)?.phase;
+        if (phase) {
+            orderedChantierRefs[rowIndex] = {
+                id: chantierId,
+                reference: phase.chantier?.reference || phase.chantier?.nom?.slice(0, 10) || chantierId.slice(0, 8)
+            };
         }
     });
 
     const rowHeight = 30;
-    const minHeight = Math.max(rows.length * rowHeight, rowHeight);
+    const headerHeight = 28; // Height for poseur name
+    const chantierCount = orderedChantierRefs.length;
+    const contentHeight = isExpanded ? Math.max(rows.length * rowHeight, rowHeight) : 0;
+    const minHeight = headerHeight + contentHeight;
 
     return (
         <div
@@ -241,23 +250,54 @@ export function DroppablePoseurRow({
             style={{ minHeight }}
         >
             {/* Poseur name column */}
-            <div className="flex-shrink-0 px-3 py-2 border-r border-slate-700/50 flex items-start" style={{ width: poseurColumnWidth }}>
-                {poseur ? (
-                    <div>
+            <div className="flex-shrink-0 border-r border-slate-700/50 relative" style={{ width: poseurColumnWidth }}>
+                {/* Poseur name header */}
+                <div className="px-1 py-1 border-b border-slate-700/20 flex items-center gap-1">
+                    {/* Expand/Collapse chevron */}
+                    <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="p-0.5 hover:bg-slate-700/50 rounded transition-colors"
+                        title={isExpanded ? 'Réduire' : 'Développer'}
+                    >
+                        {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                        ) : (
+                            <ChevronRight className="w-4 h-4 text-slate-400" />
+                        )}
+                    </button>
+                    {poseur ? (
                         <button
                             onClick={() => onPoseurClick?.(poseur)}
-                            className="text-sm font-medium text-white truncate hover:text-blue-400 transition-colors text-left"
+                            className="text-sm font-medium text-white truncate hover:text-blue-400 transition-colors text-left flex-1"
                             title="Voir la tournee"
                             data-testid={`poseur-name-${poseur.id}`}
                         >
                             {poseur.first_name} {poseur.last_name}
                         </button>
-                        <p className="text-xs text-slate-500">{phases.length} phase(s)</p>
-                    </div>
-                ) : (
-                    <div>
-                        <p className="text-sm font-medium text-slate-400 italic">Non attribue</p>
-                        <p className="text-xs text-slate-500">{phases.length} phase(s)</p>
+                    ) : (
+                        <p className="text-sm font-medium text-slate-400 italic flex-1">Non attribue</p>
+                    )}
+                    {/* Chantier count badge */}
+                    {chantierCount > 0 && (
+                        <span className="px-1.5 py-0.5 text-xs font-medium bg-orange-500 text-white rounded-full">
+                            {chantierCount}
+                        </span>
+                    )}
+                </div>
+                {/* Chantier references aligned with rows */}
+                {isExpanded && (
+                    <div className="relative">
+                        {orderedChantierRefs.map((chantier, index) => (
+                            <div
+                                key={chantier.id}
+                                className="absolute px-3 flex items-center"
+                                style={{ top: index * rowHeight + 4, height: rowHeight - 8 }}
+                            >
+                                <p className="text-xs text-slate-400 truncate" title={chantier.reference}>
+                                    {chantier.reference}
+                                </p>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
@@ -284,16 +324,17 @@ export function DroppablePoseurRow({
                 </div>
 
                 {/* Phases */}
-                {rows.flat().map(({ phase, position, row }) => {
+                {isExpanded && rows.flat().map(({ phase, position, row }) => {
                     // Get sibling phases from the same chantier
                     const siblingPhases = allPhases?.filter(p => p.chantier_id === phase.chantier_id && p.duree_heures > 0);
                     return (
                         <div
                             key={phase.id}
+                            data-phase-id={phase.id}
                             className="absolute"
                             style={{
                                 left: position.left,
-                                top: row * rowHeight + 4,
+                                top: headerHeight + row * rowHeight + 4,
                                 width: position.width,
                                 height: rowHeight - 8,
                             }}

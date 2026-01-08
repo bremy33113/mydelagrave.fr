@@ -230,6 +230,23 @@ export function PlanningCalendar({
         }
     };
 
+    // Scroll to focused phase when it changes
+    useEffect(() => {
+        if (focusedPhaseId && containerRef.current) {
+            // Small delay to ensure the phase is rendered
+            setTimeout(() => {
+                const phaseElement = containerRef.current?.querySelector(`[data-phase-id="${focusedPhaseId}"]`);
+                if (phaseElement) {
+                    phaseElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                        inline: 'center'
+                    });
+                }
+            }, 100);
+        }
+    }, [focusedPhaseId]);
+
     // Configure drag sensors
     const sensors = useSensors(
         useSensor(PointerSensor, {

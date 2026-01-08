@@ -296,6 +296,9 @@ export function PlanningPage() {
             // Center planning on the phase's start date
             const phaseDate = new Date(phase.date_debut);
             setCurrentDate(getWeekStart(phaseDate));
+            // Highlight the chantier and focus the phase with glowing effect
+            setHighlightedChantierId(phase.chantier_id);
+            setFocusedPhaseId(phase.id);
         } else {
             alert('Cette phase n\'est pas encore planifiée');
         }

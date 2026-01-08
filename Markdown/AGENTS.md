@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.2.1**
+**2.2.2**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.2.1 - Améliorations phases et filtres utilisateurs
+MyDelagrave v2.2.2 - Planning par chantier et focus phases
 
 ## Mode d'Exécution
 

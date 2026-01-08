@@ -2,6 +2,19 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.2.2] - 2026-01-08
+
+### Planning par chantier et focus phases
+
+### Améliorations
+- 🎨 Réorganisation du planning : une ligne par chantier avec N° AR
+- ➕ Ajout chevron expandable pour réduire/développer les chantiers par poseur
+- 🔢 Pastille orange avec nombre de chantiers à droite du nom poseur
+- ✨ Focus et glowing sur les phases cliquées depuis "À attribuer"
+- 🎯 Scroll automatique pour centrer la phase focusée à l'écran
+
+---
+
 ## [2.2.1] - 2026-01-06
 
 ### Améliorations phases et filtres utilisateurs
