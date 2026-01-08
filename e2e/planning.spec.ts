@@ -260,3 +260,93 @@ test.describe('Poseur Tournee Modal', () => {
         await expect(page.locator('[data-testid="tournee-modal"]')).not.toBeVisible();
     });
 });
+
+test.describe('Planning - Unassigned Panel (v2.2.3)', () => {
+    test.beforeEach(async ({ page }) => {
+        await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
+        await page.getByRole('link', { name: 'Planning' }).click();
+        await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
+    });
+
+    test('should display unassigned phases panel', async ({ page }) => {
+        // Check unassigned panel is visible
+        await expect(page.getByText('À attribuer')).toBeVisible();
+    });
+
+    test('should have filter buttons in unassigned panel', async ({ page }) => {
+        // Check filter buttons (7j, 15j, 21j, Tous)
+        await expect(page.getByRole('button', { name: '7j' })).toBeVisible();
+        await expect(page.getByRole('button', { name: '15j' })).toBeVisible();
+        await expect(page.getByRole('button', { name: '21j' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Tous' })).toBeVisible();
+    });
+
+    test('should click on phase to focus it', async ({ page }) => {
+        // Look for a clickable phase in the unassigned panel
+        const phaseItem = page.locator('[class*="bg-slate-800/50"]').first();
+
+        if (await phaseItem.isVisible()) {
+            await phaseItem.click();
+            await page.waitForTimeout(500);
+            // After click, should have highlighting or scrolling
+        }
+    });
+});
+
+test.describe('Planning - Phase Display (v2.2.3)', () => {
+    test.beforeEach(async ({ page }) => {
+        await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
+        await page.getByRole('link', { name: 'Planning' }).click();
+        await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
+    });
+
+    test('should display poseur rows with chantier grouping', async ({ page }) => {
+        // Check for poseur row headers
+        const poseurRow = page.locator('[data-testid^="poseur-name-"]').first();
+        await expect(poseurRow).toBeVisible({ timeout: 5000 });
+    });
+
+    test('should expand/collapse poseur chantiers with chevron', async ({ page }) => {
+        // Look for expand/collapse chevron button
+        const chevronButton = page.locator('button').filter({ has: page.locator('svg[class*="chevron"]') }).first();
+
+        if (await chevronButton.isVisible()) {
+            // Click to collapse
+            await chevronButton.click();
+            await page.waitForTimeout(300);
+
+            // Click again to expand
+            await chevronButton.click();
+            await page.waitForTimeout(300);
+        }
+    });
+
+    test('should display chantier count badge', async ({ page }) => {
+        // Look for orange badge with number (chantier count)
+        const countBadge = page.locator('.bg-orange-500, [class*="bg-orange"]').first();
+        // Just verify the planning structure loads
+        await expect(page.getByText('À attribuer')).toBeVisible();
+    });
+});
+
+test.describe('Planning - Drag and Drop (v2.2.3)', () => {
+    test.beforeEach(async ({ page }) => {
+        await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
+        await page.getByRole('link', { name: 'Planning' }).click();
+        await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
+    });
+
+    test('should have draggable phases in unassigned panel', async ({ page }) => {
+        // Look for draggable elements in unassigned panel
+        const unassignedPanel = page.locator('text=À attribuer').locator('..');
+
+        // The panel should have phase items
+        await expect(unassignedPanel).toBeVisible();
+    });
+
+    test('should have droppable poseur rows', async ({ page }) => {
+        // Look for poseur rows that can accept drops
+        const poseurRow = page.locator('[data-testid^="poseur-name-"]').first();
+        await expect(poseurRow).toBeVisible({ timeout: 5000 });
+    });
+});

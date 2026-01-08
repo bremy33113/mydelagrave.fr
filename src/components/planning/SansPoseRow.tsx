@@ -177,7 +177,7 @@ export function SansPoseRow({
             rows.push([]);
         }
 
-        const rowIndex = chantierRowMap.get(chantierId)!;
+        const rowIndex = chantierRowMap.get(chantierId) ?? 0;
         rows[rowIndex].push({ phase, position, row: rowIndex });
     });
 
