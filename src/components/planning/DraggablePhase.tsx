@@ -16,6 +16,7 @@ interface DraggablePhaseProps {
     onPhaseClick?: (phaseId: string) => void;
     showNavigationArrows?: boolean;
     disableDndKit?: boolean; // Disable dnd-kit when inside RndPhase
+    groupBudgetHours?: number | null; // Budget du groupe (from placeholder)
 }
 
 export function DraggablePhase({
@@ -30,14 +31,17 @@ export function DraggablePhase({
     onPhaseClick,
     showNavigationArrows = false,
     disableDndKit = false,
+    groupBudgetHours,
 }: DraggablePhaseProps) {
-    // Only use dnd-kit when not inside RndPhase (to avoid double transform)
+    // dnd-kit for vertical drag (reassigning to poseurs)
+    // When inside RndPhase (disableDndKit=true), we still allow drag but don't show transform
+    // to avoid conflict with react-rnd's horizontal drag
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: phase.id,
-        disabled: disableDndKit,
     });
 
-    // Don't apply dnd-kit transform when disabled (RndPhase handles its own transform)
+    // Only apply visual transform when NOT inside RndPhase
+    // Inside RndPhase: phase "snaps" to destination on drop (no visual drag)
     const style = transform && !disableDndKit
         ? {
               transform: CSS.Translate.toString(transform),
@@ -67,6 +71,45 @@ export function DraggablePhase({
 
     // Check if phase is unassigned (no poseur, but NOT fourniture seule)
     const isUnassigned = !phase.poseur_id && !isFournitureSeule;
+
+    // Calculate group-level budget overshoot
+    const groupOvershootInfo = useMemo(() => {
+        // Need group budget and sibling phases to calculate
+        if (groupBudgetHours == null || !siblingPhases) {
+            return { hasOvershoot: false, budgetFraction: 1 };
+        }
+
+        // Filter to same groupe_phase and real phases (duree > 0)
+        const groupPhases = siblingPhases
+            .filter(p => p.groupe_phase === phase.groupe_phase && p.duree_heures > 0)
+            .sort((a, b) => a.numero_phase - b.numero_phase);
+
+        // Find index of current phase
+        const currentIdx = groupPhases.findIndex(p => p.id === phase.id);
+        if (currentIdx === -1) {
+            return { hasOvershoot: false, budgetFraction: 1 };
+        }
+
+        // Calculate cumulative hours BEFORE this phase
+        const cumulativeBefore = groupPhases
+            .slice(0, currentIdx)
+            .reduce((sum, p) => sum + p.duree_heures, 0);
+
+        // Budget remaining for this phase
+        const budgetRemaining = Math.max(0, groupBudgetHours - cumulativeBefore);
+
+        // Does this phase exceed the remaining budget?
+        const hasOvershoot = phase.duree_heures > budgetRemaining;
+
+        // Calculate fraction: what portion is within budget?
+        const budgetFraction = hasOvershoot
+            ? budgetRemaining / phase.duree_heures
+            : 1;
+
+        return { hasOvershoot, budgetFraction };
+    }, [groupBudgetHours, siblingPhases, phase.groupe_phase, phase.id, phase.duree_heures]);
+
+    const { hasOvershoot, budgetFraction } = groupOvershootInfo;
 
     // Striped background style:
     // - Fourniture seule: amber stripes (dark overlay)
@@ -116,13 +159,13 @@ export function DraggablePhase({
             style={{ ...style, ...stripedStyle, ...focusedStyle, ...highlightStyle }}
             {...attributes}
             {...listeners}
-            className={`h-full rounded-md border cursor-grab active:cursor-grabbing ${
+            className={`h-full rounded-md border cursor-grab active:cursor-grabbing relative ${
                 isUnassigned ? 'bg-slate-700/30 border-green-500/50' : statusColor
             } ${
                 isDragging ? 'opacity-80 shadow-xl scale-105' : 'hover:brightness-110'
             } ${isFocused ? 'ring-4 ring-blue-500 ring-offset-1 ring-offset-slate-900 z-20' : isHighlighted ? 'ring-2 ring-blue-400/60 ring-offset-1 ring-offset-slate-900 z-10' : ''} transition-all`}
             onClick={() => onPhaseClick?.(phase.id)}
-            title={`${phase.chantier?.nom || 'Chantier'} - ${phase.libelle || 'Phase'}\n${phase.date_debut} → ${phase.date_fin}\n${phase.heure_debut?.slice(0, 5) || '08:00'} → ${phase.heure_fin?.slice(0, 5) || '17:00'} (${phase.duree_heures}h)${isFournitureSeule ? '\n🚚 Fourniture seule' : ''}`}
+            title={`${phase.chantier?.nom || 'Chantier'} - ${phase.libelle || 'Phase'}\n📅 ${phase.date_debut} ${phase.heure_debut?.slice(0, 5) || '08:00'} → ${phase.date_fin} ${phase.heure_fin?.slice(0, 5) || '17:00'}\n⏱️ ${phase.duree_heures}h${isFournitureSeule ? '\n🚚 Fourniture seule' : ''}`}
         >
             <div className="h-full flex items-center justify-center px-1 gap-0.5">
                 {/* Navigation arrow left */}
@@ -153,6 +196,24 @@ export function DraggablePhase({
                     </button>
                 )}
             </div>
+
+            {/* Overlay hachures rouges pour dépassement budget */}
+            {hasOvershoot && (
+                <div
+                    className="absolute top-0 bottom-0 rounded-r-md pointer-events-none"
+                    style={{
+                        left: `${budgetFraction * 100}%`,
+                        width: `${(1 - budgetFraction) * 100}%`,
+                        backgroundImage: `repeating-linear-gradient(
+                            45deg,
+                            transparent 0px,
+                            transparent 4px,
+                            rgba(239, 68, 68, 0.3) 4px,
+                            rgba(239, 68, 68, 0.3) 8px
+                        )`,
+                    }}
+                />
+            )}
         </div>
     );
 }

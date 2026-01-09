@@ -79,12 +79,16 @@ export function RndPhase({
     };
 
     // Handle resize (update preview only, let react-rnd handle visual)
-    const handleResize: RndResizeCallback = (_e, _dir, ref) => {
-        setPreviewData(prev => prev ? { ...prev, width: ref.offsetWidth } : null);
+    const handleResize: RndResizeCallback = (_e, dir, ref, _delta, position) => {
+        if (dir === 'left') {
+            setPreviewData({ x: position.x, width: ref.offsetWidth });
+        } else {
+            setPreviewData(prev => prev ? { ...prev, width: ref.offsetWidth } : null);
+        }
     };
 
-    // Handle resize end - update the phase duration
-    const handleResizeStop: RndResizeCallback = useCallback((_e, _dir, ref) => {
+    // Handle resize end - update the phase duration (and start date if resizing from left)
+    const handleResizeStop: RndResizeCallback = useCallback((_e, dir, ref, _delta, position) => {
         setIsInteracting(false);
         setPreviewData(null);
 
@@ -95,9 +99,21 @@ export function RndPhase({
 
         // Convert pixel width to hours
         const newHours = pixelsToHours(newWidth, columnWidth);
-        // Fire and forget - don't await
-        onDurationChange(phase.id, newHours);
-    }, [phase.id, initialWidth, columnWidth, onDurationChange]);
+
+        if (dir === 'left') {
+            // Resizing from left: change start date AND duration
+            const result = pixelsToDateTime(position.x, columnWidth, workingDates);
+            if (result) {
+                // Update start date first, then duration
+                onDateTimeChange(phase.id, result.date, result.hour).then(() => {
+                    onDurationChange(phase.id, newHours);
+                });
+            }
+        } else {
+            // Resizing from right: only change duration
+            onDurationChange(phase.id, newHours);
+        }
+    }, [phase.id, initialWidth, columnWidth, workingDates, onDateTimeChange, onDurationChange]);
 
     // Calculate preview info during interaction
     const previewInfo = previewData ? (() => {
@@ -123,7 +139,7 @@ export function RndPhase({
                     top: false,
                     right: true,
                     bottom: false,
-                    left: false,
+                    left: true,
                     topRight: false,
                     bottomRight: false,
                     bottomLeft: false,
@@ -148,9 +164,15 @@ export function RndPhase({
                         right: '-4px',
                         cursor: 'ew-resize',
                     },
+                    left: {
+                        width: '8px',
+                        left: '-4px',
+                        cursor: 'ew-resize',
+                    },
                 }}
                 resizeHandleClasses={{
                     right: 'hover:bg-blue-500/50 rounded transition-colors',
+                    left: 'hover:bg-green-500/50 rounded transition-colors',
                 }}
             >
                 <div className="h-full w-full relative">
@@ -163,7 +185,10 @@ export function RndPhase({
                         </div>
                     )}
 
-                    {/* Resize handle indicator */}
+                    {/* Resize handle indicators */}
+                    <div className="absolute left-0 top-0 bottom-0 w-2 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <div className="w-1 h-4 bg-white/50 rounded" />
+                    </div>
                     <div className="absolute right-0 top-0 bottom-0 w-2 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                         <div className="w-1 h-4 bg-white/50 rounded" />
                     </div>

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
 import { getWeekNumber } from '../lib/dateUtils';
+import { recordPhaseHistory } from '../lib/phaseHistoryUtils';
 import { PlanningCalendar } from '../components/planning/PlanningCalendar';
 import { UnassignedPhasesPanel } from '../components/planning/UnassignedPhasesPanel';
 import { PoseurTourneeModal } from '../components/planning/PoseurTourneeModal';
@@ -43,7 +44,7 @@ function formatDateRange(start: Date, end: Date): string {
 }
 
 export function PlanningPage() {
-    const { canViewAllChantiers, loading: roleLoading } = useUserRole();
+    const { userId, canViewAllChantiers, loading: roleLoading } = useUserRole();
     const [viewMode, setViewMode] = useState<ViewMode>('week');
     const [currentDate, setCurrentDate] = useState(getWeekStart(new Date()));
     const [selectedPoseur, setSelectedPoseur] = useState<string | null>(null);
@@ -292,6 +293,9 @@ export function PlanningPage() {
 
     // Handle phase update (from drag & drop or inline edit)
     const handlePhaseUpdate = async (phaseId: string, updates: Partial<Tables<'phases_chantiers'>>) => {
+        // Récupérer la phase avant modification pour l'historique
+        const oldPhase = phases.find((p) => p.id === phaseId);
+
         const { error } = await supabase
             .from('phases_chantiers')
             .update({ ...updates, updated_at: new Date().toISOString() })
@@ -301,6 +305,16 @@ export function PlanningPage() {
             console.error('Error updating phase:', error);
             alert('Erreur lors de la mise à jour');
         } else {
+            // Enregistrer dans l'historique
+            if (oldPhase && userId) {
+                await recordPhaseHistory(
+                    oldPhase,
+                    updates,
+                    userId,
+                    oldPhase.chantier_id,
+                    phaseId
+                );
+            }
             // Signal au Dashboard qu'une phase a été modifiée
             localStorage.setItem('phases_last_update', Date.now().toString());
             setRefreshKey((k) => k + 1);
@@ -317,6 +331,9 @@ export function PlanningPage() {
 
         // Update each phase in sequence
         for (const { id, updates: phaseUpdates } of updates) {
+            // Récupérer la phase avant modification pour l'historique
+            const oldPhase = phases.find((p) => p.id === id);
+
             const { error } = await supabase
                 .from('phases_chantiers')
                 .update({ ...phaseUpdates, updated_at: new Date().toISOString() })
@@ -325,6 +342,15 @@ export function PlanningPage() {
             if (error) {
                 console.error('Error updating phase:', id, error);
                 hasError = true;
+            } else if (oldPhase && userId) {
+                // Enregistrer dans l'historique
+                await recordPhaseHistory(
+                    oldPhase,
+                    phaseUpdates,
+                    userId,
+                    oldPhase.chantier_id,
+                    id
+                );
             }
         }
 

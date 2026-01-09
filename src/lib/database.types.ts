@@ -229,6 +229,37 @@ export interface Database {
                 Insert: Omit<Database['public']['Tables']['documents_chantiers']['Row'], 'id' | 'created_at' | 'updated_at'>;
                 Update: Partial<Database['public']['Tables']['documents_chantiers']['Insert']>;
             };
+            historique_phases: {
+                Row: {
+                    id: string;
+                    phase_id: string;
+                    chantier_id: string;
+                    modified_by: string;
+                    modified_at: string;
+                    action: 'date_change' | 'duration_change' | 'poseur_change' | 'budget_change' | 'create' | 'update' | 'delete';
+                    description: string;
+                    // Anciennes valeurs
+                    old_date_debut: string | null;
+                    old_date_fin: string | null;
+                    old_heure_debut: string | null;
+                    old_heure_fin: string | null;
+                    old_duree_heures: number | null;
+                    old_heures_budget: number | null;
+                    old_poseur_id: string | null;
+                    old_libelle: string | null;
+                    // Nouvelles valeurs
+                    new_date_debut: string | null;
+                    new_date_fin: string | null;
+                    new_heure_debut: string | null;
+                    new_heure_fin: string | null;
+                    new_duree_heures: number | null;
+                    new_heures_budget: number | null;
+                    new_poseur_id: string | null;
+                    new_libelle: string | null;
+                };
+                Insert: Omit<Database['public']['Tables']['historique_phases']['Row'], 'id' | 'modified_at'>;
+                Update: Partial<Database['public']['Tables']['historique_phases']['Insert']>;
+            };
         };
         Functions: {
             get_my_role: {

@@ -159,6 +159,12 @@ function migrateIfNeeded(): void {
         setTable('notes_chantiers', notes);
         console.info('📦 Migration: notes_chantiers mis à jour avec nouveaux champs');
     }
+
+    // Migration v2.3.0: Ajouter historique_phases si manquant
+    if (!localStorage.getItem(STORAGE_PREFIX + 'historique_phases')) {
+        setTable('historique_phases', []);
+        console.info('📦 Migration: historique_phases ajouté');
+    }
 }
 
 // ============ MOCK AUTH ============

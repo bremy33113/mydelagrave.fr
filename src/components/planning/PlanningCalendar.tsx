@@ -549,7 +549,7 @@ export function PlanningCalendar({
                         onPoseurClick={onPoseurClick}
                         highlightedChantierId={highlightedChantierId}
                         focusedPhaseId={focusedPhaseId}
-                        allPhases={phases}
+                        allPhases={allPhases}
                         viewMode={viewMode}
                         onPhaseNavigate={onPhaseNavigate}
                         onPhaseClick={onPhaseClick}
@@ -572,7 +572,7 @@ export function PlanningCalendar({
                     isCompact={isCompact}
                     highlightedChantierId={highlightedChantierId}
                     focusedPhaseId={focusedPhaseId}
-                    allPhases={phases}
+                    allPhases={allPhases}
                     viewMode={viewMode}
                     onPhaseNavigate={onPhaseNavigate}
                     onPhaseClick={onPhaseClick}
@@ -594,7 +594,7 @@ export function PlanningCalendar({
                     onDurationChange={handleDurationChange}
                     highlightedChantierId={highlightedChantierId}
                     focusedPhaseId={focusedPhaseId}
-                    allPhases={phases}
+                    allPhases={allPhases}
                     viewMode={viewMode}
                     onPhaseNavigate={onPhaseNavigate}
                     onPhaseClick={onPhaseClick}

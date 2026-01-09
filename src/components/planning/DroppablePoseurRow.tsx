@@ -327,6 +327,15 @@ export function DroppablePoseurRow({
                 {isExpanded && rows.flat().map(({ phase, position, row }) => {
                     // Get sibling phases from the same chantier
                     const siblingPhases = allPhases?.filter(p => p.chantier_id === phase.chantier_id && p.duree_heures > 0);
+
+                    // Get group budget from placeholder (duree_heures === 0)
+                    const groupPlaceholder = allPhases?.find(p =>
+                        p.chantier_id === phase.chantier_id &&
+                        p.groupe_phase === phase.groupe_phase &&
+                        p.duree_heures === 0
+                    );
+                    const groupBudgetHours = groupPlaceholder?.heures_budget ?? null;
+
                     const phaseRowHeight = rowHeight - 8;
                     return (
                         <div
@@ -361,6 +370,7 @@ export function DroppablePoseurRow({
                                     onPhaseNavigate={onPhaseNavigate}
                                     onPhaseClick={onPhaseClick}
                                     disableDndKit={true}
+                                    groupBudgetHours={groupBudgetHours}
                                 />
                             </RndPhase>
                         </div>
