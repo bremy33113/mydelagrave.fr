@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.2.4**
+**2.3.0**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.2.4 - Documentation et contexte
+MyDelagrave v2.3.0 - Refactoring et Centralisation des Utilitaires
 
 ## Mode d'Exécution
 
@@ -55,6 +55,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.3.0 | 2026-01-09 | Refactoring et Centralisation des Utilitaires |
 | 2.2.1 | 2026-01-06 | Améliorations phases et filtres utilisateurs |
 | 2.1.0 | 2026-01-06 | Vue Carte Planning Poseur avec Tournée |
 | 2.0.0 | 2026-01-06 | 🚀 Application Mobile Poseur (MAJOR) |

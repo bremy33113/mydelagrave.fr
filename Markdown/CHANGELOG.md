@@ -2,6 +2,33 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.3.0] - 2026-01-09
+
+### Refactoring et Centralisation des Utilitaires
+
+### Nouvelles Fonctionnalités
+- ✨ `src/lib/constants.ts` - Constantes partagées (jours fériés 2025-2027, heures de travail, config fichiers)
+- ✨ `src/lib/dateUtils.ts` - Utilitaires de date centralisés (15+ fonctions : formatLocalDate, isHoliday, calculateEndDateTime, etc.)
+
+### Améliorations
+- ⚡ Split de `ChantierDetail.tsx` (1154 → 80 lignes) en 9 composants modulaires
+- ⚡ Suppression de ~180 lignes de code dupliqué
+- ⚡ Refactoring de PhasesModal, DraggablePhase, PlanningCalendar
+- ⚡ Refactoring des fichiers mobile (MobilePlanningV2, MobilePointagePage, MobilePointageWeek)
+
+### Composants créés
+- `ChantierDetailHeader.tsx` - En-tête avec référence et statut
+- `ChantierCoordonnees.tsx` - Coordonnées et adresse
+- `ChantierContactsList.tsx` - Liste des contacts
+- `ChantierNotesSection.tsx` - Gestion des notes avec photos
+- `ChantierDocumentsSection.tsx` - Gestion documentaire
+- `ChantierReservesSection.tsx` - Section réserves
+- `ChantierCompletionStatus.tsx` - Jauge de complétion
+- `PhotoModal.tsx` - Modal de visualisation photo
+- `types.ts` - Types partagés
+
+---
+
 ## [2.2.4] - 2026-01-09
 
 ### Documentation et contexte
