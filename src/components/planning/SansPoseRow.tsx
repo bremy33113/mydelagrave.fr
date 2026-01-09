@@ -1,14 +1,10 @@
 import { useState } from 'react';
 import { Truck, ChevronDown, ChevronRight } from 'lucide-react';
 import { DraggablePhase } from './DraggablePhase';
+import { RndPhase } from './RndPhase';
+import type { WorkingDateInfo } from '../../lib/planningRndUtils';
 import type { PhaseWithRelations, ViewMode } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
-
-interface WorkingDateInfo {
-    date: Date;
-    isHoliday: boolean;
-    weekendBefore: boolean;
-}
 
 interface SansPoseRowProps {
     phases: PhaseWithRelations[];
@@ -18,6 +14,8 @@ interface SansPoseRowProps {
     statusColors: Record<string, string>;
     isCompact: boolean;
     onPhaseUpdate: (phaseId: string, updates: Partial<Tables<'phases_chantiers'>>) => Promise<void>;
+    onDateTimeChange: (phaseId: string, newDate: string, newHour: number) => Promise<void>;
+    onDurationChange: (phaseId: string, newDuration: number) => Promise<void>;
     highlightedChantierId?: string | null;
     focusedPhaseId?: string | null;
     allPhases?: PhaseWithRelations[];
@@ -138,7 +136,9 @@ export function SansPoseRow({
     poseurColumnWidth,
     statusColors,
     isCompact,
-    onPhaseUpdate,
+    onPhaseUpdate: _onPhaseUpdate, // kept for interface compatibility
+    onDateTimeChange,
+    onDurationChange,
     highlightedChantierId,
     focusedPhaseId,
     allPhases,
@@ -273,30 +273,41 @@ export function SansPoseRow({
                 {isExpanded && rows.flat().map(({ phase, position, row }) => {
                     // Get sibling phases from the same chantier
                     const siblingPhases = allPhases?.filter(p => p.chantier_id === phase.chantier_id && p.duree_heures > 0);
+                    const phaseRowHeight = rowHeight - 8;
                     return (
                         <div
                             key={phase.id}
                             data-phase-id={phase.id}
                             className="absolute"
                             style={{
-                                left: position.left,
+                                left: 0,
                                 top: headerHeight + row * rowHeight + 4,
-                                width: position.width,
-                                height: rowHeight - 8,
+                                right: 0,
+                                height: phaseRowHeight,
                             }}
                         >
-                            <DraggablePhase
+                            <RndPhase
                                 phase={phase}
-                                statusColors={statusColors}
-                                onPhaseUpdate={onPhaseUpdate}
-                                isCompact={isCompact}
-                                isHighlighted={highlightedChantierId === phase.chantier_id}
-                                isFocused={focusedPhaseId === phase.id}
-                                siblingPhases={siblingPhases}
-                                showNavigationArrows={showNavigationArrows}
-                                onPhaseNavigate={onPhaseNavigate}
-                                onPhaseClick={onPhaseClick}
-                            />
+                                initialLeft={position.left}
+                                initialWidth={position.width}
+                                columnWidth={columnWidth}
+                                workingDates={workingDates}
+                                onDateTimeChange={onDateTimeChange}
+                                onDurationChange={onDurationChange}
+                                rowHeight={phaseRowHeight}
+                            >
+                                <DraggablePhase
+                                    phase={phase}
+                                    statusColors={statusColors}
+                                    isCompact={isCompact}
+                                    isHighlighted={highlightedChantierId === phase.chantier_id}
+                                    isFocused={focusedPhaseId === phase.id}
+                                    siblingPhases={siblingPhases}
+                                    showNavigationArrows={showNavigationArrows}
+                                    onPhaseNavigate={onPhaseNavigate}
+                                    onPhaseClick={onPhaseClick}
+                                />
+                            </RndPhase>
                         </div>
                     );
                 })}

@@ -12,8 +12,9 @@ import {
 import { DroppablePoseurRow } from './DroppablePoseurRow';
 import { SansPoseRow } from './SansPoseRow';
 import { DraggablePhase } from './DraggablePhase';
-import { isHoliday, getWeekNumber } from '../../lib/dateUtils';
+import { isHoliday, getWeekNumber, calculateEndDateTime } from '../../lib/dateUtils';
 import { CHANTIER_STATUS_COLORS } from '../../lib/constants';
+import type { WorkingDateInfo } from '../../lib/planningRndUtils';
 import type { PhaseWithRelations, ViewMode } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
 
@@ -32,8 +33,8 @@ interface PlanningCalendarProps {
 }
 
 // Generate N working days starting from a date (excluding weekends)
-function getWorkingDaysFromStart(start: Date, count: number): { date: Date; isHoliday: boolean; weekendBefore: boolean }[] {
-    const dates: { date: Date; isHoliday: boolean; weekendBefore: boolean }[] = [];
+function getWorkingDaysFromStart(start: Date, count: number): WorkingDateInfo[] {
+    const dates: WorkingDateInfo[] = [];
     const current = new Date(start);
     let lastWasWeekend = false;
 
@@ -360,6 +361,36 @@ export function PlanningCalendar({
         await onPhaseUpdate(phaseId, updates);
     };
 
+    // Handle date/time change from react-rnd drag
+    const handleDateTimeChange = async (phaseId: string, newDate: string, newHour: number) => {
+        const phase = phases.find(p => p.id === phaseId);
+        if (!phase) return;
+
+        const { endDate, endHour } = calculateEndDateTime(newDate, newHour, phase.duree_heures);
+
+        await onPhaseUpdate(phaseId, {
+            date_debut: newDate,
+            date_fin: endDate,
+            heure_debut: `${newHour.toString().padStart(2, '0')}:00:00`,
+            heure_fin: `${endHour.toString().padStart(2, '0')}:00:00`,
+        });
+    };
+
+    // Handle duration change from react-rnd resize
+    const handleDurationChange = async (phaseId: string, newDuration: number) => {
+        const phase = phases.find(p => p.id === phaseId);
+        if (!phase) return;
+
+        const startHour = parseInt(phase.heure_debut?.split(':')[0] || '8');
+        const { endDate, endHour } = calculateEndDateTime(phase.date_debut, startHour, newDuration);
+
+        await onPhaseUpdate(phaseId, {
+            date_fin: endDate,
+            heure_fin: `${endHour.toString().padStart(2, '0')}:00:00`,
+            duree_heures: newDuration,
+        });
+    };
+
     // Extract just dates for DroppablePoseurRow
     const dates = useMemo(() => workingDates.map(d => d.date), [workingDates]);
 
@@ -479,6 +510,8 @@ export function PlanningCalendar({
                         poseurColumnWidth={POSEUR_COLUMN_WIDTH}
                         statusColors={CHANTIER_STATUS_COLORS}
                         onPhaseUpdate={onPhaseUpdate}
+                        onDateTimeChange={handleDateTimeChange}
+                        onDurationChange={handleDurationChange}
                         isCompact={isCompact}
                         onPoseurClick={onPoseurClick}
                         highlightedChantierId={highlightedChantierId}
@@ -501,6 +534,8 @@ export function PlanningCalendar({
                     poseurColumnWidth={POSEUR_COLUMN_WIDTH}
                     statusColors={CHANTIER_STATUS_COLORS}
                     onPhaseUpdate={onPhaseUpdate}
+                    onDateTimeChange={handleDateTimeChange}
+                    onDurationChange={handleDurationChange}
                     isCompact={isCompact}
                     highlightedChantierId={highlightedChantierId}
                     focusedPhaseId={focusedPhaseId}
@@ -522,6 +557,8 @@ export function PlanningCalendar({
                     statusColors={CHANTIER_STATUS_COLORS}
                     isCompact={isCompact}
                     onPhaseUpdate={onPhaseUpdate}
+                    onDateTimeChange={handleDateTimeChange}
+                    onDurationChange={handleDurationChange}
                     highlightedChantierId={highlightedChantierId}
                     focusedPhaseId={focusedPhaseId}
                     allPhases={phases}

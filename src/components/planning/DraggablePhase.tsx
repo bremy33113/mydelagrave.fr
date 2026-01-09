@@ -1,15 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronLeft, ChevronRight, X, Check, Truck } from 'lucide-react';
-import { calculateEndDateTime } from '../../lib/dateUtils';
+import { ChevronLeft, ChevronRight, Truck } from 'lucide-react';
 import type { PhaseWithRelations } from '../../pages/PlanningPage';
-import type { Tables } from '../../lib/database.types';
 
 interface DraggablePhaseProps {
     phase: PhaseWithRelations;
     statusColors: Record<string, string>;
-    onPhaseUpdate?: (phaseId: string, updates: Partial<Tables<'phases_chantiers'>>) => Promise<void>;
     isDragging?: boolean;
     isCompact?: boolean;
     isHighlighted?: boolean;
@@ -23,7 +20,6 @@ interface DraggablePhaseProps {
 export function DraggablePhase({
     phase,
     statusColors,
-    onPhaseUpdate,
     isDragging = false,
     isCompact: _isCompact = false,
     isHighlighted = false,
@@ -33,11 +29,6 @@ export function DraggablePhase({
     onPhaseClick,
     showNavigationArrows = false,
 }: DraggablePhaseProps) {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editDate, setEditDate] = useState(phase.date_debut);
-    const [editHour, setEditHour] = useState(parseInt(phase.heure_debut?.split(':')[0] || '8'));
-    const [editDuration, setEditDuration] = useState(phase.duree_heures);
-
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: phase.id,
     });
@@ -68,82 +59,6 @@ export function DraggablePhase({
     const currentIndex = sortedSiblings?.findIndex(p => p.id === phase.id) ?? -1;
     const prevPhase = currentIndex > 0 && sortedSiblings ? sortedSiblings[currentIndex - 1] : null;
     const nextPhase = currentIndex >= 0 && sortedSiblings && currentIndex < sortedSiblings.length - 1 ? sortedSiblings[currentIndex + 1] : null;
-
-    const handleSave = async () => {
-        if (!onPhaseUpdate) return;
-
-        const { endDate, endHour } = calculateEndDateTime(editDate, editHour, editDuration);
-
-        await onPhaseUpdate(phase.id, {
-            date_debut: editDate,
-            date_fin: endDate,
-            heure_debut: `${editHour.toString().padStart(2, '0')}:00:00`,
-            heure_fin: `${endHour.toString().padStart(2, '0')}:00:00`,
-            duree_heures: editDuration,
-        });
-
-        setIsEditing(false);
-    };
-
-    const handleCancel = () => {
-        setEditDate(phase.date_debut);
-        setEditHour(parseInt(phase.heure_debut?.split(':')[0] || '8'));
-        setEditDuration(phase.duree_heures);
-        setIsEditing(false);
-    };
-
-    // Inline edit mode
-    if (isEditing) {
-        return (
-            <div
-                className="h-full rounded-md border border-slate-500 bg-slate-800 p-1 flex flex-col gap-1 relative z-50 shadow-lg"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="flex items-center gap-1">
-                    <input
-                        type="date"
-                        value={editDate}
-                        onChange={(e) => setEditDate(e.target.value)}
-                        className="flex-1 px-1 py-0.5 text-xs bg-slate-900 border border-slate-600 rounded text-white"
-                    />
-                </div>
-                <div className="flex items-center gap-1">
-                    <select
-                        value={editHour}
-                        onChange={(e) => setEditHour(parseInt(e.target.value))}
-                        className="flex-1 px-1 py-0.5 text-xs bg-slate-900 border border-slate-600 rounded text-white"
-                    >
-                        {[8, 9, 10, 11, 13, 14, 15, 16].map((h) => (
-                            <option key={h} value={h}>{h}h</option>
-                        ))}
-                    </select>
-                    <input
-                        type="number"
-                        value={editDuration}
-                        onChange={(e) => setEditDuration(parseInt(e.target.value) || 1)}
-                        min={1}
-                        max={40}
-                        className="w-12 px-1 py-0.5 text-xs bg-slate-900 border border-slate-600 rounded text-white"
-                    />
-                    <span className="text-xs text-white">h</span>
-                </div>
-                <div className="flex justify-end gap-1">
-                    <button
-                        onClick={handleCancel}
-                        className="p-0.5 rounded bg-slate-700 hover:bg-slate-600 text-white"
-                    >
-                        <X className="w-3 h-3" />
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        className="p-0.5 rounded bg-green-600 hover:bg-green-500 text-white"
-                    >
-                        <Check className="w-3 h-3" />
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     // Check if phase is unassigned (no poseur, but NOT fourniture seule)
     const isUnassigned = !phase.poseur_id && !isFournitureSeule;
@@ -202,8 +117,7 @@ export function DraggablePhase({
                 isDragging ? 'opacity-80 shadow-xl scale-105' : 'hover:brightness-110'
             } ${isFocused ? 'ring-4 ring-blue-500 ring-offset-1 ring-offset-slate-900 z-20' : isHighlighted ? 'ring-2 ring-blue-400/60 ring-offset-1 ring-offset-slate-900 z-10' : ''} transition-all`}
             onClick={() => onPhaseClick?.(phase.id)}
-            onDoubleClick={() => setIsEditing(true)}
-            title={`${phase.chantier?.nom || 'Chantier'} - ${phase.libelle || 'Phase'}\n${phase.date_debut} → ${phase.date_fin}\n${phase.duree_heures}h${isFournitureSeule ? '\n🚚 Fourniture seule' : ''}`}
+            title={`${phase.chantier?.nom || 'Chantier'} - ${phase.libelle || 'Phase'}\n${phase.date_debut} → ${phase.date_fin}\n${phase.duree_heures}h${isFournitureSeule ? '\n🚚 Fourniture seule' : ''}\n(Glisser horizontalement pour déplacer, étirer le bord droit pour modifier la durée)`}
         >
             <div className="h-full flex items-center justify-center px-1 gap-0.5">
                 {/* Navigation arrow left */}
