@@ -15,6 +15,7 @@ interface ChantierDetailProps {
     onDelete?: () => void;
     onManagePhases?: () => void;
     onManageContacts?: () => void;
+    onStatusChange?: () => void;
 }
 
 export function ChantierDetail({
@@ -23,6 +24,7 @@ export function ChantierDetail({
     onDelete,
     onManagePhases,
     onManageContacts,
+    onStatusChange,
 }: ChantierDetailProps) {
     const [photoModalUrl, setPhotoModalUrl] = useState<string | null>(null);
 
@@ -35,6 +37,7 @@ export function ChantierDetail({
                 onDelete={onDelete}
                 onManagePhases={onManagePhases}
                 onManageContacts={onManageContacts}
+                onStatusChange={onStatusChange}
             />
 
             {/* Content */}

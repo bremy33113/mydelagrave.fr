@@ -53,22 +53,20 @@ export function ChantierReservesSection({
         <section className="glass-card p-4">
             <button
                 onClick={() => setExpanded(!expanded)}
-                className="w-full flex items-center justify-between"
+                className="w-full flex items-center gap-2"
             >
-                <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-400" />
-                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">
-                        Réserves ({reserves.length})
-                    </h3>
-                    {openReserves.length > 0 && (
-                        <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">
-                            {openReserves.length} ouverte(s)
-                        </span>
-                    )}
-                </div>
                 <ChevronDown
-                    className={`w-4 h-4 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+                    className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${expanded ? '' : '-rotate-90'}`}
                 />
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
+                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">
+                    Réserves ({reserves.length})
+                </h3>
+                {openReserves.length > 0 && (
+                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">
+                        {openReserves.length} ouverte(s)
+                    </span>
+                )}
             </button>
 
             {expanded && (

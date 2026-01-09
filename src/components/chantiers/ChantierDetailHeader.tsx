@@ -1,4 +1,5 @@
 import { Edit, Trash2, Clock, Users } from 'lucide-react';
+import { ChantierStatusTimeline } from './ChantierStatusTimeline';
 import type { Chantier } from './types';
 
 interface ChantierDetailHeaderProps {
@@ -7,6 +8,7 @@ interface ChantierDetailHeaderProps {
     onDelete?: () => void;
     onManagePhases?: () => void;
     onManageContacts?: () => void;
+    onStatusChange?: (newStatus: string) => void;
 }
 
 export function ChantierDetailHeader({
@@ -15,11 +17,13 @@ export function ChantierDetailHeader({
     onDelete,
     onManagePhases,
     onManageContacts,
+    onStatusChange,
 }: ChantierDetailHeaderProps) {
     return (
         <div className="p-6 border-b border-slate-700/50">
             <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
+                {/* Infos chantier */}
+                <div className="flex items-start gap-4 flex-shrink-0">
                     <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-slate-700/50 flex items-center justify-center text-2xl">
                         {chantier.ref_categories_chantier?.icon || '📦'}
                     </div>
@@ -40,7 +44,7 @@ export function ChantierDetailHeader({
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     <div className="flex items-center gap-2">
                         {onEdit && (
                             <button
@@ -82,6 +86,15 @@ export function ChantierDetailHeader({
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* Timeline de statut - en bas à gauche */}
+            <div className="mt-4">
+                <ChantierStatusTimeline
+                    chantierId={chantier.id}
+                    currentStatus={chantier.statut}
+                    onStatusChange={onStatusChange}
+                />
             </div>
         </div>
     );

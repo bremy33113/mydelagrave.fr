@@ -59,7 +59,7 @@ export function ChantierContactsList({ chantierId, defaultExpanded = true }: Cha
                 className="flex items-center gap-2 text-left w-full"
             >
                 <ChevronDown
-                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                    className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${
                         expanded ? '' : '-rotate-90'
                     }`}
                 />

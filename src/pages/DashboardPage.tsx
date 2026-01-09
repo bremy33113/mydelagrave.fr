@@ -59,6 +59,7 @@ export function DashboardPage() {
           *,
           client:clients(*),
           charge_affaire:users!charge_affaire_id(*),
+          poseur:users!poseur_id(*),
           ref_categories_chantier(*),
           ref_statuts_chantier(*),
           phases_chantiers(*)
@@ -307,7 +308,7 @@ export function DashboardPage() {
             {/* Main content: list + detail */}
             <div className="flex-1 flex gap-6 min-h-0">
                 {/* List panel */}
-                <div className="w-2/5 flex flex-col min-h-0">
+                <div className="w-[46%] flex flex-col min-h-0">
                     {/* Search and Filters */}
                     <div className="flex gap-2 mb-4">
                         <div className="relative flex-1">
@@ -413,7 +414,7 @@ export function DashboardPage() {
                 </div>
 
                 {/* Detail panel */}
-                <div className="w-3/5 glass-card overflow-hidden">
+                <div className="w-[54%] glass-card overflow-hidden">
                     {selectedChantier ? (
                         <ChantierDetail
                             chantier={selectedChantier}
@@ -424,6 +425,7 @@ export function DashboardPage() {
                             onDelete={!isPoseur ? handleDelete : undefined}
                             onManagePhases={() => setShowPhasesModal(true)}
                             onManageContacts={() => setShowContactsModal(true)}
+                            onStatusChange={fetchChantiers}
                         />
                     ) : (
                         <div className="h-full flex items-center justify-center text-slate-400">

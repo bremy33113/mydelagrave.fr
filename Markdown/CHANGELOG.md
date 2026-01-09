@@ -2,6 +2,27 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.5.2] - 2026-01-10
+
+### Améliorations UI Dashboard et Détail Chantier
+
+### Nouvelles Fonctionnalités
+- ✨ Timeline de statut cliquable dans le header du détail chantier
+- ✨ Affichage du poseur dans les cartes chantier
+
+### Améliorations
+- 🎨 Carte chantier à 5 colonnes (Réf | Nom | CA | Poseur | Semaines)
+- 🎨 Réduction hauteur des cartes chantier (-50%)
+- 🎨 Réduction largeur fiche détail (-10%, de 60% à 54%)
+- 🎨 Uniformisation des chevrons (position gauche, animation cohérente)
+- 🎨 Nom du chantier en majuscules dans les cartes
+- 🎨 Référence en bleu dans les cartes
+
+### Corrections
+- 🐛 Fix badge semaine aligné à droite même sans chargé d'affaire
+
+---
+
 ## [2.5.1] - 2026-01-09
 
 ### Corrections Planning et Tournée
