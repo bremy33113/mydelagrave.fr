@@ -3,6 +3,7 @@ import { MobileLayout } from '../../components/mobile/MobileLayout';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
 import { CHANTIER_STATUS_CONFIG } from '../../lib/constants';
+import { getWeekNumber } from '../../lib/dateUtils';
 import { Search, ChevronRight, RefreshCw, Wrench, Truck } from 'lucide-react';
 
 interface Chantier {
@@ -82,14 +83,6 @@ export function MobileChantiersList() {
         );
     });
 
-    const getWeekNumber = (date: string | null): number | null => {
-        if (!date) return null;
-        const d = new Date(date);
-        const firstDayOfYear = new Date(d.getFullYear(), 0, 1);
-        const pastDaysOfYear = (d.getTime() - firstDayOfYear.getTime()) / 86400000;
-        return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-    };
-
     const getStatusInfo = (statut: string) => {
         return CHANTIER_STATUS_CONFIG[statut as keyof typeof CHANTIER_STATUS_CONFIG] || CHANTIER_STATUS_CONFIG.nouveau;
     };
@@ -145,7 +138,7 @@ export function MobileChantiersList() {
                     ) : (
                         filteredChantiers.map((chantier) => {
                             const status = getStatusInfo(chantier.statut);
-                            const weekNum = getWeekNumber(chantier.date_debut);
+                            const weekNum = chantier.date_debut ? getWeekNumber(new Date(chantier.date_debut)) : null;
                             const categoryLabel = getCategoryLabel(chantier.categorie);
                             const isFournitureSeule = chantier.type === 'fourniture';
 

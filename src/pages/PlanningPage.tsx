@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
+import { getWeekNumber } from '../lib/dateUtils';
 import { PlanningCalendar } from '../components/planning/PlanningCalendar';
 import { UnassignedPhasesPanel } from '../components/planning/UnassignedPhasesPanel';
 import { PoseurTourneeModal } from '../components/planning/PoseurTourneeModal';
@@ -31,15 +32,6 @@ function getWeekStart(date: Date): Date {
     d.setDate(diff);
     d.setHours(0, 0, 0, 0);
     return d;
-}
-
-// Get ISO week number
-function getWeekNumber(date: Date): number {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 // Format date range for display

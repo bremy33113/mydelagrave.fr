@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { User } from 'lucide-react';
 import { ChantierStatusBadge } from '../ui/ChantierStatusBadge';
+import { getWeekNumber } from '../../lib/dateUtils';
 import type { Tables } from '../../lib/database.types';
 
 type Chantier = Tables<'chantiers'> & {
@@ -14,15 +15,6 @@ interface ChantierCardProps {
     chantier: Chantier;
     isSelected: boolean;
     onClick: () => void;
-}
-
-// Get ISO week number from date
-function getWeekNumber(date: Date): number {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
 export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProps) {

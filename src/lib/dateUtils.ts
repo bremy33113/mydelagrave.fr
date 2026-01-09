@@ -183,6 +183,18 @@ export function getWeekDates(startOfWeek: Date): Date[] {
 }
 
 /**
+ * Retourne le numéro de semaine ISO 8601 (1-53)
+ * La semaine 1 est celle contenant le premier jeudi de l'année
+ */
+export function getWeekNumber(date: Date): number {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+/**
  * Retourne le lundi de la semaine contenant la date donnée
  */
 export function getMonday(date: Date): Date {

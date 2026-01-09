@@ -12,7 +12,7 @@ import {
 import { DroppablePoseurRow } from './DroppablePoseurRow';
 import { SansPoseRow } from './SansPoseRow';
 import { DraggablePhase } from './DraggablePhase';
-import { isHoliday } from '../../lib/dateUtils';
+import { isHoliday, getWeekNumber } from '../../lib/dateUtils';
 import { CHANTIER_STATUS_COLORS } from '../../lib/constants';
 import type { PhaseWithRelations, ViewMode } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
@@ -62,15 +62,6 @@ function getWorkingDaysFromStart(start: Date, count: number): { date: Date; isHo
 const MIN_COLUMN_WIDTH = 20; // Minimum for year view
 const MIN_COLUMN_WIDTH_NORMAL = 60; // Minimum for normal views
 const POSEUR_COLUMN_WIDTH = 160;
-
-// Get ISO week number
-function getWeekNumber(date: Date): number {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
 
 // Get month name in French
 function getMonthName(date: Date): string {
