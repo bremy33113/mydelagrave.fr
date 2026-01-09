@@ -15,6 +15,7 @@ interface DraggablePhaseProps {
     onPhaseNavigate?: (phaseId: string) => void;
     onPhaseClick?: (phaseId: string) => void;
     showNavigationArrows?: boolean;
+    disableDndKit?: boolean; // Disable dnd-kit when inside RndPhase
 }
 
 export function DraggablePhase({
@@ -28,12 +29,16 @@ export function DraggablePhase({
     onPhaseNavigate,
     onPhaseClick,
     showNavigationArrows = false,
+    disableDndKit = false,
 }: DraggablePhaseProps) {
+    // Only use dnd-kit when not inside RndPhase (to avoid double transform)
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: phase.id,
+        disabled: disableDndKit,
     });
 
-    const style = transform
+    // Don't apply dnd-kit transform when disabled (RndPhase handles its own transform)
+    const style = transform && !disableDndKit
         ? {
               transform: CSS.Translate.toString(transform),
               zIndex: isDragging ? 100 : 1,

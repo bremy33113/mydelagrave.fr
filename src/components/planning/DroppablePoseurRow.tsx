@@ -360,6 +360,7 @@ export function DroppablePoseurRow({
                                     showNavigationArrows={showNavigationArrows}
                                     onPhaseNavigate={onPhaseNavigate}
                                     onPhaseClick={onPhaseClick}
+                                    disableDndKit={true}
                                 />
                             </RndPhase>
                         </div>

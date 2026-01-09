@@ -306,6 +306,7 @@ export function SansPoseRow({
                                     showNavigationArrows={showNavigationArrows}
                                     onPhaseNavigate={onPhaseNavigate}
                                     onPhaseClick={onPhaseClick}
+                                    disableDndKit={true}
                                 />
                             </RndPhase>
                         </div>
