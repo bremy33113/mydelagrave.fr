@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.3.0**
+**2.4.0**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.3.0 - Refactoring et Centralisation des Utilitaires
+MyDelagrave v2.4.0 - Propagation automatique des sous-phases
 
 ## Mode d'Exécution
 

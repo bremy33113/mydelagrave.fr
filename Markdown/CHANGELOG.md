@@ -2,6 +2,22 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.4.0] - 2026-01-09
+
+### Propagation automatique des sous-phases
+
+### Nouvelles Fonctionnalités
+- ✨ Décalage automatique des sous-phases en cas de chevauchement lors du drag/resize sur le planning
+- ✨ `src/lib/phaseOverlapUtils.ts` - Utilitaires de détection des chevauchements et calcul de cascade
+
+### Technique
+- ⚡ Ajout de `handlePhaseUpdateBatch` pour mises à jour multiples en cascade
+- ⚡ Modification des handlers `handleDateTimeChange` et `handleDurationChange` pour propager les changements
+- 📋 Scope : même `groupe_phase` uniquement (1.2 affecte 1.3, pas 2.x)
+- 📋 Déclencheur : seulement si chevauchement détecté
+
+---
+
 ## [2.3.0] - 2026-01-09
 
 ### Refactoring et Centralisation des Utilitaires
