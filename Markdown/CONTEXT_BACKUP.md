@@ -1,79 +1,106 @@
 # Context Backup - MyDelagrave
 
-**Date** : 2026-01-06
+**Date de sauvegarde** : 2026-01-09
 **Branche** : dev
-**Version** : 2.2.0
+**Version** : 2.2.4
+
+---
 
 ## Derniers commits
 
 ```
-52ea77f feat: Vue Carte Planning Poseur avec Tournée (v2.2.0)
-92f47ce chore: Migration Supabase v2.0.0 - Table pointages
-06dbf31 fix: Corrections TypeScript pour build production
-696c998 feat!: Application Mobile Poseur (v2.0.0)
-b9821d8 test: Correction tests E2E + amélioration CLAUDE.md
+0816daf test: Ajout tests E2E non-régression v2.2.3
+46c02ae fix: Correction nom phase vs libellé sous-phase (v2.2.3)
+f12aa5d feat: Planning par chantier et focus phases (v2.2.2)
+7ade2bf fix: Améliorations phases et filtres utilisateurs (v2.2.1)
+3cd4be0 feat: Navigation et mise en évidence des phases (v2.2.0)
 ```
+
+---
 
 ## Tâche en cours
 
-**Vue Carte Planning Poseur avec Tournée (v2.2.0)** - ✅ TERMINÉ
+### Déploiement v2.2.3 vers main (INTERROMPU)
 
-### Fonctionnalités implémentées dans cette session
+L'utilisateur a demandé de déployer la version dev vers main. Le processus a été interrompu avant le merge.
 
-| # | Tâche | Statut |
-|---|-------|--------|
-| 1 | Vue carte du planning mobile avec marqueurs numérotés | ✅ Terminé |
-| 2 | Calcul d'itinéraire routier via OSRM API | ✅ Terminé |
-| 3 | Affichage du trajet réel sur les routes | ✅ Terminé |
-| 4 | Liste de tournée avec temps/distance entre étapes | ✅ Terminé |
-| 5 | Géocodage automatique des adresses de livraison | ✅ Terminé |
-| 6 | Carte routière ESRI (style atlas routier) | ✅ Terminé |
-| 7 | Mode PWA fullscreen optimisé | ✅ Terminé |
-| 8 | Correction décalage de date planning mobile | ✅ Terminé |
-| 9 | Retrait du bouton + du menu mobile | ✅ Terminé |
+**Étapes restantes :**
+1. `git stash` (pour les fichiers non commités)
+2. `git checkout main`
+3. `git pull origin main`
+4. `git merge dev`
+5. `git push origin main`
+6. `git checkout dev && git stash pop`
 
-### Fichiers créés/modifiés
+---
 
-| Fichier | Description |
-|---------|-------------|
-| `src/components/mobile/MobilePlanningMap.tsx` | Composant carte Leaflet avec tournée numérotée |
-| `src/components/mobile/MobileBottomNav.tsx` | Barre navigation bottom (FAB retiré) |
-| `src/components/mobile/MobileLayout.tsx` | Layout mobile (onFabClick retiré) |
-| `src/pages/mobile/MobilePlanningV2.tsx` | Planning avec vue carte intégrée |
-| `src/pages/mobile/MobileChantierDetail.tsx` | Détail chantier (onFabClick retiré) |
-| `src/components/chantiers/CreateChantierModal.tsx` | Géocodage automatique adresse livraison |
-| `public/manifest.json` | PWA fullscreen + start_url mobile |
-| `index.html` | Safe-area iOS + theme-color |
-| `supabase/migrations/00009_phases_subphases_columns.sql` | Migration colonnes sous-phases |
+## Fichiers non commités (WIP)
 
-### Corrections techniques importantes
+### Split de ChantierDetail.tsx
 
-1. **Fuseau horaire** : Utiliser `formatLocalDate()` au lieu de `toISOString().split('T')[0]`
-2. **GeoJSON** : Coordonnées OSRM sont `[lon, lat]`, Leaflet attend `[lat, lon]`
-3. **OSRM API** : `https://router.project-osrm.org/route/v1/driving/{coords}?overview=full&geometries=geojson`
-4. **Carte routière** : ESRI World Street Map pour style atlas routier
+Un travail de refactoring est en cours pour diviser `ChantierDetail.tsx` en sous-composants :
 
-### Modifications non committées
+**Fichiers créés (non commités) :**
+- `src/components/chantiers/ChantierCompletionStatus.tsx`
+- `src/components/chantiers/ChantierContactsList.tsx`
+- `src/components/chantiers/ChantierCoordonnees.tsx`
+- `src/components/chantiers/ChantierDetailHeader.tsx`
+- `src/components/chantiers/ChantierDocumentsSection.tsx`
+- `src/components/chantiers/ChantierNotesSection.tsx`
+- `src/components/chantiers/ChantierReservesSection.tsx`
+- `src/components/chantiers/PhotoModal.tsx`
+- `src/components/chantiers/types.ts`
+- `Markdown/SPLIT.md` (documentation du split)
 
-```
-M src/components/mobile/MobileBottomNav.tsx    (FAB retiré)
-M src/components/mobile/MobileLayout.tsx       (onFabClick retiré)
-M src/pages/mobile/MobileChantierDetail.tsx    (onFabClick retiré)
-M src/pages/mobile/MobilePlanningV2.tsx        (handleFabClick retiré)
-```
+**Fichier modifié :**
+- `src/components/chantiers/ChantierDetail.tsx`
+
+---
+
+## Résumé des changements v2.2.3
+
+### Corrections
+- Fix: Le nom de la phase affiche maintenant le nom défini (ex: "Batiment") et non le libellé de la sous-phase (ex: "RDC")
+- Fix: Correction dans PhasesModal et PlanningPage pour utiliser le placeholder (duree_heures=0) comme source du nom de phase
+- Fix: Erreurs ESLint (non-null assertions) dans DroppablePoseurRow et SansPoseRow
+
+### Améliorations
+- Scroll automatique vers le formulaire "Nouvelle sous-phase" lors de son ouverture
+- Placeholders mis à jour dans les formulaires (Phase: "Batiment", Sous-phase: "RDC")
+
+### Tests E2E ajoutés
+- `e2e/chantier-detail.spec.ts` - 10 tests
+- `e2e/reserves.spec.ts` - 11 tests
+- Tests enrichis dans `phases.spec.ts` et `planning.spec.ts`
+
+---
+
+## Prochaines étapes suggérées
+
+1. **Terminer le déploiement** : Merger dev vers main
+2. **Décider pour le split ChantierDetail** :
+   - Option A : Commiter le refactoring
+   - Option B : Annuler (`git checkout -- .` + supprimer les nouveaux fichiers)
+3. **Implémenter react-rnd** : Plan existant dans `.claude/plans/idempotent-meandering-pizza.md` pour le drag & resize des phases sur le planning
+
+---
+
+## Notes techniques
+
+### Structure des phases (v2.2.3)
+- **Placeholder de phase** : `numero_phase: 0`, `duree_heures: 0` → contient le nom de la phase
+- **Sous-phases réelles** : `numero_phase: 1, 2, 3...`, `duree_heures > 0` → contiennent le libellé
+
+### Pour les phases existantes sans placeholder
+Les utilisateurs doivent éditer la phase (icône crayon) pour créer le placeholder avec le bon nom.
+
+---
 
 ## Déploiement
 
 - Site production : https://mydelagrave.fr
 - FTP : `admin@mydelagrave.fr` sur `node117-eu.n0c.com`
 - Build : `npm run build -- --mode production`
-
-## Prochaines étapes
-
-1. **Committer les modifications FAB** - Retrait du bouton + (modifications en cours)
-2. **Créer dashboard superviseur (ReservesPage)** - Gestion des réserves desktop
-3. **Nettoyer les console.log** - Supprimer les logs de debug
-4. **Tests E2E** - Ajouter des tests pour le parcours mobile carte
 
 ## Comment tester
 
@@ -82,16 +109,7 @@ cd H:\MyDelagrave
 npm run dev
 ```
 
-### Vue carte mobile
-
-1. Accéder à `/#/m/planning`
-2. Basculer sur l'onglet "Carte"
-3. Voir les marqueurs numérotés + trajet routier
-4. Liste de tournée avec temps/distances en dessous
-
-### Mode PWA (plein écran)
-
-Sur mobile :
-1. **iOS** : Safari → Partager → "Sur l'écran d'accueil"
-2. **Android** : Chrome → Menu → "Ajouter à l'écran d'accueil"
-3. Lancer depuis l'icône = mode plein écran sans barre de navigation
+### Tests E2E
+```bash
+npm run test:e2e
+```

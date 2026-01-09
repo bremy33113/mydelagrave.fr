@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.2.3**
+**2.2.4**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.2.3 - Correction nom phase vs libellé sous-phase
+MyDelagrave v2.2.4 - Documentation et contexte
 
 ## Mode d'Exécution
 

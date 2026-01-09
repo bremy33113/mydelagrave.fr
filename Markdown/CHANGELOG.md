@@ -2,6 +2,16 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.2.4] - 2026-01-09
+
+### Documentation et contexte
+
+### Améliorations
+- 📝 Mise à jour CONTEXT_BACKUP.md pour reprise de session
+- 🧪 Tests E2E v2.2.3 : labels mis à jour dans phases.spec.ts et planning.spec.ts
+
+---
+
 ## [2.2.3] - 2026-01-09
 
 ### Correction nom phase vs libellé sous-phase
