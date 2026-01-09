@@ -66,7 +66,12 @@ src/
 ├── pages/               # Route-level components
 │   └── mobile/          # Mobile-specific pages (MobileChantiersList, MobilePlanning)
 ├── components/
-│   ├── chantiers/       # Chantier CRUD modals and detail views
+│   ├── chantiers/       # Chantier CRUD modals and detail views (split architecture)
+│   │   ├── ChantierDetail.tsx        # Orchestrator (~80 lines)
+│   │   ├── ChantierNotesSection.tsx  # Notes CRUD + photos
+│   │   ├── ChantierDocumentsSection.tsx
+│   │   ├── ChantierReservesSection.tsx
+│   │   └── types.ts                  # Shared types (Note, Document, Chantier)
 │   ├── planning/        # Planning calendar, drag & drop phases
 │   ├── dashboard/       # KPI cards and bars
 │   ├── layout/          # Sidebar, Layout wrapper
@@ -150,7 +155,7 @@ Actuellement, les photos des notes (`notes_chantiers.photo_1_url`, `photo_2_url`
 
 **Lors de la migration vers Supabase réel :**
 - Créer un bucket `notes-photos` dans Supabase Storage
-- Modifier `handleImageUpload` dans `ChantierDetail.tsx` pour uploader vers le bucket
+- Modifier `processImageFile` dans `ChantierNotesSection.tsx` pour uploader vers le bucket
 - Stocker uniquement le path/URL dans la table au lieu du base64
 - Configurer les policies RLS sur le bucket
 
@@ -173,3 +178,4 @@ Detailed documentation is available in `Markdown/`:
 - `ZONES.md` - UI zones and component architecture (ASCII diagrams)
 - `CHANGELOG.md` - Version history
 - `CONTEXT_BACKUP.md` - Work context for session continuity (use `/save_context` to update)
+- `SPLIT.md` - ChantierDetail.tsx refactoring plan and component architecture
