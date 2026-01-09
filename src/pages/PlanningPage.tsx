@@ -282,6 +282,36 @@ export function PlanningPage() {
         }
     };
 
+    // Handle batch phase updates (for cascade updates when phases overlap)
+    const handlePhaseUpdateBatch = async (
+        updates: Array<{ id: string; updates: Partial<Tables<'phases_chantiers'>> }>
+    ) => {
+        if (updates.length === 0) return;
+
+        let hasError = false;
+
+        // Update each phase in sequence
+        for (const { id, updates: phaseUpdates } of updates) {
+            const { error } = await supabase
+                .from('phases_chantiers')
+                .update({ ...phaseUpdates, updated_at: new Date().toISOString() })
+                .eq('id', id);
+
+            if (error) {
+                console.error('Error updating phase:', id, error);
+                hasError = true;
+            }
+        }
+
+        if (hasError) {
+            alert('Certaines phases n\'ont pas pu être mises à jour');
+        }
+
+        // Signal au Dashboard qu'une phase a été modifiée
+        localStorage.setItem('phases_last_update', Date.now().toString());
+        setRefreshKey((k) => k + 1);
+    };
+
     // Handle phase click (focus on phase from "À attribuer" panel)
     const handlePhaseClick = (phase: PhaseWithRelations) => {
         if (phase.date_debut) {
@@ -461,10 +491,12 @@ export function PlanningPage() {
                     ) : (
                         <PlanningCalendar
                             phases={searchFilteredPhases}
+                            allPhases={phases}
                             poseurs={poseurs}
                             dateRange={dateRange}
                             viewMode={viewMode}
                             onPhaseUpdate={handlePhaseUpdate}
+                            onPhaseUpdateBatch={handlePhaseUpdateBatch}
                             onNavigate={handleCalendarNavigate}
                             onPoseurClick={handlePoseurClick}
                             highlightedChantierId={highlightedChantierId}

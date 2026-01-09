@@ -14,16 +14,19 @@ import { SansPoseRow } from './SansPoseRow';
 import { DraggablePhase } from './DraggablePhase';
 import { isHoliday, getWeekNumber, calculateEndDateTime } from '../../lib/dateUtils';
 import { CHANTIER_STATUS_COLORS } from '../../lib/constants';
+import { calculateCascadeUpdates } from '../../lib/phaseOverlapUtils';
 import type { WorkingDateInfo } from '../../lib/planningRndUtils';
 import type { PhaseWithRelations, ViewMode } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
 
 interface PlanningCalendarProps {
     phases: PhaseWithRelations[];
+    allPhases: PhaseWithRelations[];
     poseurs: Tables<'users'>[];
     dateRange: { start: Date; end: Date };
     viewMode: ViewMode;
     onPhaseUpdate: (phaseId: string, updates: Partial<Tables<'phases_chantiers'>>) => Promise<void>;
+    onPhaseUpdateBatch: (updates: Array<{ id: string; updates: Partial<Tables<'phases_chantiers'>> }>) => Promise<void>;
     onNavigate: (days: number) => void;
     onPoseurClick?: (poseur: Tables<'users'>) => void;
     highlightedChantierId?: string | null;
@@ -151,10 +154,12 @@ function useResponsivePlanning(
 
 export function PlanningCalendar({
     phases,
+    allPhases,
     poseurs,
     dateRange,
     viewMode,
     onPhaseUpdate,
+    onPhaseUpdateBatch,
     onNavigate,
     onPoseurClick,
     highlightedChantierId,
@@ -368,12 +373,26 @@ export function PlanningCalendar({
 
         const { endDate, endHour } = calculateEndDateTime(newDate, newHour, phase.duree_heures);
 
-        await onPhaseUpdate(phaseId, {
+        const primaryUpdate = {
             date_debut: newDate,
             date_fin: endDate,
             heure_debut: `${newHour.toString().padStart(2, '0')}:00:00`,
             heure_fin: `${endHour.toString().padStart(2, '0')}:00:00`,
-        });
+        };
+
+        // Calculer les phases affectées par chevauchement (cascade)
+        const cascadeUpdates = calculateCascadeUpdates(phaseId, endDate, endHour, allPhases);
+
+        if (cascadeUpdates.length > 0) {
+            // Batch update: phase principale + phases en cascade
+            await onPhaseUpdateBatch([
+                { id: phaseId, updates: primaryUpdate },
+                ...cascadeUpdates
+            ]);
+        } else {
+            // Pas de cascade, mise à jour simple
+            await onPhaseUpdate(phaseId, primaryUpdate);
+        }
     };
 
     // Handle duration change from react-rnd resize
@@ -384,11 +403,25 @@ export function PlanningCalendar({
         const startHour = parseInt(phase.heure_debut?.split(':')[0] || '8');
         const { endDate, endHour } = calculateEndDateTime(phase.date_debut, startHour, newDuration);
 
-        await onPhaseUpdate(phaseId, {
+        const primaryUpdate = {
             date_fin: endDate,
             heure_fin: `${endHour.toString().padStart(2, '0')}:00:00`,
             duree_heures: newDuration,
-        });
+        };
+
+        // Calculer les phases affectées par chevauchement (cascade)
+        const cascadeUpdates = calculateCascadeUpdates(phaseId, endDate, endHour, allPhases);
+
+        if (cascadeUpdates.length > 0) {
+            // Batch update: phase principale + phases en cascade
+            await onPhaseUpdateBatch([
+                { id: phaseId, updates: primaryUpdate },
+                ...cascadeUpdates
+            ]);
+        } else {
+            // Pas de cascade, mise à jour simple
+            await onPhaseUpdate(phaseId, primaryUpdate);
+        }
     };
 
     // Extract just dates for DroppablePoseurRow
