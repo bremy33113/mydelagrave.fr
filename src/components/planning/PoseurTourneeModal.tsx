@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Route, Loader2, CalendarX } from 'lucide-react';
+import { X, Route, Loader2, CalendarX, AlertTriangle } from 'lucide-react';
 import type { Tables } from '../../lib/database.types';
-import { TourneeMap, TourneeStep } from './TourneeMap';
+import { TourneeMap, TourneeStep, RouteSegment, StepType } from './TourneeMap';
 import { TourneeStepsList } from './TourneeStepsList';
 import { useOSRMRoute, formatDuration } from './hooks/useOSRMRoute';
 import type { PhaseWithRelations } from '../../pages/PlanningPage';
@@ -38,6 +38,25 @@ function getWeekBounds(offset: WeekOffset): { start: Date; end: Date; label: str
     return { start: monday, end: friday, label };
 }
 
+// Get the Monday date string of a given date
+function getMondayOfWeek(date: Date): string {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return d.toISOString().split('T')[0];
+}
+
+// Get the Friday date string of a given date
+function getFridayOfWeek(date: Date): string {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -2 : 5);
+    d.setDate(diff);
+    return d.toISOString().split('T')[0];
+}
+
+
 function getTourneeSteps(
     phases: PhaseWithRelations[],
     weekStart: Date,
@@ -62,34 +81,121 @@ function getTourneeSteps(
     });
 
     // Transform to TourneeStep with numbering
-    return weekPhases.map((phase, index) => ({
-        id: phase.id,
-        order: index + 1,
-        chantierNom: phase.chantier?.nom || 'Chantier inconnu',
-        chantierReference: phase.chantier?.reference || null,
-        adresse: phase.chantier?.adresse_livraison || null,
-        latitude: phase.chantier?.adresse_livraison_latitude || null,
-        longitude: phase.chantier?.adresse_livraison_longitude || null,
-        dateDebut: phase.date_debut,
-        heureDebut: phase.heure_debut?.slice(0, 5) || '08:00',
-        durationHours: phase.duree_heures,
-    }));
+    // Adjust dates if phase spans beyond this week
+    const worksiteSteps: TourneeStep[] = weekPhases.map((phase, index) => {
+        // Clamp phase start date to this week
+        const effectiveStart = phase.date_debut < startStr ? startStr : phase.date_debut;
+
+        // Adjust start hour: if phase started before this week, start at 8h Monday
+        const effectiveStartHour = phase.date_debut < startStr
+            ? '08:00'
+            : (phase.heure_debut?.slice(0, 5) || '08:00');
+
+        return {
+            id: phase.id,
+            order: index + 1,
+            chantierNom: phase.chantier?.nom || 'Chantier inconnu',
+            chantierReference: phase.chantier?.reference || null,
+            adresse: phase.chantier?.adresse_livraison || null,
+            latitude: phase.chantier?.adresse_livraison_latitude || null,
+            longitude: phase.chantier?.adresse_livraison_longitude || null,
+            dateDebut: effectiveStart,
+            heureDebut: effectiveStartHour,
+            durationHours: phase.duree_heures,
+            type: 'worksite' as StepType,
+            isHomeStep: false,
+        };
+    });
+
+    return worksiteSteps;
+}
+
+// Add home departure (Monday) and return (Friday) steps
+function addHomeSteps(
+    worksiteSteps: TourneeStep[],
+    poseur: Tables<'users'>,
+    weekStart: Date
+): TourneeStep[] {
+    if (!poseur.adresse_domicile_latitude || !poseur.adresse_domicile_longitude) {
+        return worksiteSteps; // No home address, return unchanged
+    }
+
+    if (worksiteSteps.length === 0) {
+        return worksiteSteps; // No worksites, no home steps needed
+    }
+
+    const mondayStr = getMondayOfWeek(weekStart);
+    const fridayStr = getFridayOfWeek(weekStart);
+
+    const result: TourneeStep[] = [];
+
+    // Find the first worksite of the week (should be Monday or first working day)
+    const firstWorksite = worksiteSteps[0];
+    const lastWorksite = worksiteSteps[worksiteSteps.length - 1];
+
+    // Add home departure step (before first worksite)
+    const departureStep: TourneeStep = {
+        id: 'home-departure-' + mondayStr,
+        order: 0,
+        chantierNom: 'Domicile',
+        chantierReference: null,
+        adresse: poseur.adresse_domicile || 'Domicile',
+        latitude: poseur.adresse_domicile_latitude,
+        longitude: poseur.adresse_domicile_longitude,
+        dateDebut: firstWorksite.dateDebut,
+        heureDebut: '07:00', // Will be calculated based on travel time
+        durationHours: 0,
+        type: 'home_departure',
+        isHomeStep: true,
+        heureCalculee: undefined, // Will be set after route calculation
+    };
+
+    result.push(departureStep);
+
+    // Add all worksite steps
+    result.push(...worksiteSteps);
+
+    // Add home return step (after last worksite)
+    // Find the last day's last worksite end time
+    const returnStep: TourneeStep = {
+        id: 'home-return-' + fridayStr,
+        order: worksiteSteps.length + 1,
+        chantierNom: 'Domicile',
+        chantierReference: null,
+        adresse: poseur.adresse_domicile || 'Domicile',
+        latitude: poseur.adresse_domicile_latitude,
+        longitude: poseur.adresse_domicile_longitude,
+        dateDebut: lastWorksite.dateDebut, // Use last worksite date
+        heureDebut: '18:00', // Will be calculated based on travel time
+        durationHours: 0,
+        type: 'home_return',
+        isHomeStep: true,
+        heureCalculee: undefined,
+    };
+
+    result.push(returnStep);
+
+    return result;
 }
 
 export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTourneeModalProps) {
     const [weekOffset, setWeekOffset] = useState<WeekOffset>(0);
     const [selectedStepId, setSelectedStepId] = useState<string | undefined>();
+    const [routeSegments, setRouteSegments] = useState<RouteSegment[]>([]);
 
     const { route, loading: routeLoading, fetchRoute } = useOSRMRoute();
 
     // Calculate week bounds
     const weekBounds = useMemo(() => getWeekBounds(weekOffset), [weekOffset]);
 
-    // Filter and sort steps
-    const steps = useMemo(
-        () => getTourneeSteps(phases, weekBounds.start, weekBounds.end),
-        [phases, weekBounds]
-    );
+    // Check if poseur has home address
+    const hasHomeAddress = !!(poseur.adresse_domicile_latitude && poseur.adresse_domicile_longitude);
+
+    // Filter and sort worksite steps, then add home steps
+    const steps = useMemo(() => {
+        const worksiteSteps = getTourneeSteps(phases, weekBounds.start, weekBounds.end);
+        return addHomeSteps(worksiteSteps, poseur, weekBounds.start);
+    }, [phases, weekBounds, poseur]);
 
     // Load route when steps change
     useEffect(() => {
@@ -101,14 +207,73 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
         fetchRoute(coordinates);
     }, [steps, fetchRoute]);
 
+    // Create route segments with colors (home routes = orange, inter-site = blue)
+    useEffect(() => {
+        if (!route?.routes?.[0]?.legs) {
+            setRouteSegments([]);
+            return;
+        }
+
+        const legs = route.routes[0].legs;
+        const validSteps = steps.filter(
+            (s): s is typeof s & { latitude: number; longitude: number } =>
+                s.latitude !== null && s.longitude !== null
+        );
+
+        // Build segments from legs geometry
+        const segments: RouteSegment[] = [];
+
+        // We need to extract individual leg geometries from the full route
+        // OSRM returns legs with steps that have geometry
+        legs.forEach((leg, legIndex) => {
+            if (legIndex >= validSteps.length - 1) return;
+
+            const fromStep = validSteps[legIndex];
+            const toStep = validSteps[legIndex + 1];
+
+            // A leg is a home route if either end is a home step
+            const isHomeRoute = !!(fromStep.isHomeStep || toStep.isHomeStep);
+
+            // Extract geometry for this leg (OSRM provides steps with geometry)
+            const legWithSteps = leg as { steps?: { geometry?: { coordinates?: [number, number][] } }[] };
+            if (legWithSteps.steps && legWithSteps.steps.length > 0) {
+                // Combine all step geometries into one LineString
+                const coordinates: [number, number][] = [];
+                legWithSteps.steps.forEach((step) => {
+                    if (step.geometry?.coordinates) {
+                        coordinates.push(...step.geometry.coordinates);
+                    }
+                });
+
+                if (coordinates.length > 0) {
+                    segments.push({
+                        geometry: {
+                            type: 'LineString',
+                            coordinates,
+                        },
+                        isHomeRoute,
+                    });
+                }
+            }
+        });
+
+        setRouteSegments(segments);
+    }, [route, steps]);
+
     // Extract leg durations
     const legDurations = useMemo(() => {
         if (!route?.routes?.[0]?.legs) return [];
-        return route.routes[0].legs.map((leg) => leg.duration);
+        return route.routes[0].legs.map((leg: { duration: number }) => leg.duration);
     }, [route]);
 
     // Total travel time
     const totalTravelTime = useMemo(() => route?.routes?.[0]?.duration || 0, [route]);
+
+    // Count worksites only (excluding home steps)
+    const worksiteCount = useMemo(
+        () => steps.filter((s) => s.type === 'worksite').length,
+        [steps]
+    );
 
     if (!isOpen) return null;
 
@@ -130,7 +295,7 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
                                 Tournee de {poseur.first_name} {poseur.last_name}
                             </h2>
                             <p className="text-sm text-slate-400">
-                                {steps.length} chantier(s) cette semaine
+                                {worksiteCount} chantier(s) cette semaine
                                 {totalTravelTime > 0 && ` - ${formatDuration(totalTravelTime)} de trajet total`}
                             </p>
                         </div>
@@ -180,7 +345,22 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
                         <div className="text-xs text-slate-500 mb-3 uppercase tracking-wider">
                             Semaine du {weekBounds.label}
                         </div>
-                        {steps.length === 0 ? (
+
+                        {/* Warning if no home address */}
+                        {!hasHomeAddress && worksiteCount > 0 && (
+                            <div className="bg-amber-500/20 border border-amber-500/50 rounded-lg p-3 mb-4">
+                                <div className="flex items-center gap-2 text-amber-400">
+                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                                    <span className="text-sm font-medium">Adresse domicile non renseignee</span>
+                                </div>
+                                <p className="text-xs text-amber-300/80 mt-1">
+                                    Les trajets domicile ne peuvent pas etre calcules.
+                                    Renseignez l'adresse dans Administration &rarr; Utilisateurs.
+                                </p>
+                            </div>
+                        )}
+
+                        {worksiteCount === 0 ? (
                             <div className="h-full flex items-center justify-center">
                                 <div className="text-center text-slate-500">
                                     <CalendarX className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -210,6 +390,7 @@ export function PoseurTourneeModal({ isOpen, onClose, poseur, phases }: PoseurTo
                         <TourneeMap
                             steps={steps}
                             routeGeometry={route?.routes?.[0]?.geometry || null}
+                            routeSegments={routeSegments}
                             selectedStepId={selectedStepId}
                             onStepClick={setSelectedStepId}
                         />

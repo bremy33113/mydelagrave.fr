@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Home } from 'lucide-react';
 import { DraggablePhase } from './DraggablePhase';
 import { RndPhase } from './RndPhase';
 import type { WorkingDateInfo } from '../../lib/planningRndUtils';
@@ -266,14 +266,24 @@ export function DroppablePoseurRow({
                         )}
                     </button>
                     {poseur ? (
-                        <button
-                            onClick={() => onPoseurClick?.(poseur)}
-                            className="text-sm font-medium text-white truncate hover:text-blue-400 transition-colors text-left flex-1"
-                            title="Voir la tournee"
-                            data-testid={`poseur-name-${poseur.id}`}
-                        >
-                            {poseur.first_name} {poseur.last_name}
-                        </button>
+                        <div className="flex items-center gap-1 flex-1 min-w-0">
+                            <button
+                                onClick={() => onPoseurClick?.(poseur)}
+                                className="text-sm font-medium text-white truncate hover:text-blue-400 transition-colors text-left"
+                                title="Voir la tournee"
+                                data-testid={`poseur-name-${poseur.id}`}
+                            >
+                                {poseur.first_name} {poseur.last_name}
+                            </button>
+                            {poseur.adresse_domicile_latitude && (
+                                <span
+                                    className="text-orange-400"
+                                    title={`Domicile: ${poseur.adresse_domicile || 'Adresse configuree'}`}
+                                >
+                                    <Home className="w-3.5 h-3.5" />
+                                </span>
+                            )}
+                        </div>
                     ) : (
                         <p className="text-sm font-medium text-slate-400 italic flex-1">Non attribue</p>
                     )}

@@ -14,6 +14,8 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+export type StepType = 'home_departure' | 'worksite' | 'home_return';
+
 export interface TourneeStep {
     id: string;
     order: number;
@@ -25,11 +27,21 @@ export interface TourneeStep {
     dateDebut: string;
     heureDebut: string;
     durationHours: number;
+    type: StepType;
+    isHomeStep?: boolean;
+    // Pour les étapes domicile, l'heure calculée (départ ou arrivée)
+    heureCalculee?: string;
+}
+
+export interface RouteSegment {
+    geometry: GeoJSON.LineString;
+    isHomeRoute: boolean; // true = orange, false = blue
 }
 
 interface TourneeMapProps {
     steps: TourneeStep[];
     routeGeometry: GeoJSON.LineString | null;
+    routeSegments?: RouteSegment[]; // Pour routes multi-couleurs
     selectedStepId?: string;
     onStepClick?: (stepId: string) => void;
 }
@@ -62,11 +74,38 @@ function createNumberedIcon(number: number, isSelected: boolean): L.DivIcon {
     });
 }
 
-export function TourneeMap({ steps, routeGeometry, selectedStepId, onStepClick }: TourneeMapProps) {
+function createHomeIcon(isSelected: boolean): L.DivIcon {
+    const bgColor = '#f97316'; // orange-500
+    const ring = isSelected ? 'box-shadow: 0 0 0 3px white;' : '';
+
+    return L.divIcon({
+        className: 'home-marker',
+        html: `
+            <div style="
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: ${bgColor};
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                ${ring}
+            ">
+                🏠
+            </div>
+        `,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+    });
+}
+
+export function TourneeMap({ steps, routeGeometry, routeSegments, selectedStepId, onStepClick }: TourneeMapProps) {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
     const markersRef = useRef<L.Marker[]>([]);
     const routeLayerRef = useRef<L.GeoJSON | null>(null);
+    const segmentLayersRef = useRef<L.GeoJSON[]>([]);
 
     // Initialize map
     useEffect(() => {
@@ -102,15 +141,23 @@ export function TourneeMap({ steps, routeGeometry, selectedStepId, onStepClick }
         );
 
         validSteps.forEach((step) => {
-            const marker = L.marker([step.latitude, step.longitude], {
-                icon: createNumberedIcon(step.order, step.id === selectedStepId),
-            });
+            // Use home icon for home steps, numbered icon for worksites
+            const icon = step.isHomeStep
+                ? createHomeIcon(step.id === selectedStepId)
+                : createNumberedIcon(step.order, step.id === selectedStepId);
 
-            marker.bindPopup(`
-                <strong>${step.order}. ${step.chantierNom}</strong><br>
-                ${step.adresse || 'Adresse non renseignee'}<br>
-                <small>${formatDateFr(step.dateDebut)} a ${step.heureDebut}</small>
-            `);
+            const marker = L.marker([step.latitude, step.longitude], { icon });
+
+            // Popup content based on step type
+            const popupContent = step.isHomeStep
+                ? `<strong>🏠 ${step.chantierNom}</strong><br>
+                   ${step.adresse || 'Adresse non renseignee'}<br>
+                   <small>${step.type === 'home_departure' ? 'Départ' : 'Retour'} ${step.heureCalculee || step.heureDebut}</small>`
+                : `<strong>${step.order}. ${step.chantierNom}</strong><br>
+                   ${step.adresse || 'Adresse non renseignee'}<br>
+                   <small>${formatDateFr(step.dateDebut)} à ${step.heureDebut}</small>`;
+
+            marker.bindPopup(popupContent);
 
             if (onStepClick) {
                 marker.on('click', () => onStepClick(step.id));
@@ -129,19 +176,38 @@ export function TourneeMap({ steps, routeGeometry, selectedStepId, onStepClick }
         }
     }, [steps, selectedStepId, onStepClick]);
 
-    // Show route
+    // Show route (supports segmented routes with different colors)
     useEffect(() => {
         const map = mapInstanceRef.current;
         if (!map) return;
 
-        // Remove old route
+        // Remove old routes
         if (routeLayerRef.current) {
             routeLayerRef.current.remove();
             routeLayerRef.current = null;
         }
+        segmentLayersRef.current.forEach((layer) => layer.remove());
+        segmentLayersRef.current = [];
 
-        // Add new route
-        if (routeGeometry) {
+        // If we have segmented routes, use those (with colors)
+        if (routeSegments && routeSegments.length > 0) {
+            routeSegments.forEach((segment) => {
+                const color = segment.isHomeRoute ? '#f97316' : '#3b82f6'; // orange for home, blue for inter-site
+                const layer = L.geoJSON(
+                    { type: 'Feature', geometry: segment.geometry, properties: {} } as GeoJSON.Feature,
+                    {
+                        style: {
+                            color,
+                            weight: 4,
+                            opacity: 0.8,
+                        },
+                    }
+                );
+                layer.addTo(map);
+                segmentLayersRef.current.push(layer);
+            });
+        } else if (routeGeometry) {
+            // Fallback to single route (blue)
             const layer = L.geoJSON(
                 { type: 'Feature', geometry: routeGeometry, properties: {} } as GeoJSON.Feature,
                 {
@@ -155,14 +221,16 @@ export function TourneeMap({ steps, routeGeometry, selectedStepId, onStepClick }
             layer.addTo(map);
             routeLayerRef.current = layer;
         }
-    }, [routeGeometry]);
+    }, [routeGeometry, routeSegments]);
 
     return <div ref={mapRef} className="w-full h-full rounded-lg" />;
 }
 
 function formatDateFr(dateStr: string): string {
-    const date = new Date(dateStr);
+    // Parse as local date (not UTC) to avoid timezone shift
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-    const day = days[date.getDay()];
-    return `${day} ${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    const dayName = days[date.getDay()];
+    return `${dayName} ${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}`;
 }

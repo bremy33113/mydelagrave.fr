@@ -12,6 +12,9 @@ export interface Database {
                     last_name: string | null;
                     role: string;
                     suspended: boolean;
+                    adresse_domicile: string | null;
+                    adresse_domicile_latitude: number | null;
+                    adresse_domicile_longitude: number | null;
                     created_at: string;
                     updated_at: string;
                 };

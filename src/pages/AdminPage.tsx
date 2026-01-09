@@ -13,6 +13,7 @@ import {
     ArrowUp,
     ArrowDown,
     Database,
+    MapPin,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
@@ -20,6 +21,7 @@ import { ROLE_COLORS, ROLE_HIERARCHY } from '../lib/constants';
 import type { Tables } from '../lib/database.types';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { RefTableEditor, FieldConfig } from '../components/admin/RefTableEditor';
+import { AddressSelectorModal } from '../components/chantiers/AddressSelectorModal';
 
 // Configuration des tables de référence
 interface TableConfig {
@@ -141,7 +143,13 @@ export function AdminPage() {
         last_name: '',
         role: 'poseur',
         password: '',
+        adresse_domicile: '',
+        adresse_domicile_latitude: null as number | null,
+        adresse_domicile_longitude: null as number | null,
     });
+
+    // Address modal state
+    const [showAddressModal, setShowAddressModal] = useState(false);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -236,6 +244,9 @@ export function AdminPage() {
             last_name: '',
             role: 'poseur',
             password: '',
+            adresse_domicile: '',
+            adresse_domicile_latitude: null,
+            adresse_domicile_longitude: null,
         });
         setShowModal(true);
     };
@@ -248,6 +259,9 @@ export function AdminPage() {
             last_name: user.last_name || '',
             role: user.role,
             password: '',
+            adresse_domicile: user.adresse_domicile || '',
+            adresse_domicile_latitude: user.adresse_domicile_latitude,
+            adresse_domicile_longitude: user.adresse_domicile_longitude,
         });
         setShowModal(true);
     };
@@ -264,6 +278,9 @@ export function AdminPage() {
                         first_name: formData.first_name,
                         last_name: formData.last_name,
                         role: formData.role,
+                        adresse_domicile: formData.adresse_domicile || null,
+                        adresse_domicile_latitude: formData.adresse_domicile_latitude,
+                        adresse_domicile_longitude: formData.adresse_domicile_longitude,
                         updated_at: new Date().toISOString(),
                     })
                     .eq('id', editingUser.id);
@@ -715,6 +732,35 @@ export function AdminPage() {
                                 </select>
                             </div>
 
+                            {/* Adresse domicile */}
+                            <div>
+                                <label className="input-label">Adresse domicile</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={formData.adresse_domicile}
+                                        readOnly
+                                        placeholder="Cliquer sur la carte pour sélectionner"
+                                        className="input-field flex-1 cursor-pointer"
+                                        onClick={() => setShowAddressModal(true)}
+                                        data-testid="user-address-input"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddressModal(true)}
+                                        className="btn-secondary flex items-center gap-2"
+                                        title="Sélectionner sur la carte"
+                                    >
+                                        <MapPin className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                {formData.adresse_domicile_latitude && formData.adresse_domicile_longitude && (
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        GPS: {formData.adresse_domicile_latitude.toFixed(5)}, {formData.adresse_domicile_longitude.toFixed(5)}
+                                    </p>
+                                )}
+                            </div>
+
                             {!isAdmin && formData.role === 'admin' && (
                                 <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">
                                     <AlertTriangle className="w-4 h-4" />
@@ -764,6 +810,27 @@ export function AdminPage() {
                 message={`Êtes-vous sûr de vouloir supprimer définitivement ${userToDelete?.first_name} ${userToDelete?.last_name} ? Cette action est irréversible.`}
                 confirmText="Supprimer"
                 variant="danger"
+            />
+
+            {/* Address Selector Modal */}
+            <AddressSelectorModal
+                isOpen={showAddressModal}
+                onClose={() => setShowAddressModal(false)}
+                onSelect={(address, coords) => {
+                    setFormData({
+                        ...formData,
+                        adresse_domicile: address,
+                        adresse_domicile_latitude: coords?.lat ?? null,
+                        adresse_domicile_longitude: coords?.lng ?? null,
+                    });
+                    setShowAddressModal(false);
+                }}
+                initialAddress={formData.adresse_domicile}
+                initialCoords={
+                    formData.adresse_domicile_latitude && formData.adresse_domicile_longitude
+                        ? { lat: formData.adresse_domicile_latitude, lng: formData.adresse_domicile_longitude }
+                        : undefined
+                }
             />
         </div>
     );
