@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Trash2, RotateCcw, AlertTriangle, Building2, FileText, User, File } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { DOCUMENT_TYPE_ICONS } from '../lib/constants';
 import type { Tables } from '../lib/database.types';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
@@ -137,13 +138,7 @@ export function TrashPage() {
     const permanentlyDeleteDocument = (id: string, storagePath: string) => setConfirmState({ type: 'delete', itemType: 'document', id, storagePath });
 
     const getDocumentTypeIcon = (type: string): string => {
-        const icons: Record<string, string> = {
-            plan: '📐',
-            devis: '💰',
-            rapport: '📄',
-            reserve: '📋',
-        };
-        return icons[type] || '📎';
+        return DOCUMENT_TYPE_ICONS[type as keyof typeof DOCUMENT_TYPE_ICONS] || DOCUMENT_TYPE_ICONS.default;
     };
 
     const formatDate = (date: string) => {

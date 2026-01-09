@@ -17,6 +17,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
 import { useMobileMode } from '../../hooks/useMobileMode';
+import { ROLE_COLORS_SIMPLE } from '../../lib/constants';
 import { OnlineUsers } from './OnlineUsers';
 
 // Type for Screen Details API (experimental)
@@ -247,18 +248,7 @@ export function Sidebar({ userEmail, userId }: SidebarProps) {
     };
 
     const getRoleColor = () => {
-        switch (role) {
-            case 'admin':
-                return 'bg-red-500/20 text-red-400';
-            case 'superviseur':
-                return 'bg-purple-500/20 text-purple-400';
-            case 'charge_affaire':
-                return 'bg-blue-500/20 text-blue-400';
-            case 'poseur':
-                return 'bg-green-500/20 text-green-400';
-            default:
-                return 'bg-slate-500/20 text-slate-400';
-        }
+        return ROLE_COLORS_SIMPLE[role as keyof typeof ROLE_COLORS_SIMPLE] || 'bg-slate-500/20 text-slate-400';
     };
 
     return (

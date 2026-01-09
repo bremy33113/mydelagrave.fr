@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, Plus, File, Eye, Download, Trash2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { DOCUMENT_TYPE_ICONS, DOCUMENT_TYPE_LABELS } from '../../lib/constants';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import type { Document } from './types';
 
@@ -86,23 +87,11 @@ export function ChantierDocumentsSection({
     };
 
     const getDocumentTypeIcon = (type: string): string => {
-        const icons: Record<string, string> = {
-            plan: '📐',
-            devis: '💰',
-            rapport: '📄',
-            reserve: '📋',
-        };
-        return icons[type] || '📎';
+        return DOCUMENT_TYPE_ICONS[type as keyof typeof DOCUMENT_TYPE_ICONS] || DOCUMENT_TYPE_ICONS.default;
     };
 
     const getDocumentTypeLabel = (type: string): string => {
-        const labels: Record<string, string> = {
-            plan: 'Plan',
-            devis: 'Devis',
-            rapport: 'Rapport',
-            reserve: 'Réserves',
-        };
-        return labels[type] || type;
+        return DOCUMENT_TYPE_LABELS[type as keyof typeof DOCUMENT_TYPE_LABELS] || type;
     };
 
     const formatFileSize = (bytes: number): string => {

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
+import { ROLE_COLORS, ROLE_HIERARCHY } from '../lib/constants';
 import type { Tables } from '../lib/database.types';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { RefTableEditor, FieldConfig } from '../components/admin/RefTableEditor';
@@ -207,13 +208,7 @@ export function AdminPage() {
                 comparison = nameA.localeCompare(nameB, 'fr');
             } else if (sortColumn === 'role') {
                 // Sort by role level (admin > superviseur > charge_affaire > poseur)
-                const roleOrder: Record<string, number> = {
-                    admin: 4,
-                    superviseur: 3,
-                    charge_affaire: 2,
-                    poseur: 1,
-                };
-                comparison = (roleOrder[b.role] || 0) - (roleOrder[a.role] || 0);
+                comparison = (ROLE_HIERARCHY[b.role as keyof typeof ROLE_HIERARCHY] || 0) - (ROLE_HIERARCHY[a.role as keyof typeof ROLE_HIERARCHY] || 0);
             }
 
             return sortDirection === 'asc' ? comparison : -comparison;
@@ -230,18 +225,7 @@ export function AdminPage() {
     };
 
     const getRoleColor = (role: string) => {
-        switch (role) {
-            case 'admin':
-                return 'bg-red-500/20 text-red-400 border-red-500/30';
-            case 'superviseur':
-                return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-            case 'charge_affaire':
-                return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-            case 'poseur':
-                return 'bg-green-500/20 text-green-400 border-green-500/30';
-            default:
-                return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
-        }
+        return ROLE_COLORS[role as keyof typeof ROLE_COLORS] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
     };
 
     const openCreateModal = () => {

@@ -13,6 +13,7 @@ import { DroppablePoseurRow } from './DroppablePoseurRow';
 import { SansPoseRow } from './SansPoseRow';
 import { DraggablePhase } from './DraggablePhase';
 import { isHoliday } from '../../lib/dateUtils';
+import { CHANTIER_STATUS_COLORS } from '../../lib/constants';
 import type { PhaseWithRelations, ViewMode } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
 
@@ -29,16 +30,6 @@ interface PlanningCalendarProps {
     onPhaseNavigate?: (phaseId: string) => void;
     onPhaseClick?: (phaseId: string) => void;
 }
-
-// Status colors
-const STATUS_COLORS: Record<string, string> = {
-    nouveau: 'bg-blue-500/80 border-blue-400',
-    planifie: 'bg-purple-500/80 border-purple-400',
-    en_cours: 'bg-amber-500/80 border-amber-400',
-    pose_en_cours: 'bg-pink-500/80 border-pink-400',
-    a_terminer: 'bg-orange-500/80 border-orange-400',
-    termine: 'bg-green-500/80 border-green-400',
-};
 
 // Generate N working days starting from a date (excluding weekends)
 function getWorkingDaysFromStart(start: Date, count: number): { date: Date; isHoliday: boolean; weekendBefore: boolean }[] {
@@ -495,7 +486,7 @@ export function PlanningCalendar({
                         workingDates={workingDates}
                         columnWidth={columnWidth}
                         poseurColumnWidth={POSEUR_COLUMN_WIDTH}
-                        statusColors={STATUS_COLORS}
+                        statusColors={CHANTIER_STATUS_COLORS}
                         onPhaseUpdate={onPhaseUpdate}
                         isCompact={isCompact}
                         onPoseurClick={onPoseurClick}
@@ -517,7 +508,7 @@ export function PlanningCalendar({
                     workingDates={workingDates}
                     columnWidth={columnWidth}
                     poseurColumnWidth={POSEUR_COLUMN_WIDTH}
-                    statusColors={STATUS_COLORS}
+                    statusColors={CHANTIER_STATUS_COLORS}
                     onPhaseUpdate={onPhaseUpdate}
                     isCompact={isCompact}
                     highlightedChantierId={highlightedChantierId}
@@ -537,7 +528,7 @@ export function PlanningCalendar({
                     workingDates={workingDates}
                     columnWidth={columnWidth}
                     poseurColumnWidth={POSEUR_COLUMN_WIDTH}
-                    statusColors={STATUS_COLORS}
+                    statusColors={CHANTIER_STATUS_COLORS}
                     isCompact={isCompact}
                     onPhaseUpdate={onPhaseUpdate}
                     highlightedChantierId={highlightedChantierId}
@@ -554,7 +545,7 @@ export function PlanningCalendar({
                 {activePhase && (
                     <DraggablePhase
                         phase={activePhase}
-                        statusColors={STATUS_COLORS}
+                        statusColors={CHANTIER_STATUS_COLORS}
                         isDragging
                         isCompact={isCompact}
                     />

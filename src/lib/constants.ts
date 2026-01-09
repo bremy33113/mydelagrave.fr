@@ -95,3 +95,74 @@ export const RESERVE_STATUS_LABELS = {
     levee: 'Levée',
     rejetee: 'Rejetée',
 } as const;
+
+// Couleurs des statuts de chantier (planning)
+export const CHANTIER_STATUS_COLORS = {
+    nouveau: 'bg-blue-500/80 border-blue-400',
+    planifie: 'bg-purple-500/80 border-purple-400',
+    en_cours: 'bg-amber-500/80 border-amber-400',
+    pose_en_cours: 'bg-pink-500/80 border-pink-400',
+    a_terminer: 'bg-orange-500/80 border-orange-400',
+    termine: 'bg-green-500/80 border-green-400',
+} as const;
+
+// Couleurs des statuts de chantier (mobile - avec label)
+export const CHANTIER_STATUS_CONFIG = {
+    nouveau: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Nouveau' },
+    en_preparation: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'En préparation' },
+    en_cours: { bg: 'bg-green-500/20', text: 'text-green-400', label: 'En cours' },
+    termine: { bg: 'bg-slate-500/20', text: 'text-slate-400', label: 'Terminé' },
+    annule: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Annulé' },
+} as const;
+
+// Couleurs des rôles utilisateurs
+export const ROLE_COLORS = {
+    admin: 'bg-red-500/20 text-red-400 border-red-500/30',
+    superviseur: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    charge_affaire: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    poseur: 'bg-green-500/20 text-green-400 border-green-500/30',
+} as const;
+
+// Couleurs des rôles (version simple sans border)
+export const ROLE_COLORS_SIMPLE = {
+    admin: 'bg-red-500/20 text-red-400',
+    superviseur: 'bg-purple-500/20 text-purple-400',
+    charge_affaire: 'bg-blue-500/20 text-blue-400',
+    poseur: 'bg-green-500/20 text-green-400',
+} as const;
+
+// Hiérarchie des rôles (pour le tri)
+export const ROLE_HIERARCHY = {
+    admin: 4,
+    superviseur: 3,
+    charge_affaire: 2,
+    poseur: 1,
+} as const;
+
+// Icônes des types de documents
+export const DOCUMENT_TYPE_ICONS = {
+    plan: '📐',
+    devis: '💰',
+    rapport: '📄',
+    reserve: '📋',
+    feuille_pointage: '📊',
+    default: '📎',
+} as const;
+
+// Labels des types de documents
+export const DOCUMENT_TYPE_LABELS = {
+    plan: 'Plan',
+    devis: 'Devis',
+    rapport: 'Rapport',
+    reserve: 'Réserve',
+    feuille_pointage: 'Feuille de pointage',
+} as const;
+
+// Jours de la semaine (courts)
+export const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'] as const;
+
+// Jours de la semaine (longs)
+export const DAYS_LONG = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'] as const;
+
+// Jours de la semaine (longs, commençant par Lundi)
+export const DAYS_LONG_FR = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'] as const;

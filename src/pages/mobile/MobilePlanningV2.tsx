@@ -7,6 +7,7 @@ import { MobilePlanningMap } from '../../components/mobile/MobilePlanningMap';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
 import { formatLocalDate } from '../../lib/dateUtils';
+import { DAYS_SHORT } from '../../lib/constants';
 import { ChevronLeft, ChevronRight, MapPin, List, Map, Clock, AlertTriangle } from 'lucide-react';
 
 interface PhaseWithChantier {
@@ -37,8 +38,6 @@ interface Reserve {
     chantier_id: string;
     statut_reserve: string;
 }
-
-const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
 type ViewMode = 'jour' | 'semaine';
 type DisplayMode = 'liste' | 'carte';

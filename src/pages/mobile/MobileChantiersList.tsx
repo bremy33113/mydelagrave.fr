@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { MobileLayout } from '../../components/mobile/MobileLayout';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
+import { CHANTIER_STATUS_CONFIG } from '../../lib/constants';
 import { Search, ChevronRight, RefreshCw, Wrench, Truck } from 'lucide-react';
 
 interface Chantier {
@@ -22,14 +23,6 @@ const CATEGORY_LABELS: Record<string, string> = {
     en: 'Enseignement',
     hospitalier: 'Hospitalier',
     collectivite: 'Collectivité',
-};
-
-const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-    nouveau: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Nouveau' },
-    en_preparation: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'En préparation' },
-    en_cours: { bg: 'bg-green-500/20', text: 'text-green-400', label: 'En cours' },
-    termine: { bg: 'bg-slate-500/20', text: 'text-slate-400', label: 'Terminé' },
-    annule: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Annulé' },
 };
 
 export function MobileChantiersList() {
@@ -98,7 +91,7 @@ export function MobileChantiersList() {
     };
 
     const getStatusInfo = (statut: string) => {
-        return STATUS_COLORS[statut] || STATUS_COLORS.nouveau;
+        return CHANTIER_STATUS_CONFIG[statut as keyof typeof CHANTIER_STATUS_CONFIG] || CHANTIER_STATUS_CONFIG.nouveau;
     };
 
     const getCategoryLabel = (categorie: string | null) => {
