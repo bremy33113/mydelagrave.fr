@@ -4,6 +4,7 @@ import { MobileLayout } from '../../components/mobile/MobileLayout';
 import { MobileGlassCard } from '../../components/mobile/MobileGlassCard';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
+import { formatLocalDate } from '../../lib/dateUtils';
 import { Play, Square, Car, Wrench, Calendar, ChevronRight } from 'lucide-react';
 import { MobileTimePicker } from '../../components/mobile/MobileTimePicker';
 import type { Tables } from '../../lib/database.types';
@@ -48,13 +49,6 @@ export function MobilePointagePage() {
     const timerIntervalRef = useRef<number | null>(null);
 
     const today = new Date();
-    // Formater en date locale (YYYY-MM-DD) sans problème de fuseau horaire
-    const formatLocalDate = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
     const todayStr = formatLocalDate(today);
 
     const fetchData = useCallback(async () => {

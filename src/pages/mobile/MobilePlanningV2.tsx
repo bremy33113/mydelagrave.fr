@@ -6,6 +6,7 @@ import { MobileStatusBadge, getCategoryGradient, getCategoryIcon } from '../../c
 import { MobilePlanningMap } from '../../components/mobile/MobilePlanningMap';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
+import { formatLocalDate } from '../../lib/dateUtils';
 import { ChevronLeft, ChevronRight, MapPin, List, Map, Clock, AlertTriangle } from 'lucide-react';
 
 interface PhaseWithChantier {
@@ -38,14 +39,6 @@ interface Reserve {
 }
 
 const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-
-// Formater en date locale (YYYY-MM-DD) sans problème de fuseau horaire
-const formatLocalDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
 
 type ViewMode = 'jour' | 'semaine';
 type DisplayMode = 'liste' | 'carte';

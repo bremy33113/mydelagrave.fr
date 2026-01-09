@@ -12,6 +12,7 @@ import {
 import { DroppablePoseurRow } from './DroppablePoseurRow';
 import { SansPoseRow } from './SansPoseRow';
 import { DraggablePhase } from './DraggablePhase';
+import { isHoliday } from '../../lib/dateUtils';
 import type { PhaseWithRelations, ViewMode } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
 
@@ -39,27 +40,6 @@ const STATUS_COLORS: Record<string, string> = {
     termine: 'bg-green-500/80 border-green-400',
 };
 
-// French public holidays for 2025-2027
-const HOLIDAYS = [
-    // 2025
-    '2025-01-01', '2025-04-21', '2025-05-01', '2025-05-08', '2025-05-29',
-    '2025-06-09', '2025-07-14', '2025-08-15', '2025-11-01', '2025-11-11', '2025-12-25',
-    // 2026
-    '2026-01-01', '2026-04-06', '2026-05-01', '2026-05-08', '2026-05-14',
-    '2026-05-25', '2026-07-14', '2026-08-15', '2026-11-01', '2026-11-11', '2026-12-25',
-    // 2027
-    '2027-01-01', '2027-03-29', '2027-05-01', '2027-05-06', '2027-05-08',
-    '2027-05-17', '2027-07-14', '2027-08-15', '2027-11-01', '2027-11-11', '2027-12-25',
-];
-
-// Format date as YYYY-MM-DD in local timezone (not UTC)
-function formatLocalDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
 // Generate N working days starting from a date (excluding weekends)
 function getWorkingDaysFromStart(start: Date, count: number): { date: Date; isHoliday: boolean; weekendBefore: boolean }[] {
     const dates: { date: Date; isHoliday: boolean; weekendBefore: boolean }[] = [];
@@ -73,11 +53,10 @@ function getWorkingDaysFromStart(start: Date, count: number): { date: Date; isHo
         if (isWeekend) {
             lastWasWeekend = true;
         } else {
-            const dateStr = formatLocalDate(current);
-            const isHoliday = HOLIDAYS.includes(dateStr);
+            const holiday = isHoliday(current);
             dates.push({
                 date: new Date(current),
-                isHoliday,
+                isHoliday: holiday,
                 weekendBefore: lastWasWeekend
             });
             lastWasWeekend = false;

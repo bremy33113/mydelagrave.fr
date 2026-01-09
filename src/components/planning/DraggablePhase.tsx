@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { ChevronLeft, ChevronRight, X, Check, Truck } from 'lucide-react';
+import { calculateEndDateTime } from '../../lib/dateUtils';
 import type { PhaseWithRelations } from '../../pages/PlanningPage';
 import type { Tables } from '../../lib/database.types';
 
@@ -17,70 +18,6 @@ interface DraggablePhaseProps {
     onPhaseNavigate?: (phaseId: string) => void;
     onPhaseClick?: (phaseId: string) => void;
     showNavigationArrows?: boolean;
-}
-
-// French public holidays for 2026
-const HOLIDAYS_2026 = [
-    '2026-01-01', '2026-04-06', '2026-05-01', '2026-05-08', '2026-05-14',
-    '2026-05-25', '2026-07-14', '2026-08-15', '2026-11-01', '2026-11-11', '2026-12-25',
-];
-
-// Working hours
-const WORK_START_MORNING = 8;
-const WORK_END_MORNING = 12;
-const WORK_START_AFTERNOON = 13;
-const WORK_END_AFTERNOON = 17;
-
-function isWorkingDay(date: Date): boolean {
-    const day = date.getDay();
-    if (day === 0 || day === 6) return false;
-    const dateStr = date.toISOString().split('T')[0];
-    return !HOLIDAYS_2026.includes(dateStr);
-}
-
-function calculateEndDateTime(startDate: string, startHour: number, durationHours: number): { endDate: string; endHour: number } {
-    let remainingHours = durationHours;
-    const currentDate = new Date(startDate);
-    let currentHour = startHour;
-
-    if (currentHour < WORK_START_MORNING) currentHour = WORK_START_MORNING;
-    if (currentHour >= WORK_END_MORNING && currentHour < WORK_START_AFTERNOON) currentHour = WORK_START_AFTERNOON;
-    if (currentHour >= WORK_END_AFTERNOON) {
-        currentDate.setDate(currentDate.getDate() + 1);
-        currentHour = WORK_START_MORNING;
-    }
-
-    while (!isWorkingDay(currentDate)) {
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    while (remainingHours > 0) {
-        if (currentHour >= WORK_START_MORNING && currentHour < WORK_END_MORNING) {
-            const morningHours = Math.min(WORK_END_MORNING - currentHour, remainingHours);
-            remainingHours -= morningHours;
-            currentHour = WORK_END_MORNING;
-
-            if (remainingHours > 0) {
-                const afternoonHours = Math.min(WORK_END_AFTERNOON - WORK_START_AFTERNOON, remainingHours);
-                remainingHours -= afternoonHours;
-                currentHour = WORK_START_AFTERNOON + afternoonHours;
-            }
-        } else if (currentHour >= WORK_START_AFTERNOON && currentHour < WORK_END_AFTERNOON) {
-            const afternoonHours = Math.min(WORK_END_AFTERNOON - currentHour, remainingHours);
-            remainingHours -= afternoonHours;
-            currentHour += afternoonHours;
-        }
-
-        if (remainingHours > 0) {
-            currentDate.setDate(currentDate.getDate() + 1);
-            while (!isWorkingDay(currentDate)) {
-                currentDate.setDate(currentDate.getDate() + 1);
-            }
-            currentHour = WORK_START_MORNING;
-        }
-    }
-
-    return { endDate: currentDate.toISOString().split('T')[0], endHour: currentHour };
 }
 
 export function DraggablePhase({
