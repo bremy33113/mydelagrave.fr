@@ -147,6 +147,7 @@ function migrateIfNeeded(): void {
         }
         if (note.localisation === undefined) note.localisation = null;
         if (note.statut_reserve === undefined) note.statut_reserve = null;
+        if (note.priorite === undefined) note.priorite = null;
         if (note.traite_par === undefined) note.traite_par = null;
         if (note.date_traitement === undefined) note.date_traitement = null;
         if (note.date_resolution === undefined) note.date_resolution = null;

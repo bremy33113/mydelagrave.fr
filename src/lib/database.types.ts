@@ -100,6 +100,7 @@ export interface Database {
                     // Champs pour réserves
                     localisation: string | null;
                     statut_reserve: 'ouverte' | 'en_cours' | 'levee' | 'rejetee' | null;
+                    priorite: 'basse' | 'normale' | 'haute' | 'urgente' | null;
                     traite_par: string | null;
                     date_traitement: string | null;
                     date_resolution: string | null;

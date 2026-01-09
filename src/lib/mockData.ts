@@ -8,6 +8,7 @@ import type { Tables } from './database.types';
 export const ref_roles_user: Tables<'ref_roles_user'>[] = [
     { code: 'admin', label: 'Administrateur', level: 100, description: 'Accès complet à toutes les fonctionnalités' },
     { code: 'superviseur', label: 'Superviseur', level: 80, description: 'Supervision des chantiers et poseurs' },
+    { code: 'service_installation', label: 'Service installation', level: 70, description: 'Assistante Service installation' },
     { code: 'charge_affaire', label: "Chargé d'Affaires", level: 50, description: 'Gestion de ses propres chantiers' },
     { code: 'poseur', label: 'Poseur', level: 10, description: 'Consultation des phases assignées' },
 ];
@@ -436,6 +437,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'ca-uuid-001',
         localisation: null,
         statut_reserve: null,
+        priorite: null,
         traite_par: null,
         date_traitement: null,
         date_resolution: null,
@@ -457,6 +459,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'ca-uuid-001',
         localisation: null,
         statut_reserve: null,
+        priorite: null,
         traite_par: null,
         date_traitement: null,
         date_resolution: null,
@@ -479,6 +482,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'poseur-uuid-001',
         localisation: 'Accueil',
         statut_reserve: 'ouverte',
+        priorite: 'normale',
         traite_par: null,
         date_traitement: null,
         date_resolution: null,
@@ -500,6 +504,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'poseur-uuid-001',
         localisation: 'Bureau 102',
         statut_reserve: 'ouverte',
+        priorite: 'basse',
         traite_par: null,
         date_traitement: null,
         date_resolution: null,
@@ -521,6 +526,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'poseur-uuid-001',
         localisation: 'Laboratoire principal',
         statut_reserve: 'en_cours',
+        priorite: 'haute',
         traite_par: 'sup-uuid-001',
         date_traitement: '2026-01-06T09:00:00Z',
         date_resolution: null,
@@ -542,6 +548,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'poseur-uuid-001',
         localisation: 'Salle de préparation',
         statut_reserve: 'levee',
+        priorite: 'normale',
         traite_par: 'ca-uuid-001',
         date_traitement: '2026-01-04T14:00:00Z',
         date_resolution: '2026-01-05T10:00:00Z',
@@ -564,6 +571,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'ca-uuid-001',
         localisation: 'Amphithéâtre A',
         statut_reserve: 'ouverte',
+        priorite: 'normale',
         traite_par: null,
         date_traitement: null,
         date_resolution: null,
@@ -585,6 +593,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'ca-uuid-001',
         localisation: 'Bibliothèque',
         statut_reserve: 'rejetee',
+        priorite: 'basse',
         traite_par: 'sup-uuid-001',
         date_traitement: '2026-01-03T11:00:00Z',
         date_resolution: '2026-01-03T14:00:00Z',
@@ -607,6 +616,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'poseur-uuid-001',
         localisation: 'Pharmacie centrale',
         statut_reserve: 'en_cours',
+        priorite: 'normale',
         traite_par: 'ca-uuid-001',
         date_traitement: '2026-01-05T15:00:00Z',
         date_resolution: null,
@@ -628,6 +638,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'poseur-uuid-001',
         localisation: 'Hall d\'accueil',
         statut_reserve: 'ouverte',
+        priorite: 'urgente',
         traite_par: null,
         date_traitement: null,
         date_resolution: null,
@@ -650,6 +661,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'ca-uuid-001',
         localisation: 'Local technique',
         statut_reserve: 'levee',
+        priorite: 'normale',
         traite_par: 'sup-uuid-001',
         date_traitement: '2025-09-20T10:00:00Z',
         date_resolution: '2025-09-25T14:00:00Z',
@@ -671,6 +683,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'poseur-uuid-001',
         localisation: 'Salle d\'analyse',
         statut_reserve: 'levee',
+        priorite: 'haute',
         traite_par: 'ca-uuid-001',
         date_traitement: '2025-09-18T09:00:00Z',
         date_resolution: '2025-09-22T16:00:00Z',
@@ -693,6 +706,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         created_by: 'poseur-uuid-001',
         localisation: null,
         statut_reserve: null,
+        priorite: null,
         traite_par: null,
         date_traitement: null,
         date_resolution: null,
@@ -1062,6 +1076,7 @@ const generateReserves = (chantiers: Tables<'chantiers'>[]): Tables<'notes_chant
     const poseurs = ['poseur-uuid-001', 'poseur-uuid-002', 'poseur-uuid-003', 'poseur-uuid-004', 'poseur-uuid-005'];
     const traiteurs = ['ca-uuid-001', 'ca-uuid-002', 'sup-uuid-001'];
     const statuts: ('ouverte' | 'en_cours' | 'levee' | 'rejetee')[] = ['ouverte', 'en_cours', 'levee', 'rejetee'];
+    const priorites: ('basse' | 'normale' | 'haute' | 'urgente')[] = ['basse', 'normale', 'haute', 'urgente'];
     let reserveCounter = 100;
 
     chantiers.forEach(chantier => {
@@ -1085,6 +1100,7 @@ const generateReserves = (chantiers: Tables<'chantiers'>[]): Tables<'notes_chant
                 created_by: randomItem(poseurs),
                 localisation: randomItem(LOCALISATIONS_RESERVE),
                 statut_reserve: statut,
+                priorite: randomItem(priorites),
                 traite_par: statut !== 'ouverte' ? randomItem(traiteurs) : null,
                 date_traitement: statut !== 'ouverte' ? addDays(dateCreation, randomInt(1, 3)).toISOString() : null,
                 date_resolution: (statut === 'levee' || statut === 'rejetee') ? addDays(dateCreation, randomInt(2, 5)).toISOString() : null,

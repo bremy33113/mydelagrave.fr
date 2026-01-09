@@ -46,3 +46,6 @@ npm-debug.log*
 
 # Claude Code (keep commands/, ignore local settings)
 .claude/settings*.json
+
+# Deployment scripts (contains FTP credentials)
+deploy-ftp.ps1

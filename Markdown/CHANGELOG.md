@@ -2,6 +2,33 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.5.0] - 2026-01-09
+
+### Synchronisation Supabase et Sécurité
+
+### Nouvelles Fonctionnalités
+- ✨ Synchronisation complète schéma application ↔ Supabase
+- ✨ Table `historique_phases` pour tracer les modifications des phases
+- ✨ Colonnes `adresse_domicile`, `adresse_domicile_latitude`, `adresse_domicile_longitude` sur `users`
+- ✨ Colonnes `heures_allouees`, `budget_heures` sur `chantiers`
+- ✨ Champ `priorite` sur les réserves (basse/normale/haute/urgente)
+- ✨ Rôle `service_installation` ajouté (level 70)
+- ✨ Type document `feuille_pointage` ajouté
+
+### Améliorations Sécurité
+- 🔒 Correction `search_path` sur 8 fonctions SQL (protection injection)
+- 🔒 RLS activé sur table `schema_version`
+
+### Migrations Supabase
+- `add_users_home_address` - Colonnes adresse domicile
+- `add_chantiers_budget_columns` - Colonnes budget heures
+- `add_notes_reserves_rapport_columns` - Colonnes réserves/rapports
+- `create_historique_phases_table` - Table historique avec RLS
+- `fix_functions_search_path` - Sécurisation fonctions
+- `enable_rls_schema_version` - RLS sur schema_version
+
+---
+
 ## [2.4.0] - 2026-01-09
 
 ### Propagation automatique des sous-phases

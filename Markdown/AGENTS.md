@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.4.0**
+**2.5.0**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.4.0 - Propagation automatique des sous-phases
+MyDelagrave v2.5.0 - Synchronisation Supabase et Sécurité
 
 ## Mode d'Exécution
 
@@ -55,6 +55,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.5.0 | 2026-01-09 | Synchronisation Supabase et Sécurité |
 | 2.3.0 | 2026-01-09 | Refactoring et Centralisation des Utilitaires |
 | 2.2.1 | 2026-01-06 | Améliorations phases et filtres utilisateurs |
 | 2.1.0 | 2026-01-06 | Vue Carte Planning Poseur avec Tournée |
