@@ -122,7 +122,7 @@ export function DraggablePhase({
                 isDragging ? 'opacity-80 shadow-xl scale-105' : 'hover:brightness-110'
             } ${isFocused ? 'ring-4 ring-blue-500 ring-offset-1 ring-offset-slate-900 z-20' : isHighlighted ? 'ring-2 ring-blue-400/60 ring-offset-1 ring-offset-slate-900 z-10' : ''} transition-all`}
             onClick={() => onPhaseClick?.(phase.id)}
-            title={`${phase.chantier?.nom || 'Chantier'} - ${phase.libelle || 'Phase'}\n${phase.date_debut} → ${phase.date_fin}\n${phase.duree_heures}h${isFournitureSeule ? '\n🚚 Fourniture seule' : ''}\n(Glisser horizontalement pour déplacer, étirer le bord droit pour modifier la durée)`}
+            title={`${phase.chantier?.nom || 'Chantier'} - ${phase.libelle || 'Phase'}\n${phase.date_debut} → ${phase.date_fin}\n${phase.heure_debut?.slice(0, 5) || '08:00'} → ${phase.heure_fin?.slice(0, 5) || '17:00'} (${phase.duree_heures}h)${isFournitureSeule ? '\n🚚 Fourniture seule' : ''}`}
         >
             <div className="h-full flex items-center justify-center px-1 gap-0.5">
                 {/* Navigation arrow left */}

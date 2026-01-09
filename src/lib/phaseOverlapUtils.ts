@@ -78,10 +78,19 @@ export function calculateCascadeUpdates(
 
     // Trouver la phase modifiée
     const modifiedPhase = allPhases.find(p => p.id === phaseId);
-    if (!modifiedPhase) return updates;
+    if (!modifiedPhase) {
+        console.log('[Cascade] Phase non trouvée:', phaseId);
+        return updates;
+    }
+
+    console.log('[Cascade] Phase modifiée:', modifiedPhase.libelle, 'groupe:', modifiedPhase.groupe_phase, 'numero:', modifiedPhase.numero_phase);
+    console.log('[Cascade] Nouvelle fin:', newDateFin, newHeureFin + 'h');
 
     // Si pas de groupe_phase, pas de propagation
-    if (!modifiedPhase.groupe_phase) return updates;
+    if (!modifiedPhase.groupe_phase) {
+        console.log('[Cascade] Pas de groupe_phase, pas de propagation');
+        return updates;
+    }
 
     // Filtrer les phases du même chantier ET même groupe_phase
     const sameGroupPhases = allPhases.filter(p =>
@@ -90,7 +99,12 @@ export function calculateCascadeUpdates(
         p.id !== phaseId
     );
 
-    if (sameGroupPhases.length === 0) return updates;
+    console.log('[Cascade] Phases même groupe:', sameGroupPhases.length, sameGroupPhases.map(p => `${p.groupe_phase}.${p.numero_phase} (${p.date_debut})`));
+
+    if (sameGroupPhases.length === 0) {
+        console.log('[Cascade] Aucune autre phase dans le groupe');
+        return updates;
+    }
 
     // Trier par date_debut + heure_debut
     const sortedPhases = [...sameGroupPhases].sort((a, b) => {
@@ -110,6 +124,8 @@ export function calculateCascadeUpdates(
         return pStart > modifiedPhaseStart;
     });
 
+    console.log('[Cascade] Phases potentiellement affectées:', potentiallyAffected.length, potentiallyAffected.map(p => `${p.groupe_phase}.${p.numero_phase}`));
+
     // Maintenant, vérifier les chevauchements en cascade
     let currentEndDate = newDateFin;
     let currentEndHour = newHeureFin;
@@ -118,8 +134,11 @@ export function calculateCascadeUpdates(
         const phaseStartDate = phase.date_debut;
         const phaseStartHour = parseHour(phase.heure_debut);
 
+        const overlap = hasOverlap(currentEndDate, currentEndHour, phaseStartDate, phaseStartHour);
+        console.log(`[Cascade] Check ${phase.groupe_phase}.${phase.numero_phase}: fin=${currentEndDate} ${currentEndHour}h vs debut=${phaseStartDate} ${phaseStartHour}h => overlap=${overlap}`);
+
         // Vérifier s'il y a chevauchement
-        if (hasOverlap(currentEndDate, currentEndHour, phaseStartDate, phaseStartHour)) {
+        if (overlap) {
             // Calculer la nouvelle date de début = date de fin de la phase précédente
             // On commence juste après la fin de la phase précédente
             let newStartDate = currentEndDate;
@@ -160,10 +179,12 @@ export function calculateCascadeUpdates(
         } else {
             // Pas de chevauchement, arrêter la cascade
             // (les phases suivantes ne peuvent pas chevaucher non plus)
+            console.log('[Cascade] Pas de chevauchement, arrêt cascade');
             break;
         }
     }
 
+    console.log('[Cascade] Updates générés:', updates.length, updates.map(u => u.id.slice(0, 8)));
     return updates;
 }
 

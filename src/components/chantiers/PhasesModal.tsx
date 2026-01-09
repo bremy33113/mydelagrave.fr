@@ -234,14 +234,29 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom, chantier
                 poseur_id: subPhaseForm.poseur_id || null,
             };
 
+            console.log('[PhasesModal] Saving sub-phase:', dataToSave);
+
             if (editingPhase) {
-                await supabase
+                const { error } = await supabase
                     .from('phases_chantiers')
                     .update({ ...dataToSave, updated_at: new Date().toISOString() })
                     .eq('id', editingPhase.id);
+                if (error) {
+                    console.error('[PhasesModal] Update error:', error);
+                    throw new Error(error.message);
+                }
             } else {
-                await supabase.from('phases_chantiers').insert([dataToSave]);
+                const { error } = await supabase.from('phases_chantiers').insert([dataToSave]);
+                if (error) {
+                    console.error('[PhasesModal] Insert error:', error);
+                    throw new Error(error.message);
+                }
             }
+
+            console.log('[PhasesModal] Sub-phase saved successfully');
+
+            // Signal au planning qu'une phase a été modifiée
+            localStorage.setItem('phases_last_update', Date.now().toString());
 
             resetSubPhaseForm();
             await fetchPhases();
@@ -341,6 +356,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom, chantier
         if (!phaseIdToDelete) return;
         try {
             await supabase.from('phases_chantiers').delete().eq('id', phaseIdToDelete);
+            localStorage.setItem('phases_last_update', Date.now().toString());
             await fetchPhases();
             setShowDeleteModal(false);
             setPhaseIdToDelete(null);

@@ -119,10 +119,17 @@ export function PlanningPage() {
             if (error) {
                 console.error('Error fetching phases:', error);
             } else if (data && Array.isArray(data)) {
+                console.log('[Planning] Phases brutes:', data.length);
                 // Filter out phases from deleted chantiers
                 const validPhases = data.filter(
                     (p: PhaseWithRelations) => p.chantier && !(p.chantier as { deleted_at?: string }).deleted_at
                 ) as PhaseWithRelations[];
+                console.log('[Planning] Phases valides:', validPhases.length);
+                // Debug: show phases without chantier
+                const phasesWithoutChantier = data.filter((p: PhaseWithRelations) => !p.chantier);
+                if (phasesWithoutChantier.length > 0) {
+                    console.log('[Planning] Phases sans chantier:', phasesWithoutChantier);
+                }
                 setPhases(validPhases);
             }
 
@@ -131,6 +138,24 @@ export function PlanningPage() {
 
         fetchPhases();
     }, [refreshKey]);
+
+    // Listen for phase updates from other components (e.g., PhasesModal)
+    useEffect(() => {
+        let lastUpdate = localStorage.getItem('phases_last_update') || '0';
+
+        const checkForUpdates = () => {
+            const currentUpdate = localStorage.getItem('phases_last_update') || '0';
+            if (currentUpdate !== lastUpdate) {
+                lastUpdate = currentUpdate;
+                setRefreshKey((k) => k + 1);
+            }
+        };
+
+        // Check every 500ms for updates
+        const interval = setInterval(checkForUpdates, 500);
+
+        return () => clearInterval(interval);
+    }, []);
 
     // Filter phases for calendar view (within date range)
     // Only show real sub-phases (duree_heures > 0), not phase group headers
