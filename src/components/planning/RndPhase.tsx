@@ -34,7 +34,7 @@ export function RndPhase({
     rowHeight,
 }: RndPhaseProps) {
     const [isInteracting, setIsInteracting] = useState(false);
-    const [tempPosition, setTempPosition] = useState({ x: initialLeft, width: initialWidth });
+    const [previewData, setPreviewData] = useState<{ x: number; width: number } | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Calculate snap grid
@@ -47,17 +47,18 @@ export function RndPhase({
     // Handle drag start
     const handleDragStart: RndDragCallback = () => {
         setIsInteracting(true);
-        setTempPosition({ x: initialLeft, width: initialWidth });
+        setPreviewData({ x: initialLeft, width: initialWidth });
     };
 
-    // Handle drag (live update position)
+    // Handle drag (update preview only, let react-rnd handle visual)
     const handleDrag: RndDragCallback = (_e, d) => {
-        setTempPosition(prev => ({ ...prev, x: Math.max(0, d.x) }));
+        setPreviewData(prev => prev ? { ...prev, x: Math.max(0, d.x) } : null);
     };
 
     // Handle drag end - update the phase date/time
     const handleDragStop: RndDragCallback = useCallback((_e, d) => {
         setIsInteracting(false);
+        setPreviewData(null);
 
         // Only update if position actually changed
         const deltaX = Math.abs(d.x - initialLeft);
@@ -74,17 +75,18 @@ export function RndPhase({
     // Handle resize start
     const handleResizeStart = () => {
         setIsInteracting(true);
-        setTempPosition({ x: initialLeft, width: initialWidth });
+        setPreviewData({ x: initialLeft, width: initialWidth });
     };
 
-    // Handle resize (live update width)
+    // Handle resize (update preview only, let react-rnd handle visual)
     const handleResize: RndResizeCallback = (_e, _dir, ref) => {
-        setTempPosition(prev => ({ ...prev, width: ref.offsetWidth }));
+        setPreviewData(prev => prev ? { ...prev, width: ref.offsetWidth } : null);
     };
 
     // Handle resize end - update the phase duration
     const handleResizeStop: RndResizeCallback = useCallback((_e, _dir, ref) => {
         setIsInteracting(false);
+        setPreviewData(null);
 
         const newWidth = ref.offsetWidth;
         // Only update if width actually changed
@@ -98,9 +100,9 @@ export function RndPhase({
     }, [phase.id, initialWidth, columnWidth, onDurationChange]);
 
     // Calculate preview info during interaction
-    const previewInfo = isInteracting ? (() => {
-        const dateTime = pixelsToDateTime(tempPosition.x, columnWidth, workingDates);
-        const hours = pixelsToHours(tempPosition.width, columnWidth);
+    const previewInfo = previewData ? (() => {
+        const dateTime = pixelsToDateTime(previewData.x, columnWidth, workingDates);
+        const hours = pixelsToHours(previewData.width, columnWidth);
         if (!dateTime) return null;
         return {
             date: dateTime.date,
@@ -112,8 +114,8 @@ export function RndPhase({
     return (
         <div ref={containerRef} className="absolute inset-0">
             <Rnd
-                position={{ x: isInteracting ? tempPosition.x : initialLeft, y: 0 }}
-                size={{ width: isInteracting ? tempPosition.width : initialWidth, height: rowHeight }}
+                position={{ x: initialLeft, y: 0 }}
+                size={{ width: initialWidth, height: rowHeight }}
                 dragAxis="x"
                 dragGrid={snapGrid}
                 resizeGrid={snapGrid}
@@ -155,7 +157,7 @@ export function RndPhase({
                     {children}
 
                     {/* Preview tooltip during interaction */}
-                    {isInteracting && previewInfo && (
+                    {previewInfo && (
                         <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 border border-slate-600 rounded text-xs text-white whitespace-nowrap shadow-lg z-50">
                             {previewInfo.date} {previewInfo.hour}h - {previewInfo.duration}h
                         </div>
