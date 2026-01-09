@@ -2,6 +2,20 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.5.3] - 2026-01-10
+
+### Menu burger flottant Dashboard
+
+### Nouvelles Fonctionnalités
+- ✨ Menu burger flottant sur le Dashboard (remplace la sidebar)
+- ✨ Titre Dashboard aligné à droite du menu burger
+
+### Améliorations
+- 🎨 Layout adaptatif : burger menu sur Dashboard, sidebar sur autres pages
+- 🎨 Suppression du sous-titre "X chantiers au total"
+
+---
+
 ## [2.5.2] - 2026-01-10
 
 ### Améliorations UI Dashboard et Détail Chantier

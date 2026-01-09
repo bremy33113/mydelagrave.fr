@@ -258,13 +258,8 @@ export function DashboardPage() {
     return (
         <div className="h-full flex flex-col p-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Tableau de bord</h1>
-                    <p className="text-slate-400">
-                        {chantiers.length} chantier{chantiers.length !== 1 ? 's' : ''} au total
-                    </p>
-                </div>
+            <div className="flex items-center justify-between mb-6 ml-14">
+                <h1 className="text-2xl font-bold text-white">Tableau de bord</h1>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={fetchChantiers}

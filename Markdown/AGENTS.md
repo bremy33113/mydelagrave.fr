@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.5.2**
+**2.5.3**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.5.2 - Améliorations UI Dashboard et Détail Chantier
+MyDelagrave v2.5.3 - Menu burger flottant Dashboard
 
 ## Mode d'Exécution
 
@@ -55,6 +55,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.5.3 | 2026-01-10 | Menu burger flottant Dashboard |
 | 2.5.2 | 2026-01-10 | Améliorations UI Dashboard et Détail Chantier |
 | 2.5.1 | 2026-01-09 | Corrections Planning et Tournée |
 | 2.5.0 | 2026-01-09 | Synchronisation Supabase et Sécurité |

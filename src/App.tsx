@@ -141,10 +141,13 @@ function App() {
     }
 
     // Mode desktop : avec Layout
+    // Dashboard utilise le menu burger, les autres pages la sidebar
+    const isDashboard = location.pathname === '/' || location.pathname === '';
+
     return (
         <>
             <MobileRedirect />
-            <Layout userEmail={user.email} userId={user.id}>
+            <Layout userEmail={user.email} userId={user.id} useBurgerMenu={isDashboard}>
                 <Routes>
                     <Route path="/login" element={<Navigate to="/" replace />} />
                     <Route path="/admin" element={<AdminPage />} />
