@@ -115,7 +115,8 @@ function getTourneeSteps(
             });
         }
 
-        const group = groupedByLocation.get(groupKey)!;
+        const group = groupedByLocation.get(groupKey);
+        if (!group) return;
         group.phases.push(phase);
 
         // Keep the earliest hour for the group
