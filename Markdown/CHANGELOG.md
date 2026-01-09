@@ -2,6 +2,23 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.5.1] - 2026-01-09
+
+### Corrections Planning et Tournée
+
+### Corrections
+- 🐛 Fix regroupement phases par chantier/jour dans la tournée (suppression doublons)
+- 🐛 Fix timezone UTC→local pour dates tournée (phases ne démarrent plus dimanche)
+- 🐛 Fix calcul semaines dashboard (exclusion phases placeholder, timezone)
+- 🐛 Fix date auto-ajustée au jour ouvré dans PhasesModal
+
+### Améliorations
+- 🎨 Colonne poseur élargie +26% (160→202px)
+- 🎨 Affichage N° AR + Nom chantier sur les barres de phase
+- 🎨 Tooltip phases avec heures cumulatives / budget groupe
+
+---
+
 ## [2.5.0] - 2026-01-09
 
 ### Synchronisation Supabase et Sécurité

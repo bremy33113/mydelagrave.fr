@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.5.0**
+**2.5.1**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.5.0 - Synchronisation Supabase et Sécurité
+MyDelagrave v2.5.1 - Corrections Planning et Tournée
 
 ## Mode d'Exécution
 
@@ -55,6 +55,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.5.1 | 2026-01-09 | Corrections Planning et Tournée |
 | 2.5.0 | 2026-01-09 | Synchronisation Supabase et Sécurité |
 | 2.3.0 | 2026-01-09 | Refactoring et Centralisation des Utilitaires |
 | 2.2.1 | 2026-01-06 | Améliorations phases et filtres utilisateurs |
