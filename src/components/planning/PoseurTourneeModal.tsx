@@ -4,6 +4,7 @@ import type { Tables } from '../../lib/database.types';
 import { TourneeMap, TourneeStep, RouteSegment, StepType } from './TourneeMap';
 import { TourneeStepsList } from './TourneeStepsList';
 import { useOSRMRoute, formatDuration } from './hooks/useOSRMRoute';
+import { isWorkingDay, formatLocalDate } from '../../lib/dateUtils';
 import type { PhaseWithRelations } from '../../pages/PlanningPage';
 
 interface PoseurTourneeModalProps {
@@ -38,32 +39,42 @@ function getWeekBounds(offset: WeekOffset): { start: Date; end: Date; label: str
     return { start: monday, end: friday, label };
 }
 
-// Get the Monday date string of a given date
+// Get the Monday date string of a given date (local timezone)
 function getMondayOfWeek(date: Date): string {
     const d = new Date(date);
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     d.setDate(diff);
-    return d.toISOString().split('T')[0];
+    return formatLocalDate(d);
 }
 
-// Get the Friday date string of a given date
+// Get the Friday date string of a given date (local timezone)
 function getFridayOfWeek(date: Date): string {
     const d = new Date(date);
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -2 : 5);
     d.setDate(diff);
-    return d.toISOString().split('T')[0];
+    return formatLocalDate(d);
 }
 
+
+// Helper: get the next working day if the given date is not a working day
+function getEffectiveWorkingDate(dateStr: string): string {
+    const date = new Date(dateStr);
+    while (!isWorkingDay(date)) {
+        date.setDate(date.getDate() + 1);
+    }
+    return formatLocalDate(date);
+}
 
 function getTourneeSteps(
     phases: PhaseWithRelations[],
     weekStart: Date,
     weekEnd: Date
 ): TourneeStep[] {
-    const startStr = weekStart.toISOString().split('T')[0];
-    const endStr = weekEnd.toISOString().split('T')[0];
+    // Use local date format to avoid UTC timezone shift
+    const startStr = formatLocalDate(weekStart);
+    const endStr = formatLocalDate(weekEnd);
 
     // Filter phases for the week
     const weekPhases = phases.filter((phase) => {
@@ -73,39 +84,71 @@ function getTourneeSteps(
         return phaseStart <= endStr && phaseEnd >= startStr;
     });
 
-    // Sort by date_debut then heure_debut
-    weekPhases.sort((a, b) => {
-        const dateCompare = a.date_debut.localeCompare(b.date_debut);
-        if (dateCompare !== 0) return dateCompare;
-        return (a.heure_debut || '08:00').localeCompare(b.heure_debut || '08:00');
-    });
+    // Group phases by chantier_id + effective date (same chantier same day = same tour stop)
+    const groupedByLocation = new Map<string, {
+        phases: PhaseWithRelations[];
+        chantier: PhaseWithRelations['chantier'];
+        effectiveDate: string;
+        effectiveHour: string;
+    }>();
 
-    // Transform to TourneeStep with numbering
-    // Adjust dates if phase spans beyond this week
-    const worksiteSteps: TourneeStep[] = weekPhases.map((phase, index) => {
-        // Clamp phase start date to this week
-        const effectiveStart = phase.date_debut < startStr ? startStr : phase.date_debut;
+    weekPhases.forEach((phase) => {
+        // Calculate effective start date
+        let effectiveStart = phase.date_debut < startStr ? startStr : phase.date_debut;
+        // Ensure effective start is a working day (not weekend or holiday)
+        effectiveStart = getEffectiveWorkingDate(effectiveStart);
 
-        // Adjust start hour: if phase started before this week, start at 8h Monday
-        const effectiveStartHour = phase.date_debut < startStr
+        // Calculate effective hour
+        const effectiveHour = phase.date_debut < startStr
             ? '08:00'
             : (phase.heure_debut?.slice(0, 5) || '08:00');
 
-        return {
-            id: phase.id,
-            order: index + 1,
-            chantierNom: phase.chantier?.nom || 'Chantier inconnu',
-            chantierReference: phase.chantier?.reference || null,
-            adresse: phase.chantier?.adresse_livraison || null,
-            latitude: phase.chantier?.adresse_livraison_latitude || null,
-            longitude: phase.chantier?.adresse_livraison_longitude || null,
-            dateDebut: effectiveStart,
-            heureDebut: effectiveStartHour,
-            durationHours: phase.duree_heures,
-            type: 'worksite' as StepType,
-            isHomeStep: false,
-        };
+        // Grouping key: chantier_id + effective date
+        const groupKey = `${phase.chantier_id}-${effectiveStart}`;
+
+        if (!groupedByLocation.has(groupKey)) {
+            groupedByLocation.set(groupKey, {
+                phases: [],
+                chantier: phase.chantier,
+                effectiveDate: effectiveStart,
+                effectiveHour: effectiveHour,
+            });
+        }
+
+        const group = groupedByLocation.get(groupKey)!;
+        group.phases.push(phase);
+
+        // Keep the earliest hour for the group
+        if (effectiveHour < group.effectiveHour) {
+            group.effectiveHour = effectiveHour;
+        }
     });
+
+    // Convert to TourneeStep array with aggregated duration
+    const entries = Array.from(groupedByLocation.values());
+
+    // Sort by date then hour
+    entries.sort((a, b) => {
+        const dateCompare = a.effectiveDate.localeCompare(b.effectiveDate);
+        if (dateCompare !== 0) return dateCompare;
+        return a.effectiveHour.localeCompare(b.effectiveHour);
+    });
+
+    // Create TourneeStep for each group (not each phase)
+    const worksiteSteps: TourneeStep[] = entries.map((group, index) => ({
+        id: group.phases.map(p => p.id).join('-'), // Composite ID
+        order: index + 1,
+        chantierNom: group.chantier?.nom || 'Chantier inconnu',
+        chantierReference: group.chantier?.reference || null,
+        adresse: group.chantier?.adresse_livraison || null,
+        latitude: group.chantier?.adresse_livraison_latitude || null,
+        longitude: group.chantier?.adresse_livraison_longitude || null,
+        dateDebut: group.effectiveDate,
+        heureDebut: group.effectiveHour,
+        durationHours: group.phases.reduce((sum, p) => sum + p.duree_heures, 0), // Total duration
+        type: 'worksite' as StepType,
+        isHomeStep: false,
+    }));
 
     return worksiteSteps;
 }

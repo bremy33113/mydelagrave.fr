@@ -65,7 +65,7 @@ function getWorkingDaysFromStart(start: Date, count: number): WorkingDateInfo[] 
 // Constants for responsive calculation
 const MIN_COLUMN_WIDTH = 20; // Minimum for year view
 const MIN_COLUMN_WIDTH_NORMAL = 60; // Minimum for normal views
-const POSEUR_COLUMN_WIDTH = 160;
+const POSEUR_COLUMN_WIDTH = 184;
 
 // Get month name in French
 function getMonthName(date: Date): string {

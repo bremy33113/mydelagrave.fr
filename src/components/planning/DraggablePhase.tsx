@@ -72,11 +72,11 @@ export function DraggablePhase({
     // Check if phase is unassigned (no poseur, but NOT fourniture seule)
     const isUnassigned = !phase.poseur_id && !isFournitureSeule;
 
-    // Calculate group-level budget overshoot
+    // Calculate group-level budget overshoot and cumulative hours
     const groupOvershootInfo = useMemo(() => {
         // Need group budget and sibling phases to calculate
         if (groupBudgetHours == null || !siblingPhases) {
-            return { hasOvershoot: false, budgetFraction: 1 };
+            return { hasOvershoot: false, budgetFraction: 1, cumulativeTotal: phase.duree_heures };
         }
 
         // Filter to same groupe_phase and real phases (duree > 0)
@@ -87,13 +87,16 @@ export function DraggablePhase({
         // Find index of current phase
         const currentIdx = groupPhases.findIndex(p => p.id === phase.id);
         if (currentIdx === -1) {
-            return { hasOvershoot: false, budgetFraction: 1 };
+            return { hasOvershoot: false, budgetFraction: 1, cumulativeTotal: phase.duree_heures };
         }
 
         // Calculate cumulative hours BEFORE this phase
         const cumulativeBefore = groupPhases
             .slice(0, currentIdx)
             .reduce((sum, p) => sum + p.duree_heures, 0);
+
+        // Cumulative hours INCLUDING this phase (for tooltip display)
+        const cumulativeTotal = cumulativeBefore + phase.duree_heures;
 
         // Budget remaining for this phase
         const budgetRemaining = Math.max(0, groupBudgetHours - cumulativeBefore);
@@ -106,10 +109,10 @@ export function DraggablePhase({
             ? budgetRemaining / phase.duree_heures
             : 1;
 
-        return { hasOvershoot, budgetFraction };
+        return { hasOvershoot, budgetFraction, cumulativeTotal };
     }, [groupBudgetHours, siblingPhases, phase.groupe_phase, phase.id, phase.duree_heures]);
 
-    const { hasOvershoot, budgetFraction } = groupOvershootInfo;
+    const { hasOvershoot, budgetFraction, cumulativeTotal } = groupOvershootInfo;
 
     // Striped background style:
     // - Fourniture seule: amber stripes (dark overlay)
@@ -165,7 +168,7 @@ export function DraggablePhase({
                 isDragging ? 'opacity-80 shadow-xl scale-105' : 'hover:brightness-110'
             } ${isFocused ? 'ring-4 ring-blue-500 ring-offset-1 ring-offset-slate-900 z-20' : isHighlighted ? 'ring-2 ring-blue-400/60 ring-offset-1 ring-offset-slate-900 z-10' : ''} transition-all`}
             onClick={() => onPhaseClick?.(phase.id)}
-            title={`${phase.chantier?.nom || 'Chantier'} - ${phase.libelle || 'Phase'}\n📅 ${phase.date_debut} ${phase.heure_debut?.slice(0, 5) || '08:00'} → ${phase.date_fin} ${phase.heure_fin?.slice(0, 5) || '17:00'}\n⏱️ ${phase.duree_heures}h${isFournitureSeule ? '\n🚚 Fourniture seule' : ''}`}
+            title={`${phase.chantier?.nom || 'Chantier'} - ${phase.libelle || 'Phase'}\n📅 ${phase.date_debut} ${phase.heure_debut?.slice(0, 5) || '08:00'} → ${phase.date_fin} ${phase.heure_fin?.slice(0, 5) || '17:00'}\n⏱️ ${cumulativeTotal}h / ${groupBudgetHours ?? '-'}h (cumul / budget groupe)${isFournitureSeule ? '\n🚚 Fourniture seule' : ''}`}
         >
             <div className="h-full flex items-center justify-center px-1 gap-0.5">
                 {/* Navigation arrow left */}
@@ -183,7 +186,9 @@ export function DraggablePhase({
                     {phase.groupe_phase || 1}.{phase.numero_phase}
                 </span>
                 <p className="text-xs font-medium text-white text-center truncate flex-1">
-                    {phase.chantier?.reference || phase.chantier?.nom?.slice(0, 15) || 'Chantier'}
+                    {phase.chantier?.reference && <span className="font-bold">{phase.chantier.reference}</span>}
+                    {phase.chantier?.reference && phase.chantier?.nom && <span className="mx-0.5">-</span>}
+                    {phase.chantier?.nom || 'Chantier'}
                 </p>
                 {/* Navigation arrow right */}
                 {showNavigationArrows && nextPhase && (

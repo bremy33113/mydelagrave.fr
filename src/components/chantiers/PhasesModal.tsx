@@ -7,7 +7,7 @@ import { PhaseGauge } from './PhaseGauge';
 import { PhaseGroup } from './PhaseGroup';
 import { PhaseHistoryModal } from './PhaseHistoryModal';
 import { ConfirmModal } from '../ui/ConfirmModal';
-import { calculateEndDateTime, formatDateShort } from '../../lib/dateUtils';
+import { calculateEndDateTime, formatDateShort, isWorkingDay, formatLocalDate } from '../../lib/dateUtils';
 import type { Tables } from '../../lib/database.types';
 
 type Phase = Tables<'phases_chantiers'> & {
@@ -66,6 +66,16 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom, chantier
         label: '',
         heures_budget: '',
     });
+
+    // Helper: adjust date to next working day if needed
+    const adjustToWorkingDay = (dateStr: string): string => {
+        if (!dateStr) return dateStr;
+        const date = new Date(dateStr);
+        while (!isWorkingDay(date)) {
+            date.setDate(date.getDate() + 1);
+        }
+        return formatLocalDate(date);
+    };
 
     // Calculated end date for sub-phase form
     const calculatedEnd = useMemo(() => {
@@ -678,7 +688,11 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom, chantier
                                                 <input
                                                     type="date"
                                                     value={subPhaseForm.date_debut}
-                                                    onChange={(e) => setSubPhaseForm({ ...subPhaseForm, date_debut: e.target.value })}
+                                                    onChange={(e) => {
+                                                        // Ajuster automatiquement au prochain jour ouvré si weekend/férié
+                                                        const adjusted = adjustToWorkingDay(e.target.value);
+                                                        setSubPhaseForm({ ...subPhaseForm, date_debut: adjusted });
+                                                    }}
                                                     className="input-field"
                                                     required
                                                     data-testid="input-subphase-date"

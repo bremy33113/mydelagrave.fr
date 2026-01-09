@@ -9,11 +9,54 @@ Mettre à jour ce fichier après chaque déploiement pour maintenir un historiqu
 
 | Date | Version | Type | Description | Par |
 |------|---------|------|-------------|-----|
-| - | - | - | Aucun déploiement effectué | - |
+| 2026-01-09 | 2.5.0 | Minor | Synchronisation Supabase et Sécurité | Claude |
 
 ---
 
 ## Déploiements
+
+### [2026-01-09] v2.5.0 - Synchronisation Supabase et Sécurité
+
+**Date** : 2026-01-09 15:31
+**Version** : 2.5.0
+**Type** : Minor
+**Environnement** : Production (mydelagrave.fr)
+**Supabase Project Ref** : snooemomgthyvrzwqgks
+
+#### Migrations Appliquées sur Supabase
+
+| Migration | Description | Statut |
+|-----------|-------------|--------|
+| add_users_home_address | Adresse domicile utilisateurs (3 colonnes) | ✅ OK |
+| add_chantiers_budget_columns | Budget heures chantiers (2 colonnes) | ✅ OK |
+| add_notes_reserves_rapport_columns | Colonnes réserves/rapport notes (8 colonnes) | ✅ OK |
+| create_historique_phases_table | Table historique_phases complète | ✅ OK |
+| fix_functions_search_path | Sécurité: search_path sur 8 fonctions | ✅ OK |
+| enable_rls_schema_version | RLS activé sur schema_version | ✅ OK |
+
+#### Corrections de Données
+
+- Ajout `feuille_pointage` dans `ref_types_document`
+
+#### Code Synchronisé
+
+- `database.types.ts` : Ajout champ `priorite` sur `notes_chantiers`
+- `mockData.ts` : Ajout rôle `service_installation`, `priorite` sur notes
+- `supabase.ts` : Migration `priorite` pour données existantes
+
+#### Vérifications
+
+- [x] Build production réussi
+- [x] 185 tests E2E passés
+- [x] Déploiement FTP vers PlanetHoster réussi
+- [x] Fichiers uploadés : index.html, assets/*, manifest.json
+
+#### Notes
+
+- Warning Supabase "Leaked Password Protection" non corrigé (requiert Dashboard)
+- Déploiement effectué via script `scripts/deploy-ftp.js`
+
+---
 
 ### [TEMPLATE] Premier Déploiement Production
 

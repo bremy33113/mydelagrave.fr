@@ -25,16 +25,22 @@ export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProp
         if (!chantier.phases_chantiers?.length) return [];
 
         const weeksMap = new Map<number, Date>();
-        chantier.phases_chantiers.forEach(phase => {
-            if (phase.date_debut) {
-                const date = new Date(phase.date_debut);
-                const week = getWeekNumber(date);
-                const existing = weeksMap.get(week);
-                if (!existing || date < existing) {
-                    weeksMap.set(week, date);
+        chantier.phases_chantiers
+            // Filter out placeholder phases (duree_heures = 0)
+            .filter(phase => phase.duree_heures > 0)
+            .forEach(phase => {
+                if (phase.date_debut) {
+                    // Parse as local date (not UTC) to avoid timezone shift
+                    // "2026-01-12" → local midnight, not UTC midnight
+                    const [year, month, day] = phase.date_debut.split('-').map(Number);
+                    const date = new Date(year, month - 1, day);
+                    const week = getWeekNumber(date);
+                    const existing = weeksMap.get(week);
+                    if (!existing || date < existing) {
+                        weeksMap.set(week, date);
+                    }
                 }
-            }
-        });
+            });
 
         return Array.from(weeksMap.entries())
             .sort((a, b) => a[1].getTime() - b[1].getTime())
