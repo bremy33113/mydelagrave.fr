@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { ChevronRight, Wrench, Briefcase, CalendarX2 } from 'lucide-react';
 import { getWeekNumber, formatLocalDate } from '../../lib/dateUtils';
 import type { Tables } from '../../lib/database.types';
 
@@ -19,212 +19,176 @@ interface ChantierCardProps {
     chantier: Chantier;
     isSelected: boolean;
     onClick: () => void;
-    showChargeAffaire?: boolean; // Pour admin/superviseur
     filterByPoseurId?: string; // Pour poseur: ne montrer que ses phases
-    forceExpanded?: boolean | null; // null = individuel, true = forcer ouvert, false = forcer fermé
+    forceExpanded?: boolean; // Contrôle global expand/collapse
 }
 
-export function ChantierCard({ chantier, isSelected, onClick, showChargeAffaire = false, filterByPoseurId, forceExpanded = null }: ChantierCardProps) {
-    const [localExpanded, setLocalExpanded] = useState(false);
+// Format date courte: JJ/MM/YY
+function formatDateShort(dateStr: string): string {
+    const parts = dateStr.split('-');
+    return `${parts[2]}/${parts[1]}/${parts[0].slice(2)}`;
+}
 
-    // Si forceExpanded est défini, l'utiliser, sinon utiliser l'état local
-    const isExpanded = forceExpanded !== null ? forceExpanded : localExpanded;
-    const setIsExpanded = (value: boolean) => setLocalExpanded(value);
+export function ChantierCard({ chantier, isSelected, onClick, filterByPoseurId, forceExpanded }: ChantierCardProps) {
+    // État local pour expand/collapse
+    const [isExpanded, setIsExpanded] = useState(forceExpanded ?? true);
 
-    // Get upcoming phases (date_debut >= today), sorted by date
-    // Si filterByPoseurId est défini, ne montrer que les phases du poseur
-    const upcomingPhases = useMemo(() => {
+    // Synchroniser avec forceExpanded quand il change
+    useEffect(() => {
+        if (forceExpanded !== undefined) {
+            setIsExpanded(forceExpanded);
+        }
+    }, [forceExpanded]);
+
+    // Get upcoming phases (date_debut >= today OR in current week), sorted by groupe_phase then numero_phase
+    const displayPhases = useMemo(() => {
         if (!chantier.phases_chantiers?.length) return [];
 
         const today = formatLocalDate(new Date());
+        const currentWeek = getWeekNumber(new Date());
 
         return chantier.phases_chantiers
             .filter(phase => {
-                const isUpcoming = phase.duree_heures > 0 && phase.date_debut >= today;
-                const matchesPoseur = !filterByPoseurId || phase.poseur_id === filterByPoseurId;
-                return isUpcoming && matchesPoseur;
+                if (phase.duree_heures <= 0) return false;
+
+                // Filtrer par poseur si demandé
+                if (filterByPoseurId && phase.poseur_id !== filterByPoseurId) return false;
+
+                // Inclure les phases futures OU de la semaine en cours
+                const [year, month, day] = phase.date_debut.split('-').map(Number);
+                const phaseDate = new Date(year, month - 1, day);
+                const phaseWeek = getWeekNumber(phaseDate);
+
+                return phase.date_debut >= today || phaseWeek === currentWeek;
             })
-            .sort((a, b) => a.date_debut.localeCompare(b.date_debut))
+            .sort((a, b) => {
+                // Trier par groupe_phase, puis numero_phase
+                if (a.groupe_phase !== b.groupe_phase) {
+                    return a.groupe_phase - b.groupe_phase;
+                }
+                return a.numero_phase - b.numero_phase;
+            })
             .map(phase => {
                 const [year, month, day] = phase.date_debut.split('-').map(Number);
                 const date = new Date(year, month - 1, day);
                 return {
                     id: phase.id,
+                    groupe_phase: phase.groupe_phase,
+                    numero_phase: phase.numero_phase,
                     poseur: phase.poseur,
                     week: getWeekNumber(date),
                     date_debut: phase.date_debut,
+                    duree_heures: phase.duree_heures,
+                    libelle: phase.libelle,
                 };
             });
     }, [chantier.phases_chantiers, filterByPoseurId]);
-
-    // Get past phases (date_debut < today) for fallback display
-    // Si filterByPoseurId est défini, ne montrer que les phases du poseur
-    const pastWeeks = useMemo(() => {
-        if (!chantier.phases_chantiers?.length) return [];
-
-        const today = formatLocalDate(new Date());
-
-        const weeksMap = new Map<number, Date>();
-        chantier.phases_chantiers
-            .filter(phase => {
-                const isPast = phase.duree_heures > 0 && phase.date_debut < today;
-                const matchesPoseur = !filterByPoseurId || phase.poseur_id === filterByPoseurId;
-                return isPast && matchesPoseur;
-            })
-            .forEach(phase => {
-                if (phase.date_debut) {
-                    const [year, month, day] = phase.date_debut.split('-').map(Number);
-                    const date = new Date(year, month - 1, day);
-                    const week = getWeekNumber(date);
-                    const existing = weeksMap.get(week);
-                    if (!existing || date < existing) {
-                        weeksMap.set(week, date);
-                    }
-                }
-            });
-
-        return Array.from(weeksMap.entries())
-            .sort((a, b) => a[1].getTime() - b[1].getTime())
-            .map(([week]) => week);
-    }, [chantier.phases_chantiers, filterByPoseurId]);
-
-    const hasMultipleUpcomingPhases = upcomingPhases.length > 1;
-    const hasUpcomingPhases = upcomingPhases.length > 0;
-
-    const handleChevronClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsExpanded(!isExpanded);
-    };
-
-    // Largeurs des colonnes selon si on affiche le chargé d'affaire ou non
-    const colWidths = showChargeAffaire
-        ? { chevron: '5%', ref: '10%', nom: '50%', ca: '10%', poseur: '10%', semaine: '15%' }
-        : { chevron: '5%', ref: '10%', nom: '50%', ca: '0%', poseur: '20%', semaine: '15%' };
 
     return (
         <button
             onClick={onClick}
             data-testid="chantier-card"
-            className={`w-full text-left px-3 py-1.5 rounded-lg transition-all duration-200 animate-fadeIn ${isSelected
+            className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-200 animate-fadeIn ${isSelected
                     ? 'bg-blue-600/20 border border-blue-500/50 shadow-lg shadow-blue-500/10'
                     : 'bg-slate-800/30 border border-slate-700/50 hover:bg-slate-800/50 hover:border-slate-600/50'
                 }`}
         >
-            {/* Ligne principale */}
+            {/* Ligne principale du chantier */}
             <div className="flex items-center">
-                {/* Chevron - only if multiple upcoming phases */}
-                <div style={{ width: colWidths.chevron }} className="flex items-center justify-center">
-                    {hasMultipleUpcomingPhases ? (
-                        <ChevronRight
-                            className={`w-4 h-4 text-slate-400 cursor-pointer hover:text-white transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                            onClick={handleChevronClick}
-                        />
-                    ) : null}
-                </div>
-
-                {/* Référence */}
-                <div style={{ width: colWidths.ref }} className="text-xs text-blue-400 font-semibold truncate">
-                    {chantier.reference || '-'}
-                </div>
-
-                {/* Nom */}
-                <div style={{ width: colWidths.nom }} className="min-w-0">
-                    <h3 className="font-semibold text-white truncate text-sm uppercase">{chantier.nom}</h3>
-                </div>
-
-                {/* Chargé d'affaire (conditionnel) */}
-                {showChargeAffaire && (
-                    <div style={{ width: colWidths.ca }} className="text-xs text-slate-400 truncate">
-                        {chantier.charge_affaire ? (
-                            <span>{chantier.charge_affaire.first_name?.[0]}.{chantier.charge_affaire.last_name}</span>
-                        ) : (
-                            <span className="text-slate-500">-</span>
-                        )}
-                    </div>
-                )}
-
-                {/* Poseur de la phase */}
-                <div style={{ width: colWidths.poseur }} className="text-xs text-slate-400 truncate">
-                    {hasUpcomingPhases ? (
-                        upcomingPhases[0].poseur ? (
-                            <span>{upcomingPhases[0].poseur.first_name?.[0]}.{upcomingPhases[0].poseur.last_name}</span>
-                        ) : (
-                            <span className="text-slate-500">-</span>
-                        )
+                {/* Chevron expand/collapse ou icône agenda barré - 5% */}
+                <div style={{ width: '5%' }} className="flex items-center justify-center" title={displayPhases.length === 0 ? 'Aucune phase planifiée' : undefined}>
+                    {displayPhases.length > 0 ? (
+                        <span
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsExpanded(!isExpanded);
+                            }}
+                            className="cursor-pointer hover:text-white"
+                        >
+                            <ChevronRight
+                                className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                            />
+                        </span>
                     ) : (
-                        // Fallback: poseur du chantier si pas de phases à venir
-                        chantier.poseur ? (
-                            <span className="text-slate-500">{chantier.poseur.first_name?.[0]}.{chantier.poseur.last_name}</span>
-                        ) : (
-                            <span className="text-slate-500">-</span>
-                        )
+                        <CalendarX2 className="w-4 h-4 text-red-400/60" />
                     )}
                 </div>
 
-                {/* Semaine + Date */}
-                <div style={{ width: colWidths.semaine }} className="flex items-center justify-end gap-2">
-                    {hasUpcomingPhases ? (
-                        <>
-                            {/* Badge semaine vert */}
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-xs">
-                                S{upcomingPhases[0].week}
-                            </span>
-                            {/* Date */}
-                            <span className="text-[10px] text-slate-400 min-w-[40px] text-right">
-                                {upcomingPhases[0].date_debut.split('-').slice(1).reverse().join('/')}
-                            </span>
-                        </>
-                    ) : pastWeeks.length > 0 ? (
-                        // Fallback: afficher les semaines passées en grisé
-                        pastWeeks.map((week) => (
-                            <span
-                                key={week}
-                                className="px-1.5 py-0.5 rounded bg-slate-600/30 text-slate-500 font-medium text-xs"
-                            >
-                                S{week}
-                            </span>
-                        ))
-                    ) : null}
+                {/* Référence - 10% */}
+                <div style={{ width: '10%' }} className="text-xs text-blue-400 font-semibold truncate">
+                    {chantier.reference || '-'}
                 </div>
+
+                {/* Nom du chantier - 55% */}
+                <div style={{ width: '55%' }} className="font-semibold text-white truncate text-sm uppercase">
+                    {chantier.nom}
+                </div>
+
+                {/* Icône + Chargé d'affaire - 20% */}
+                <div style={{ width: '20%' }} className="flex items-center gap-1 text-xs text-slate-400 truncate">
+                    <Briefcase className="w-3 h-3 text-slate-500" />
+                    {chantier.charge_affaire ? (
+                        <span>{chantier.charge_affaire.first_name} {chantier.charge_affaire.last_name}</span>
+                    ) : (
+                        <span className="text-slate-500">-</span>
+                    )}
+                </div>
+
+                {/* Colonne vide - 10% */}
+                <div style={{ width: '10%' }} />
             </div>
 
-            {/* Lignes phases suivantes (si expanded) */}
-            {isExpanded && upcomingPhases.slice(1).map(phase => (
-                <div key={phase.id} className="flex items-center mt-1">
-                    {/* Chevron placeholder */}
-                    <div style={{ width: colWidths.chevron }} />
+            {/* Lignes des phases */}
+            {isExpanded && displayPhases.length > 0 && (
+                <div className="mt-1 space-y-0.5">
+                    {displayPhases.map(phase => (
+                        <div key={phase.id} className="flex items-center text-xs">
+                            {/* Flèche vers la droite - 5% */}
+                            <div style={{ width: '5%' }} className="flex items-center justify-center text-slate-500">
+                                →
+                            </div>
 
-                    {/* Référence placeholder */}
-                    <div style={{ width: colWidths.ref }} />
+                            {/* N° Semaine - 5% */}
+                            <div style={{ width: '5%' }} className="text-emerald-400 font-bold">
+                                S{phase.week}
+                            </div>
 
-                    {/* Nom placeholder */}
-                    <div style={{ width: colWidths.nom }} />
+                            {/* N° sous-phase - 5% */}
+                            <div style={{ width: '5%' }} className="text-purple-400 font-medium">
+                                {phase.groupe_phase}.{phase.numero_phase}
+                            </div>
 
-                    {/* CA placeholder (conditionnel) */}
-                    {showChargeAffaire && <div style={{ width: colWidths.ca }} />}
+                            {/* Date début - 15% */}
+                            <div style={{ width: '15%' }} className="text-slate-400">
+                                {formatDateShort(phase.date_debut)}
+                            </div>
 
-                    {/* Poseur de la phase */}
-                    <div style={{ width: colWidths.poseur }} className="text-xs text-slate-400 truncate">
-                        {phase.poseur ? (
-                            <span>{phase.poseur.first_name?.[0]}.{phase.poseur.last_name}</span>
-                        ) : (
-                            <span className="text-slate-500">-</span>
-                        )}
-                    </div>
+                            {/* Nbre d'heures - 15% */}
+                            <div style={{ width: '15%' }} className="text-green-400 font-medium">
+                                {phase.duree_heures}h
+                            </div>
 
-                    {/* Semaine + Date */}
-                    <div style={{ width: colWidths.semaine }} className="flex items-center justify-end gap-2">
-                        {/* Badge semaine vert */}
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-xs">
-                            S{phase.week}
-                        </span>
-                        {/* Date */}
-                        <span className="text-[10px] text-slate-400 min-w-[40px] text-right">
-                            {phase.date_debut.split('-').slice(1).reverse().join('/')}
-                        </span>
-                    </div>
+                            {/* Nom phase - 25% */}
+                            <div style={{ width: '25%' }} className="text-slate-300 truncate">
+                                {phase.libelle || `Phase ${phase.groupe_phase}.${phase.numero_phase}`}
+                            </div>
+
+                            {/* Icône clé + Nom Poseur - 15% */}
+                            <div style={{ width: '15%' }} className="flex items-center gap-1 text-slate-400 truncate">
+                                <Wrench className="w-3 h-3 text-slate-500" />
+                                {phase.poseur ? (
+                                    <span>{phase.poseur.first_name} {phase.poseur.last_name}</span>
+                                ) : (
+                                    <span className="text-slate-500">-</span>
+                                )}
+                            </div>
+
+                            {/* Vide - 15% */}
+                            <div style={{ width: '15%' }} />
+                        </div>
+                    ))}
                 </div>
-            ))}
+            )}
         </button>
     );
 }

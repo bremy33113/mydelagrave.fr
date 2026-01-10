@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Search, RefreshCw, AlertCircle, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, ChevronsUpDown, ChevronsDownUp } from 'lucide-react';
+import { Plus, Search, RefreshCw, AlertCircle, ChevronRight, Building2, Calendar, Briefcase, Wrench } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
 import { KPIBar } from '../components/dashboard/KPIBar';
@@ -25,7 +25,7 @@ type Chantier = Tables<'chantiers'> & {
 };
 
 export function DashboardPage() {
-    const { userId, canViewAllChantiers, loading: roleLoading, isPoseur } = useUserRole();
+    const { userId, canViewAllChantiers, loading: roleLoading, isPoseur, isChargeAffaire, isAdmin, isSuperviseur } = useUserRole();
     const [chantiers, setChantiers] = useState<Chantier[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -33,24 +33,11 @@ export function DashboardPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
-    // Dropdown filter states (for admin/superviseur only)
-    const [filterChargeAffaire, setFilterChargeAffaire] = useState<string>('');
-    const [filterStatut, setFilterStatut] = useState<string>('');
-    const [filterPoseur, setFilterPoseur] = useState<string>('');
+    // Expand/collapse all chantiers
+    const [allExpanded, setAllExpanded] = useState(true);
 
-    // Lists for dropdown filters
-    const [chargeAffaireList, setChargeAffaireList] = useState<Tables<'users'>[]>([]);
-    const [poseurList, setPoseurList] = useState<Tables<'users'>[]>([]);
-    const [statutList, setStatutList] = useState<Tables<'ref_statuts_chantier'>[]>([]);
-
-    // Tri des colonnes
-    type SortColumn = 'reference' | 'nom' | 'charge_affaire' | 'poseur' | 'semaine' | null;
-    type SortDirection = 'asc' | 'desc';
-    const [sortColumn, setSortColumn] = useState<SortColumn>(null);
-    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-
-    // Expand/Collapse all
-    const [allExpanded, setAllExpanded] = useState<boolean | null>(null); // null = individuel, true = tous ouverts, false = tous fermés
+    // View mode: 'chantiers' or 'semaine'
+    const [viewMode, setViewMode] = useState<'chantiers' | 'semaine'>('chantiers');
 
     // Modal states
     const [showChantierModal, setShowChantierModal] = useState(false);
@@ -159,40 +146,6 @@ export function DashboardPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Fetch filter lists for admin/superviseur
-    useEffect(() => {
-        if (!canViewAllChantiers) return;
-
-        const fetchFilterLists = async () => {
-            // Fetch charge d'affaires
-            const { data: caData } = await supabase
-                .from('users')
-                .select('*')
-                .eq('role', 'charge_affaire')
-                .eq('suspended', false)
-                .order('last_name');
-            if (caData && Array.isArray(caData)) setChargeAffaireList(caData as Tables<'users'>[]);
-
-            // Fetch poseurs
-            const { data: poseurData } = await supabase
-                .from('users')
-                .select('*')
-                .eq('role', 'poseur')
-                .eq('suspended', false)
-                .order('last_name');
-            if (poseurData && Array.isArray(poseurData)) setPoseurList(poseurData as Tables<'users'>[]);
-
-            // Fetch statuts
-            const { data: statutData } = await supabase
-                .from('ref_statuts_chantier')
-                .select('*')
-                .order('code');
-            if (statutData && Array.isArray(statutData)) setStatutList(statutData as Tables<'ref_statuts_chantier'>[]);
-        };
-
-        fetchFilterLists();
-    }, [canViewAllChantiers]);
-
     // Filter chantiers based on search and status
     const filteredChantiers = useMemo(() => {
         let result = chantiers;
@@ -230,92 +183,86 @@ export function DashboardPage() {
             }
         }
 
-        // Dropdown filters (admin/superviseur only)
-        if (filterChargeAffaire) {
-            result = result.filter((c) => c.charge_affaire_id === filterChargeAffaire);
-        }
-        if (filterStatut) {
-            result = result.filter((c) => c.statut === filterStatut);
-        }
-        if (filterPoseur) {
-            result = result.filter((c) => c.poseur_id === filterPoseur);
-        }
-
-        // Tri
-        if (sortColumn) {
-            const today = new Date().toISOString().split('T')[0];
-            result = [...result].sort((a, b) => {
-                let valA: string | number = '';
-                let valB: string | number = '';
-
-                switch (sortColumn) {
-                    case 'reference':
-                        valA = a.reference || '';
-                        valB = b.reference || '';
-                        break;
-                    case 'nom':
-                        valA = a.nom.toLowerCase();
-                        valB = b.nom.toLowerCase();
-                        break;
-                    case 'charge_affaire':
-                        valA = a.charge_affaire ? `${a.charge_affaire.last_name}`.toLowerCase() : '';
-                        valB = b.charge_affaire ? `${b.charge_affaire.last_name}`.toLowerCase() : '';
-                        break;
-                    case 'poseur':
-                        // Trouver le premier poseur des phases à venir
-                        const phaseA = a.phases_chantiers?.find(p => p.date_debut >= today && p.poseur_id);
-                        const phaseB = b.phases_chantiers?.find(p => p.date_debut >= today && p.poseur_id);
-                        valA = phaseA?.poseur ? `${phaseA.poseur.last_name}`.toLowerCase() : '';
-                        valB = phaseB?.poseur ? `${phaseB.poseur.last_name}`.toLowerCase() : '';
-                        break;
-                    case 'semaine':
-                        // Trouver la première semaine des phases à venir
-                        const firstPhaseA = a.phases_chantiers?.filter(p => p.date_debut >= today).sort((x, y) => x.date_debut.localeCompare(y.date_debut))[0];
-                        const firstPhaseB = b.phases_chantiers?.filter(p => p.date_debut >= today).sort((x, y) => x.date_debut.localeCompare(y.date_debut))[0];
-                        valA = firstPhaseA?.date_debut || '9999-99-99';
-                        valB = firstPhaseB?.date_debut || '9999-99-99';
-                        break;
-                }
-
-                if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-                if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-                return 0;
-            });
-        }
-
         return result;
-    }, [chantiers, searchQuery, statusFilter, filterChargeAffaire, filterStatut, filterPoseur, sortColumn, sortDirection]);
+    }, [chantiers, searchQuery, statusFilter]);
 
     const selectedChantier = useMemo(
         () => chantiers.find((c) => c.id === selectedId),
         [chantiers, selectedId]
     );
 
-    // Gestion du tri sur les colonnes
-    const handleSort = (column: SortColumn) => {
-        if (sortColumn === column) {
-            // Même colonne: inverser la direction ou désactiver
-            if (sortDirection === 'asc') {
-                setSortDirection('desc');
-            } else {
-                setSortColumn(null);
-                setSortDirection('asc');
-            }
-        } else {
-            // Nouvelle colonne
-            setSortColumn(column);
-            setSortDirection('asc');
-        }
-    };
+    // Group phases by week for "semaine" view
+    const phasesByWeek = useMemo(() => {
+        const weeks: Record<number, {
+            weekNumber: number;
+            mondayDate: string;
+            fridayDate: string;
+            phases: Array<{
+                chantier: Chantier;
+                phase: PhaseWithPoseur;
+            }>;
+        }> = {};
 
-    const SortIcon = ({ column }: { column: SortColumn }) => {
-        if (sortColumn !== column) {
-            return <ArrowUpDown size={12} className="text-slate-500" />;
-        }
-        return sortDirection === 'asc'
-            ? <ArrowUp size={12} className="text-blue-400" />
-            : <ArrowDown size={12} className="text-blue-400" />;
-    };
+        // Helper to get Monday and Friday of a week
+        const getWeekDates = (date: Date) => {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diffToMonday = day === 0 ? -6 : 1 - day;
+            const monday = new Date(d);
+            monday.setDate(d.getDate() + diffToMonday);
+            const friday = new Date(monday);
+            friday.setDate(monday.getDate() + 4);
+            return { monday, friday };
+        };
+
+        // Format date as JJ/MM/AA
+        const formatShort = (date: Date) => {
+            const dd = String(date.getDate()).padStart(2, '0');
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const yy = String(date.getFullYear()).slice(2);
+            return `${dd}/${mm}/${yy}`;
+        };
+
+        const currentWeek = getWeekNumber(new Date());
+
+        filteredChantiers.forEach((chantier) => {
+            chantier.phases_chantiers?.forEach((phase) => {
+                if (phase.duree_heures <= 0) return;
+
+                const [year, month, day] = phase.date_debut.split('-').map(Number);
+                const phaseDate = new Date(year, month - 1, day);
+                const weekNum = getWeekNumber(phaseDate);
+
+                // Inclure semaine en cours + semaines futures uniquement
+                if (weekNum < currentWeek) return;
+
+                const { monday, friday } = getWeekDates(phaseDate);
+
+                if (!weeks[weekNum]) {
+                    weeks[weekNum] = {
+                        weekNumber: weekNum,
+                        mondayDate: formatShort(monday),
+                        fridayDate: formatShort(friday),
+                        phases: [],
+                    };
+                }
+
+                weeks[weekNum].phases.push({ chantier, phase });
+            });
+        });
+
+        // Sort phases within each week by date, then by chantier reference
+        Object.values(weeks).forEach((week) => {
+            week.phases.sort((a, b) => {
+                if (a.phase.date_debut !== b.phase.date_debut) {
+                    return a.phase.date_debut.localeCompare(b.phase.date_debut);
+                }
+                return (a.chantier.reference || '').localeCompare(b.chantier.reference || '');
+            });
+        });
+
+        return Object.values(weeks).sort((a, b) => a.weekNumber - b.weekNumber);
+    }, [filteredChantiers]);
 
     // Open delete confirmation modal
     const handleDelete = () => {
@@ -406,6 +353,16 @@ export function DashboardPage() {
                 <div className="w-[46%] flex flex-col min-h-0">
                     {/* Search and Filters */}
                     <div className="flex gap-2 mb-4">
+                        {/* Expand/Collapse all button */}
+                        <button
+                            onClick={() => setAllExpanded(!allExpanded)}
+                            className="p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 transition-colors"
+                            title={allExpanded ? 'Replier tout' : 'Déplier tout'}
+                        >
+                            <ChevronRight
+                                className={`w-5 h-5 text-slate-400 transition-transform ${allExpanded ? 'rotate-90' : ''}`}
+                            />
+                        </button>
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
                             <input
@@ -416,58 +373,29 @@ export function DashboardPage() {
                                 className="input-field !pl-11"
                             />
                         </div>
-                        {canViewAllChantiers && (
-                            <>
-                                <div className="relative">
-                                    <select
-                                        data-testid="filter-charge-affaire"
-                                        value={filterChargeAffaire}
-                                        onChange={(e) => setFilterChargeAffaire(e.target.value)}
-                                        className={`input-field appearance-none pr-8 min-w-[120px] ${filterChargeAffaire ? 'border-blue-500/50 text-blue-400' : ''}`}
-                                    >
-                                        <option value="">Chargé</option>
-                                        {chargeAffaireList.map((user) => (
-                                            <option key={user.id} value={user.id}>
-                                                {user.first_name} {user.last_name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                </div>
-                                <div className="relative">
-                                    <select
-                                        data-testid="filter-statut"
-                                        value={filterStatut}
-                                        onChange={(e) => setFilterStatut(e.target.value)}
-                                        className={`input-field appearance-none pr-8 min-w-[120px] ${filterStatut ? 'border-blue-500/50 text-blue-400' : ''}`}
-                                    >
-                                        <option value="">Statut</option>
-                                        {statutList.map((statut) => (
-                                            <option key={statut.code} value={statut.code}>
-                                                {statut.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                </div>
-                                <div className="relative">
-                                    <select
-                                        data-testid="filter-poseur"
-                                        value={filterPoseur}
-                                        onChange={(e) => setFilterPoseur(e.target.value)}
-                                        className={`input-field appearance-none pr-8 min-w-[120px] ${filterPoseur ? 'border-blue-500/50 text-blue-400' : ''}`}
-                                    >
-                                        <option value="">Poseur</option>
-                                        {poseurList.map((user) => (
-                                            <option key={user.id} value={user.id}>
-                                                {user.first_name} {user.last_name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                </div>
-                            </>
-                        )}
+                        {/* Legend icons */}
+                        <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-slate-800/30 border border-slate-700/30">
+                            <button
+                                onClick={() => setStatusFilter(null)}
+                                className="flex items-center hover:scale-110 transition-transform"
+                                title="Afficher tous les chantiers"
+                            >
+                                <Building2 className="w-5 h-5 text-purple-400" />
+                            </button>
+                            <button
+                                onClick={() => setViewMode(viewMode === 'semaine' ? 'chantiers' : 'semaine')}
+                                className={`flex items-center hover:scale-110 transition-transform ${viewMode === 'semaine' ? 'ring-2 ring-emerald-400 rounded' : ''}`}
+                                title="Afficher par semaine"
+                            >
+                                <Calendar className="w-5 h-5 text-emerald-400" />
+                            </button>
+                            <div className="flex items-center" title="Chargé d'affaire">
+                                <Briefcase className="w-5 h-5 text-blue-400" />
+                            </div>
+                            <div className="flex items-center" title="Poseur">
+                                <Wrench className="w-5 h-5 text-orange-400" />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Active filter indicator */}
@@ -485,89 +413,102 @@ export function DashboardPage() {
                         </div>
                     )}
 
-                    {/* En-tête des colonnes */}
-                    {!loading && filteredChantiers.length > 0 && (
-                        <div className="flex items-center px-3 py-2 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-700/50">
-                            {/* Expand/Collapse All */}
-                            <button
-                                onClick={() => setAllExpanded(prev => prev === true ? false : true)}
-                                className="flex items-center justify-center hover:text-slate-300 transition-colors"
-                                style={{ width: '5%' }}
-                                title={allExpanded ? 'Tout réduire' : 'Tout développer'}
-                            >
-                                {allExpanded ? (
-                                    <ChevronsDownUp size={14} className="text-blue-400" />
-                                ) : (
-                                    <ChevronsUpDown size={14} />
-                                )}
-                            </button>
-                            {/* Référence */}
-                            <button
-                                onClick={() => handleSort('reference')}
-                                className="flex items-center gap-1 hover:text-slate-300 transition-colors"
-                                style={{ width: '10%' }}
-                            >
-                                Réf. <SortIcon column="reference" />
-                            </button>
-                            {/* Nom */}
-                            <button
-                                onClick={() => handleSort('nom')}
-                                className="flex items-center gap-1 hover:text-slate-300 transition-colors"
-                                style={{ width: (canViewAllChantiers || isPoseur) ? '50%' : '50%' }}
-                            >
-                                Nom <SortIcon column="nom" />
-                            </button>
-                            {/* Chargé d'affaire (conditionnel) */}
-                            {(canViewAllChantiers || isPoseur) && (
-                                <button
-                                    onClick={() => handleSort('charge_affaire')}
-                                    className="flex items-center gap-1 hover:text-slate-300 transition-colors"
-                                    style={{ width: '10%' }}
-                                >
-                                    CA <SortIcon column="charge_affaire" />
-                                </button>
-                            )}
-                            {/* Poseur */}
-                            <button
-                                onClick={() => handleSort('poseur')}
-                                className="flex items-center gap-1 hover:text-slate-300 transition-colors"
-                                style={{ width: (canViewAllChantiers || isPoseur) ? '10%' : '20%' }}
-                            >
-                                Poseur <SortIcon column="poseur" />
-                            </button>
-                            {/* Semaine + Date */}
-                            <button
-                                onClick={() => handleSort('semaine')}
-                                className="flex items-center gap-1 justify-end hover:text-slate-300 transition-colors"
-                                style={{ width: '15%' }}
-                            >
-                                Sem / Date <SortIcon column="semaine" />
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Chantier list */}
+                    {/* Chantier list or Week view */}
                     <div className="flex-1 overflow-auto space-y-3 pr-2">
                         {loading ? (
                             <div className="flex items-center justify-center py-12">
                                 <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
                             </div>
-                        ) : filteredChantiers.length === 0 ? (
-                            <div className="text-center py-12 text-slate-400">
-                                <p>Aucun chantier trouvé</p>
-                            </div>
+                        ) : viewMode === 'chantiers' ? (
+                            // Vue Chantiers
+                            filteredChantiers.length === 0 ? (
+                                <div className="text-center py-12 text-slate-400">
+                                    <p>Aucun chantier trouvé</p>
+                                </div>
+                            ) : (
+                                filteredChantiers.map((chantier) => (
+                                    <ChantierCard
+                                        key={chantier.id}
+                                        chantier={chantier}
+                                        isSelected={chantier.id === selectedId}
+                                        filterByPoseurId={isPoseur ? userId ?? undefined : undefined}
+                                        forceExpanded={allExpanded}
+                                        onClick={() => setSelectedId(chantier.id)}
+                                    />
+                                ))
+                            )
                         ) : (
-                            filteredChantiers.map((chantier) => (
-                                <ChantierCard
-                                    key={chantier.id}
-                                    chantier={chantier}
-                                    isSelected={chantier.id === selectedId}
-                                    showChargeAffaire={canViewAllChantiers || isPoseur}
-                                    filterByPoseurId={isPoseur ? userId ?? undefined : undefined}
-                                    forceExpanded={allExpanded}
-                                    onClick={() => setSelectedId(chantier.id)}
-                                />
-                            ))
+                            // Vue Semaine
+                            phasesByWeek.length === 0 ? (
+                                <div className="text-center py-12 text-slate-400">
+                                    <p>Aucune phase planifiée</p>
+                                </div>
+                            ) : (
+                                phasesByWeek.map((week) => (
+                                    <div key={week.weekNumber} className="rounded-lg bg-slate-800/30 border border-slate-700/50 overflow-hidden">
+                                        {/* En-tête de semaine */}
+                                        <div className="px-3 py-2 bg-emerald-500/10 border-b border-slate-700/50">
+                                            <span className="text-emerald-400 font-bold">S{week.weekNumber}</span>
+                                            <span className="text-slate-400 ml-2">
+                                                Du Lundi {week.mondayDate} au Vendredi {week.fridayDate}
+                                            </span>
+                                        </div>
+                                        {/* Phases de la semaine */}
+                                        <div className="divide-y divide-slate-700/30">
+                                            {week.phases.map(({ chantier, phase }) => {
+                                                const formatDateShort = (dateStr: string) => {
+                                                    const parts = dateStr.split('-');
+                                                    return `${parts[2]}/${parts[1]}/${parts[0].slice(2)}`;
+                                                };
+                                                return (
+                                                    <button
+                                                        key={phase.id}
+                                                        onClick={() => setSelectedId(chantier.id)}
+                                                        className={`w-full text-left px-3 py-2 flex items-center text-xs hover:bg-slate-700/30 transition-colors ${
+                                                            chantier.id === selectedId ? 'bg-blue-600/20' : ''
+                                                        }`}
+                                                    >
+                                                        {/* Référence - 10% */}
+                                                        <div style={{ width: '10%' }} className="text-blue-400 font-semibold truncate">
+                                                            {chantier.reference || '-'}
+                                                        </div>
+                                                        {/* Nom chantier - 50% */}
+                                                        <div style={{ width: '50%' }} className="text-white font-medium truncate uppercase">
+                                                            {chantier.nom}
+                                                        </div>
+                                                        {/* N° sous-phase - 5% */}
+                                                        <div style={{ width: '5%' }} className="text-purple-400 font-medium">
+                                                            {phase.groupe_phase}.{phase.numero_phase}
+                                                        </div>
+                                                        {/* Date début - 10% */}
+                                                        <div style={{ width: '10%' }} className="text-slate-400">
+                                                            {formatDateShort(phase.date_debut)}
+                                                        </div>
+                                                        {/* Chargé d'affaire - 12.5% */}
+                                                        <div style={{ width: '12.5%' }} className="flex items-center gap-1 text-slate-400 truncate">
+                                                            <Briefcase className="w-3 h-3 text-blue-400" />
+                                                            {chantier.charge_affaire ? (
+                                                                <span>{chantier.charge_affaire.first_name}</span>
+                                                            ) : (
+                                                                <span className="text-slate-500">-</span>
+                                                            )}
+                                                        </div>
+                                                        {/* Poseur - 12.5% */}
+                                                        <div style={{ width: '12.5%' }} className="flex items-center gap-1 text-slate-400 truncate">
+                                                            <Wrench className="w-3 h-3 text-orange-400" />
+                                                            {phase.poseur ? (
+                                                                <span>{phase.poseur.first_name}</span>
+                                                            ) : (
+                                                                <span className="text-slate-500">-</span>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))
+                            )
                         )}
                     </div>
                 </div>
@@ -585,6 +526,7 @@ export function DashboardPage() {
                             onManagePhases={() => setShowPhasesModal(true)}
                             onManageContacts={() => setShowContactsModal(true)}
                             onStatusChange={fetchChantiers}
+                            canInteract={isAdmin || isSuperviseur || isPoseur || isChargeAffaire}
                         />
                     ) : (
                         <div className="h-full flex items-center justify-center text-slate-400">
@@ -613,6 +555,7 @@ export function DashboardPage() {
                         chantierId={selectedChantier.id}
                         chantierNom={selectedChantier.nom}
                         chantierBudgetHeures={selectedChantier.budget_heures}
+                        onPhaseChange={fetchChantiers}
                     />
 
                     <AddContactModal

@@ -20,6 +20,7 @@ interface PhasesModalProps {
     chantierId: string;
     chantierNom: string;
     chantierBudgetHeures?: number | null;
+    onPhaseChange?: () => void; // Callback quand une phase est modifiée/créée/supprimée
 }
 
 interface PhaseGroupData {
@@ -29,7 +30,7 @@ interface PhaseGroupData {
     subPhases: Phase[];
 }
 
-export function PhasesModal({ isOpen, onClose, chantierId, chantierNom, chantierBudgetHeures }: PhasesModalProps) {
+export function PhasesModal({ isOpen, onClose, chantierId, chantierNom, chantierBudgetHeures, onPhaseChange }: PhasesModalProps) {
     const { userId } = useUserRole();
     const [phases, setPhases] = useState<Phase[]>([]);
     const [loading, setLoading] = useState(true);
@@ -304,6 +305,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom, chantier
 
             resetSubPhaseForm();
             await fetchPhases();
+            onPhaseChange?.(); // Notifier le parent du changement
         } catch (err) {
             alert('Erreur: ' + (err as Error).message);
         }
@@ -433,6 +435,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom, chantier
 
             localStorage.setItem('phases_last_update', Date.now().toString());
             await fetchPhases();
+            onPhaseChange?.(); // Notifier le parent du changement
             setShowDeleteModal(false);
             setPhaseIdToDelete(null);
         } catch {
@@ -467,6 +470,7 @@ export function PhasesModal({ isOpen, onClose, chantierId, chantierNom, chantier
             }
             localStorage.setItem('phases_last_update', Date.now().toString());
             await fetchPhases();
+            onPhaseChange?.(); // Notifier le parent du changement
             setShowDeleteGroupModal(false);
             setGroupToDelete(null);
         } catch {

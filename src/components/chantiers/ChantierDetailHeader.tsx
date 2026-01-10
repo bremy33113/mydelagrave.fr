@@ -9,6 +9,7 @@ interface ChantierDetailHeaderProps {
     onManagePhases?: () => void;
     onManageContacts?: () => void;
     onStatusChange?: (newStatus: string) => void;
+    canInteract?: boolean; // Permet au user d'interagir avec la timeline
 }
 
 export function ChantierDetailHeader({
@@ -18,6 +19,7 @@ export function ChantierDetailHeader({
     onManagePhases,
     onManageContacts,
     onStatusChange,
+    canInteract = true,
 }: ChantierDetailHeaderProps) {
     return (
         <div className="p-6 border-b border-slate-700/50">
@@ -94,6 +96,7 @@ export function ChantierDetailHeader({
                     chantierId={chantier.id}
                     currentStatus={chantier.statut}
                     onStatusChange={onStatusChange}
+                    canInteract={canInteract}
                 />
             </div>
         </div>

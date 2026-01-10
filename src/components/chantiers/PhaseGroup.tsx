@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Plus, Trash2, Edit, Calendar, User } from 'lucide-react';
 import { PhaseGauge } from './PhaseGauge';
+import { getWeekNumber } from '../../lib/dateUtils';
 import type { Tables } from '../../lib/database.types';
 
 type Phase = Tables<'phases_chantiers'> & {
@@ -139,8 +140,14 @@ export function PhaseGroup({
 
                                             <div className="flex items-center gap-2 text-xs text-slate-400">
                                                 <Calendar className="w-3 h-3" />
+                                                <span className="px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-medium">
+                                                    S{getWeekNumber(new Date(phase.date_debut))}
+                                                </span>
                                                 <span>{formatDateShort(phase.date_debut)} {startHour}h</span>
                                                 <span>→</span>
+                                                <span className="px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-medium">
+                                                    S{getWeekNumber(new Date(phase.date_fin))}
+                                                </span>
                                                 <span>{formatDateShort(phase.date_fin)} {endHour}h</span>
                                                 <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 font-medium">
                                                     {phase.duree_heures}h

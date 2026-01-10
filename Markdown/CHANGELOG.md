@@ -2,6 +2,32 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.5] - 2026-01-10
+
+### Refonte affichage liste chantiers + vue semaine
+
+### Nouvelles Fonctionnalités
+- ✨ Vue "Semaine" avec phases groupées par semaine (clic icône calendrier)
+- ✨ Bouton expand/collapse global pour tous les chantiers
+- ✨ Icônes légende (Chantier, Semaine, CA, Poseur) dans la barre de recherche
+- ✨ Icône calendrier barré pour chantiers sans phase planifiée
+- ✨ Nouveaux rôles BE : dessinateur_BE et lanceur_BE
+
+### Améliorations
+- 🎨 Nouvelle structure hiérarchique chantiers/phases (colonnes optimisées)
+- 🎨 Ligne phase : flèche → semaine → N° sous-phase → date → heures → libellé → poseur
+- 🎨 Ligne chantier : chevron → référence → nom → chargé d'affaire
+- ⚡ Vue semaine inclut la semaine en cours + semaines futures
+
+### Corrections
+- 🐛 Fix chevron expand/collapse individuel sur les chantiers
+
+### Suppressions
+- 🗑️ Filtres dropdown supprimés (Chargé, Statut, Semaine, Poseur)
+- 🗑️ En-têtes de colonnes triables supprimés
+
+---
+
 ## [2.6.4] - 2026-01-10
 
 ### Dashboard Poseur et Viewer PDF Mobile

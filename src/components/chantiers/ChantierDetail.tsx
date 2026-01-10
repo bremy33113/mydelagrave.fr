@@ -16,6 +16,7 @@ interface ChantierDetailProps {
     onManagePhases?: () => void;
     onManageContacts?: () => void;
     onStatusChange?: () => void;
+    canInteract?: boolean; // Permet au user d'interagir avec la timeline
 }
 
 export function ChantierDetail({
@@ -25,6 +26,7 @@ export function ChantierDetail({
     onManagePhases,
     onManageContacts,
     onStatusChange,
+    canInteract = true,
 }: ChantierDetailProps) {
     const [photoModalUrl, setPhotoModalUrl] = useState<string | null>(null);
 
@@ -38,6 +40,7 @@ export function ChantierDetail({
                 onManagePhases={onManagePhases}
                 onManageContacts={onManageContacts}
                 onStatusChange={onStatusChange}
+                canInteract={canInteract}
             />
 
             {/* Content */}
