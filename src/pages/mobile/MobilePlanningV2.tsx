@@ -100,7 +100,7 @@ export function MobilePlanningV2() {
     // Vérifier si une date est un jour férié
     const isHoliday = (date: Date): boolean => {
         const dateStr = formatLocalDate(date);
-        return FRENCH_HOLIDAYS.includes(dateStr);
+        return (FRENCH_HOLIDAYS as readonly string[]).includes(dateStr);
     };
 
     // Numéro de semaine

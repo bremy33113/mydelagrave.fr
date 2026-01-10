@@ -113,7 +113,7 @@ export function MobileChantierDetail() {
 
     // Récupérer l'utilisateur connecté
     useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => {
+        supabase.auth.getUser().then(({ data }: { data: { user: { id: string } | null } }) => {
             setCurrentUserId(data.user?.id || null);
         });
     }, []);
