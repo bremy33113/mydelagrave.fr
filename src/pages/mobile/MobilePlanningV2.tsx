@@ -7,7 +7,7 @@ import { MobilePlanningMap } from '../../components/mobile/MobilePlanningMap';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
 import { formatLocalDate } from '../../lib/dateUtils';
-import { DAYS_SHORT } from '../../lib/constants';
+import { DAYS_SHORT, FRENCH_HOLIDAYS } from '../../lib/constants';
 import { ChevronLeft, ChevronRight, MapPin, List, Map, Clock, AlertTriangle } from 'lucide-react';
 
 interface PhaseWithChantier {
@@ -47,10 +47,29 @@ export function MobilePlanningV2() {
     const [phases, setPhases] = useState<PhaseWithChantier[]>([]);
     const [reserves, setReserves] = useState<Reserve[]>([]);
     const [loading, setLoading] = useState(true);
-    const [dayOffset, setDayOffset] = useState(0);
-    const [viewMode, setViewMode] = useState<ViewMode>('jour');
+
+    // Restaurer dayOffset depuis sessionStorage au montage
+    const [dayOffset, setDayOffset] = useState(() => {
+        const saved = sessionStorage.getItem('mobilePlanningDayOffset');
+        return saved ? parseInt(saved, 10) : 0;
+    });
+
+    const [viewMode, setViewMode] = useState<ViewMode>(() => {
+        const saved = sessionStorage.getItem('mobilePlanningViewMode');
+        return (saved as ViewMode) || 'jour';
+    });
+
     const [displayMode, setDisplayMode] = useState<DisplayMode>('liste');
     const { userId } = useUserRole();
+
+    // Sauvegarder dayOffset et viewMode dans sessionStorage
+    useEffect(() => {
+        sessionStorage.setItem('mobilePlanningDayOffset', dayOffset.toString());
+    }, [dayOffset]);
+
+    useEffect(() => {
+        sessionStorage.setItem('mobilePlanningViewMode', viewMode);
+    }, [viewMode]);
 
     // Date sélectionnée
     const selectedDate = useMemo(() => {
@@ -60,7 +79,7 @@ export function MobilePlanningV2() {
         return date;
     }, [dayOffset]);
 
-    // Dates de la semaine
+    // Dates de la semaine (Lun-Ven uniquement, sans week-end)
     const weekDates = useMemo(() => {
         const dayOfWeek = selectedDate.getDay();
         const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -69,7 +88,7 @@ export function MobilePlanningV2() {
         monday.setDate(selectedDate.getDate() + mondayOffset);
 
         const days: Date[] = [];
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 5; i++) { // Lundi à Vendredi seulement
             const day = new Date(monday);
             day.setDate(monday.getDate() + i);
             days.push(day);
@@ -77,6 +96,12 @@ export function MobilePlanningV2() {
 
         return days;
     }, [selectedDate]);
+
+    // Vérifier si une date est un jour férié
+    const isHoliday = (date: Date): boolean => {
+        const dateStr = formatLocalDate(date);
+        return FRENCH_HOLIDAYS.includes(dateStr);
+    };
 
     // Numéro de semaine
     const weekNumber = useMemo(() => {
@@ -106,7 +131,7 @@ export function MobilePlanningV2() {
                 endDate = startDate;
             } else {
                 startDate = formatLocalDate(weekDates[0]);
-                endDate = formatLocalDate(weekDates[6]);
+                endDate = formatLocalDate(weekDates[4]); // Vendredi (index 4)
             }
 
             console.log('📱 MobilePlanningV2 - Fetching phases:', { userId, startDate, endDate, viewMode });
@@ -222,7 +247,7 @@ export function MobilePlanningV2() {
             });
         }
         const start = weekDates[0].getDate();
-        const end = weekDates[6].getDate();
+        const end = weekDates[4].getDate(); // Vendredi
         const month = weekDates[0].toLocaleDateString('fr-FR', { month: 'short' });
         return `Semaine ${weekNumber} (${start}-${end} ${month})`;
     };
@@ -431,7 +456,17 @@ export function MobilePlanningV2() {
                 ) : viewMode === 'jour' ? (
                     // Vue Jour
                     <div className="space-y-3">
-                        {phases.length === 0 ? (
+                        {isHoliday(selectedDate) ? (
+                            <div
+                                className="p-8 rounded-xl text-center"
+                                style={{
+                                    background: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(239, 68, 68, 0.1) 4px, rgba(239, 68, 68, 0.1) 8px)'
+                                }}
+                            >
+                                <p className="text-red-400 font-bold">Jour férié</p>
+                                <p className="text-slate-500 text-sm mt-1">Pas d'intervention prévue</p>
+                            </div>
+                        ) : phases.length === 0 ? (
                             <MobileGlassCard className="p-8 text-center">
                                 <p className="text-slate-400 text-sm">Aucune intervention ce jour</p>
                             </MobileGlassCard>
@@ -445,22 +480,22 @@ export function MobilePlanningV2() {
                         )}
                     </div>
                 ) : (
-                    // Vue Semaine
+                    // Vue Semaine (Lun-Ven)
                     <div className="space-y-4">
                         {weekDates.map(day => {
                             const dateKey = formatLocalDate(day);
                             const dayPhases = phasesByDay[dateKey] || [];
                             const isToday = day.toDateString() === today.toDateString();
-                            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                            const dayIsHoliday = isHoliday(day);
 
                             return (
                                 <div key={dateKey}>
                                     {/* En-tête jour */}
                                     <div className={`flex items-center gap-2 mb-2 ${
-                                        isToday ? 'text-sky-400' : isWeekend ? 'text-slate-600' : 'text-slate-400'
+                                        isToday ? 'text-sky-400' : dayIsHoliday ? 'text-red-400' : 'text-slate-400'
                                     }`}>
                                         <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${
-                                            isToday ? 'bg-sky-500 text-white' : 'bg-slate-800/50'
+                                            isToday ? 'bg-sky-500 text-white' : dayIsHoliday ? 'bg-red-500/30 text-red-400' : 'bg-slate-800/50'
                                         }`}>
                                             {day.getDate()}
                                         </span>
@@ -472,16 +507,28 @@ export function MobilePlanningV2() {
                                                 Aujourd'hui
                                             </span>
                                         )}
+                                        {dayIsHoliday && (
+                                            <span className="text-[9px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold uppercase">
+                                                Férié
+                                            </span>
+                                        )}
                                         <span className="text-[10px] text-slate-600 ml-auto">
                                             {dayPhases.length > 0 && `${dayPhases.length} interv.`}
                                         </span>
                                     </div>
 
-                                    {/* Phases du jour */}
-                                    {dayPhases.length === 0 ? (
-                                        <p className="text-xs text-slate-600 pl-10 py-1">
-                                            {isWeekend ? 'Week-end' : '-'}
-                                        </p>
+                                    {/* Phases du jour ou jour férié */}
+                                    {dayIsHoliday ? (
+                                        <div
+                                            className="ml-10 py-3 px-4 rounded-lg text-xs text-red-400 font-medium"
+                                            style={{
+                                                background: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(239, 68, 68, 0.1) 4px, rgba(239, 68, 68, 0.1) 8px)'
+                                            }}
+                                        >
+                                            Jour férié
+                                        </div>
+                                    ) : dayPhases.length === 0 ? (
+                                        <p className="text-xs text-slate-600 pl-10 py-1">-</p>
                                     ) : (
                                         <div className="space-y-2 pl-10">
                                             {dayPhases.map(renderPhaseCard)}

@@ -23,8 +23,19 @@ const DAYS_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 
 export function MobilePlanning() {
     const [phases, setPhases] = useState<Phase[]>([]);
     const [loading, setLoading] = useState(true);
-    const [weekOffset, setWeekOffset] = useState(0);
+
+    // Restaurer weekOffset depuis sessionStorage au montage
+    const [weekOffset, setWeekOffset] = useState(() => {
+        const saved = sessionStorage.getItem('mobilePlanningWeekOffset');
+        return saved ? parseInt(saved, 10) : 0;
+    });
+
     const { userId } = useUserRole();
+
+    // Sauvegarder weekOffset dans sessionStorage
+    useEffect(() => {
+        sessionStorage.setItem('mobilePlanningWeekOffset', weekOffset.toString());
+    }, [weekOffset]);
 
     // Calculer les dates de la semaine
     const weekDates = useMemo(() => {

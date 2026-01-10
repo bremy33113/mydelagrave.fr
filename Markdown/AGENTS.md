@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.6.5**
+**2.6.6**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.6.5 - Refonte affichage liste chantiers + vue semaine
+MyDelagrave v2.6.6 - Améliorations mobile planning et documents
 
 ## Mode d'Exécution
 

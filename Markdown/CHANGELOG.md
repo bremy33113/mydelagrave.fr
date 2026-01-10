@@ -2,6 +2,27 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.6] - 2026-01-11
+
+### Améliorations mobile planning et documents
+
+### Nouvelles Fonctionnalités
+- ✨ Viewer plein écran pour documents (desktop et mobile)
+- ✨ Sections Documents/Informations/Réserves expandables sur mobile
+- ✨ Poseur peut modifier/supprimer ses propres notes
+
+### Améliorations
+- 🎨 Section Informations : vignettes à droite, taille réduite 50%
+- 🎨 Chevrons de sections alignés à gauche
+- 🎨 Sections Documents et Informations fermées par défaut
+- ⚡ Planning mobile : weekends masqués (Lun-Ven uniquement)
+- ⚡ Jours fériés affichés en rouge hachuré sur le planning
+
+### Corrections
+- 🐛 Fix formulaire note mobile en mode édition
+
+---
+
 ## [2.6.5] - 2026-01-10
 
 ### Refonte affichage liste chantiers + vue semaine

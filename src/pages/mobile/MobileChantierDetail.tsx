@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MobileLayout } from '../../components/mobile/MobileLayout';
 import { MobileGlassCard } from '../../components/mobile/MobileGlassCard';
 import { MobileStatusBadge, getCategoryGradient, getCategoryIcon } from '../../components/mobile/MobileStatusBadge';
-import { MobilePdfViewer } from '../../components/mobile/MobilePdfViewer';
 import { supabase } from '../../lib/supabase';
 import {
     Navigation,
@@ -18,8 +17,9 @@ import {
     User,
     Phone,
     FileImage,
-    Download,
-    Eye
+    Eye,
+    Pencil,
+    Trash2
 } from 'lucide-react';
 
 interface Chantier {
@@ -36,6 +36,17 @@ interface Chantier {
         telephone: string | null;
         adresse: string | null;
     } | null;
+}
+
+interface Note {
+    id: string;
+    type: string;
+    contenu: string | null;
+    photo_1_url: string | null;
+    photo_2_url: string | null;
+    created_at: string;
+    created_by: string | null;
+    creator?: { first_name: string; last_name: string } | null;
 }
 
 interface Reserve {
@@ -63,11 +74,10 @@ interface Phase {
 interface Document {
     id: string;
     nom: string;
-    description: string | null;
     storage_path: string;
     mime_type: string;
-    file_size: number;
     created_at: string;
+    uploader?: { first_name: string; last_name: string } | null;
 }
 
 const RESERVE_STATUS_LABELS: Record<string, string> = {
@@ -89,12 +99,24 @@ export function MobileChantierDetail() {
     const navigate = useNavigate();
     const [chantier, setChantier] = useState<Chantier | null>(null);
     const [reserves, setReserves] = useState<Reserve[]>([]);
+    const [notes, setNotes] = useState<Note[]>([]);
     const [phases, setPhases] = useState<Phase[]>([]);
-    const [plans, setPlans] = useState<Document[]>([]);
+    const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedReserve, setExpandedReserve] = useState<string | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [pdfViewer, setPdfViewer] = useState<{ url: string; fileName: string } | null>(null);
+    const [previewData, setPreviewData] = useState<{ url: string; type: 'image' | 'pdf'; name?: string } | null>(null);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    // Sections expandables (fermées par défaut sauf réserves)
+    const [documentsExpanded, setDocumentsExpanded] = useState(false);
+    const [informationsExpanded, setInformationsExpanded] = useState(false);
+    const [reservesExpanded, setReservesExpanded] = useState(true);
+
+    // Récupérer l'utilisateur connecté
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => {
+            setCurrentUserId(data.user?.id || null);
+        });
+    }, []);
 
     const fetchChantier = useCallback(async () => {
         if (!id) return;
@@ -142,6 +164,26 @@ export function MobileChantierDetail() {
 
             setReserves((reservesData as Reserve[]) || []);
 
+            // Charger les notes (informations - hors réserves)
+            const { data: notesData } = await supabase
+                .from('notes_chantiers')
+                .select(`
+                    id,
+                    type,
+                    contenu,
+                    photo_1_url,
+                    photo_2_url,
+                    created_at,
+                    created_by,
+                    creator:created_by(first_name, last_name)
+                `)
+                .eq('chantier_id', id)
+                .neq('type', 'reserve')
+                .is('deleted_at', null)
+                .order('created_at', { ascending: false });
+
+            setNotes((notesData as Note[]) || []);
+
             // Charger les phases du jour
             const today = new Date().toISOString().split('T')[0];
             const { data: phasesData } = await supabase
@@ -155,15 +197,22 @@ export function MobileChantierDetail() {
             setPhases((phasesData as Phase[]) || []);
 
             // Charger les documents de type "plan"
-            const { data: plansData } = await supabase
+            const { data: docsData } = await supabase
                 .from('documents_chantiers')
-                .select('id, nom, description, storage_path, mime_type, file_size, created_at')
+                .select(`
+                    id,
+                    nom,
+                    storage_path,
+                    mime_type,
+                    created_at,
+                    uploader:users!uploaded_by(first_name, last_name)
+                `)
                 .eq('chantier_id', id)
                 .eq('type', 'plan')
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false });
 
-            setPlans((plansData as Document[]) || []);
+            setDocuments((docsData as Document[]) || []);
 
         } catch (err) {
             console.error('Erreur chargement chantier:', err);
@@ -205,6 +254,10 @@ export function MobileChantierDetail() {
         navigate(`/m/chantier/${id}/reserve`);
     };
 
+    const openNoteForm = () => {
+        navigate(`/m/chantier/${id}/note`);
+    };
+
     const toggleReserve = (reserveId: string) => {
         setExpandedReserve(expandedReserve === reserveId ? null : reserveId);
     };
@@ -217,49 +270,34 @@ export function MobileChantierDetail() {
         });
     };
 
-    const formatFileSize = (bytes: number) => {
-        if (bytes < 1024) return `${bytes} B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    const handleDeleteNote = async (noteId: string) => {
+        if (!confirm('Supprimer cette note ?')) return;
+        await supabase
+            .from('notes_chantiers')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', noteId);
+        // Rafraîchir les notes
+        fetchChantier();
     };
 
-    const handlePreviewDocument = async (doc: Document) => {
+    const handleViewDocument = async (doc: Document) => {
         try {
-            const { data } = await supabase.storage
+            const { data, error } = await supabase.storage
                 .from('documents')
                 .createSignedUrl(doc.storage_path, 3600);
 
-            if (data?.signedUrl) {
-                if (doc.mime_type.startsWith('image/')) {
-                    // Images: preview plein écran
-                    setPreviewUrl(data.signedUrl);
-                } else if (doc.mime_type === 'application/pdf') {
-                    // PDFs: viewer avec gestures
-                    setPdfViewer({ url: data.signedUrl, fileName: doc.nom });
-                } else {
-                    // Autres: ouvrir dans un nouvel onglet
-                    window.open(data.signedUrl, '_blank');
-                }
+            if (error || !data?.signedUrl) {
+                // En mode mock, les fichiers n'existent pas réellement
+                alert(`Document : ${doc.nom}\n\nFichier non disponible en mode démonstration.`);
+                return;
             }
-        } catch (err) {
-            console.error('Erreur preview:', err);
-        }
-    };
 
-    const handleDownloadDocument = async (doc: Document) => {
-        try {
-            const { data } = await supabase.storage
-                .from('documents')
-                .createSignedUrl(doc.storage_path, 3600);
-
-            if (data?.signedUrl) {
-                const link = document.createElement('a');
-                link.href = data.signedUrl;
-                link.download = doc.nom;
-                link.click();
-            }
+            // Déterminer le type de preview
+            const type = doc.mime_type === 'application/pdf' ? 'pdf' : 'image';
+            setPreviewData({ url: data.signedUrl, type, name: doc.nom });
         } catch (err) {
-            console.error('Erreur téléchargement:', err);
+            console.error('Erreur ouverture document:', err);
+            alert('Erreur lors de l\'ouverture du document');
         }
     };
 
@@ -420,55 +458,160 @@ export function MobileChantierDetail() {
                     </MobileGlassCard>
                 )}
 
-                {/* Section Plans */}
-                {plans.length > 0 && (
-                    <MobileGlassCard className="p-4">
-                        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
-                            Plans ({plans.length})
-                        </h2>
-                        <div className="space-y-2">
-                            {plans.map(doc => (
-                                <div
-                                    key={doc.id}
-                                    className="flex items-center gap-3 py-2 px-3 bg-slate-800/50 rounded-xl"
-                                >
-                                    <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                                        <FileImage size={18} className="text-indigo-400" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-medium text-white truncate">
-                                            {doc.nom}
-                                        </p>
-                                        <p className="text-[10px] text-slate-500">
-                                            {formatFileSize(doc.file_size)} • {formatDate(doc.created_at)}
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={() => handlePreviewDocument(doc)}
-                                            className="p-2 bg-slate-700/50 rounded-lg active:scale-95 transition-transform"
-                                            title="Voir"
-                                        >
-                                            <Eye size={16} className="text-sky-400" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDownloadDocument(doc)}
-                                            className="p-2 bg-slate-700/50 rounded-lg active:scale-95 transition-transform"
-                                            title="Télécharger"
-                                        >
-                                            <Download size={16} className="text-emerald-400" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </MobileGlassCard>
-                )}
-
-                {/* Section Réserves */}
+                {/* Section Documents (Plans) - Expandable */}
                 <MobileGlassCard className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setDocumentsExpanded(!documentsExpanded)}
+                        className="w-full flex items-center gap-2"
+                    >
+                        <ChevronDown
+                            size={16}
+                            className={`text-slate-500 transition-transform ${documentsExpanded ? '' : '-rotate-90'}`}
+                        />
+                        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            Documents ({documents.length})
+                        </h2>
+                    </button>
+                    {documentsExpanded && (
+                        <div className="mt-3">
+                            {documents.length === 0 ? (
+                                <p className="text-xs text-slate-500 italic">Aucun document disponible</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {documents.map(doc => (
+                                        <button
+                                            key={doc.id}
+                                            onClick={() => handleViewDocument(doc)}
+                                            className="w-full flex items-center gap-3 py-2 px-3 bg-slate-800/50 rounded-xl active:scale-98 transition-transform text-left"
+                                        >
+                                            <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                                                <FileImage size={18} className="text-indigo-400" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-medium text-white truncate">
+                                                    {doc.nom}
+                                                </p>
+                                                <p className="text-[10px] text-slate-500">
+                                                    {formatDate(doc.created_at)}
+                                                    {doc.uploader && (
+                                                        <span className="text-sky-400 ml-1">
+                                                            • {doc.uploader.first_name} {doc.uploader.last_name?.charAt(0)}.
+                                                        </span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <Eye size={16} className="text-sky-400 flex-shrink-0" />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </MobileGlassCard>
+
+                {/* Section Informations - Expandable */}
+                <MobileGlassCard className="p-4">
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={() => setInformationsExpanded(!informationsExpanded)}
+                            className="flex items-center gap-2"
+                        >
+                            <ChevronDown
+                                size={16}
+                                className={`text-slate-500 transition-transform ${informationsExpanded ? '' : '-rotate-90'}`}
+                            />
+                            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                Informations ({notes.length})
+                            </h2>
+                        </button>
+                        <button
+                            onClick={openNoteForm}
+                            className="text-[10px] font-black uppercase tracking-widest text-sky-400"
+                        >
+                            + Ajouter
+                        </button>
+                    </div>
+                    {informationsExpanded && (
+                        <div className="mt-3">
+                            {notes.length === 0 ? (
+                                <p className="text-xs text-slate-500 italic">Aucune information</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {notes.map(note => (
+                                        <div key={note.id} className="flex gap-3 border-b border-slate-700/30 pb-3 last:border-0 last:pb-0">
+                                            {/* Contenu à gauche */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 text-[10px] text-slate-500 mb-1">
+                                                    <span>{formatDate(note.created_at)}</span>
+                                                    {note.creator && (
+                                                        <span className="text-sky-400">
+                                                            • {note.creator.first_name} {note.creator.last_name?.charAt(0)}.
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-sm text-slate-300">
+                                                    {note.contenu || <span className="italic text-slate-500">Pas de texte</span>}
+                                                </p>
+                                            </div>
+                                            {/* Vignettes (réduites 50%) */}
+                                            {(note.photo_1_url || note.photo_2_url) && (
+                                                <div className="flex gap-1 flex-shrink-0">
+                                                    {note.photo_1_url && (
+                                                        <img
+                                                            src={note.photo_1_url}
+                                                            alt="Photo 1"
+                                                            className="w-8 h-8 object-cover rounded cursor-pointer"
+                                                            onClick={() => setPreviewData({ url: note.photo_1_url!, type: 'image', name: 'Photo' })}
+                                                        />
+                                                    )}
+                                                    {note.photo_2_url && (
+                                                        <img
+                                                            src={note.photo_2_url}
+                                                            alt="Photo 2"
+                                                            className="w-8 h-8 object-cover rounded cursor-pointer"
+                                                            onClick={() => setPreviewData({ url: note.photo_2_url!, type: 'image', name: 'Photo' })}
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
+                                            {/* Actions (seulement pour ses propres notes) */}
+                                            {note.created_by === currentUserId && (
+                                                <div className="flex flex-col gap-1 flex-shrink-0">
+                                                    <button
+                                                        onClick={() => navigate(`/m/chantier/${id}/note?edit=${note.id}`)}
+                                                        className="p-1.5 bg-slate-800/50 rounded text-slate-400 hover:text-sky-400"
+                                                        title="Modifier"
+                                                    >
+                                                        <Pencil size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteNote(note.id)}
+                                                        className="p-1.5 bg-slate-800/50 rounded text-slate-400 hover:text-red-400"
+                                                        title="Supprimer"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </MobileGlassCard>
+
+                {/* Section Réserves - Expandable */}
+                <MobileGlassCard className="p-4">
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={() => setReservesExpanded(!reservesExpanded)}
+                            className="flex items-center gap-2"
+                        >
+                            <ChevronDown
+                                size={16}
+                                className={`text-slate-500 transition-transform ${reservesExpanded ? '' : '-rotate-90'}`}
+                            />
                             <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                                 Réserves
                             </h2>
@@ -478,7 +621,7 @@ export function MobileChantierDetail() {
                                     <span className="text-[10px] font-bold">{reservesOuvertes.length}</span>
                                 </span>
                             )}
-                        </div>
+                        </button>
                         <button
                             onClick={openReserveForm}
                             className="text-[10px] font-black uppercase tracking-widest text-sky-400"
@@ -487,119 +630,127 @@ export function MobileChantierDetail() {
                         </button>
                     </div>
 
-                    {reserves.length === 0 ? (
-                        <p className="text-sm text-slate-500 text-center py-4">
-                            Aucune réserve signalée
-                        </p>
-                    ) : (
-                        <div className="space-y-2">
-                            {reserves.map(reserve => (
-                                <div
-                                    key={reserve.id}
-                                    className="bg-slate-800/50 rounded-xl overflow-hidden"
-                                >
-                                    {/* Header réserve (cliquable) */}
-                                    <button
-                                        onClick={() => toggleReserve(reserve.id)}
-                                        className="w-full flex items-center gap-3 p-3"
-                                    >
-                                        <span className={`w-2 h-2 rounded-full ${RESERVE_STATUS_COLORS[reserve.statut_reserve]}`} />
-                                        <div className="flex-1 text-left">
-                                            <p className="text-xs font-bold text-white uppercase">
-                                                {reserve.localisation || 'Non localisée'}
-                                            </p>
-                                            <p className="text-[10px] text-slate-500">
-                                                {RESERVE_STATUS_LABELS[reserve.statut_reserve]} • {formatDate(reserve.created_at)}
-                                            </p>
-                                        </div>
-                                        {(reserve.photo_1_url || reserve.photo_2_url) && (
-                                            <Camera size={14} className="text-slate-500" />
-                                        )}
-                                        {expandedReserve === reserve.id ? (
-                                            <ChevronUp size={16} className="text-slate-500" />
-                                        ) : (
-                                            <ChevronDown size={16} className="text-slate-500" />
-                                        )}
-                                    </button>
+                    {reservesExpanded && (
+                        <div className="mt-3">
+                            {reserves.length === 0 ? (
+                                <p className="text-sm text-slate-500 text-center py-4">
+                                    Aucune réserve signalée
+                                </p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {reserves.map(reserve => (
+                                        <div
+                                            key={reserve.id}
+                                            className="bg-slate-800/50 rounded-xl overflow-hidden"
+                                        >
+                                            {/* Header réserve (cliquable) */}
+                                            <button
+                                                onClick={() => toggleReserve(reserve.id)}
+                                                className="w-full flex items-center gap-3 p-3"
+                                            >
+                                                <span className={`w-2 h-2 rounded-full ${RESERVE_STATUS_COLORS[reserve.statut_reserve]}`} />
+                                                <div className="flex-1 text-left">
+                                                    <p className="text-xs font-bold text-white uppercase">
+                                                        {reserve.localisation || 'Non localisée'}
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-500">
+                                                        {RESERVE_STATUS_LABELS[reserve.statut_reserve]} • {formatDate(reserve.created_at)}
+                                                    </p>
+                                                </div>
+                                                {(reserve.photo_1_url || reserve.photo_2_url) && (
+                                                    <Camera size={14} className="text-slate-500" />
+                                                )}
+                                                {expandedReserve === reserve.id ? (
+                                                    <ChevronUp size={16} className="text-slate-500" />
+                                                ) : (
+                                                    <ChevronDown size={16} className="text-slate-500" />
+                                                )}
+                                            </button>
 
-                                    {/* Contenu expandé */}
-                                    {expandedReserve === reserve.id && (
-                                        <div className="px-3 pb-3 pt-0 border-t border-slate-700/50">
-                                            {/* Description */}
-                                            {reserve.contenu && (
-                                                <p className="text-sm text-slate-300 mt-3 mb-3">
-                                                    {reserve.contenu}
-                                                </p>
-                                            )}
-
-                                            {/* Photos */}
-                                            {(reserve.photo_1_url || reserve.photo_2_url) && (
-                                                <div className="flex gap-2 mb-3">
-                                                    {reserve.photo_1_url && (
-                                                        <img
-                                                            src={reserve.photo_1_url}
-                                                            alt="Photo 1"
-                                                            className="w-20 h-20 object-cover rounded-lg"
-                                                        />
+                                            {/* Contenu expandé */}
+                                            {expandedReserve === reserve.id && (
+                                                <div className="px-3 pb-3 pt-0 border-t border-slate-700/50">
+                                                    {/* Description */}
+                                                    {reserve.contenu && (
+                                                        <p className="text-sm text-slate-300 mt-3 mb-3">
+                                                            {reserve.contenu}
+                                                        </p>
                                                     )}
-                                                    {reserve.photo_2_url && (
-                                                        <img
-                                                            src={reserve.photo_2_url}
-                                                            alt="Photo 2"
-                                                            className="w-20 h-20 object-cover rounded-lg"
-                                                        />
+
+                                                    {/* Photos */}
+                                                    {(reserve.photo_1_url || reserve.photo_2_url) && (
+                                                        <div className="flex gap-2 mb-3">
+                                                            {reserve.photo_1_url && (
+                                                                <img
+                                                                    src={reserve.photo_1_url}
+                                                                    alt="Photo 1"
+                                                                    className="w-20 h-20 object-cover rounded-lg"
+                                                                />
+                                                            )}
+                                                            {reserve.photo_2_url && (
+                                                                <img
+                                                                    src={reserve.photo_2_url}
+                                                                    alt="Photo 2"
+                                                                    className="w-20 h-20 object-cover rounded-lg"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Créateur */}
+                                                    {reserve.creator && (
+                                                        <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                                                            <User size={10} />
+                                                            <span>
+                                                                Signalée par {reserve.creator.first_name} {reserve.creator.last_name}
+                                                            </span>
+                                                        </div>
                                                     )}
                                                 </div>
                                             )}
-
-                                            {/* Créateur */}
-                                            {reserve.creator && (
-                                                <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                                                    <User size={10} />
-                                                    <span>
-                                                        Signalée par {reserve.creator.first_name} {reserve.creator.last_name}
-                                                    </span>
-                                                </div>
-                                            )}
                                         </div>
-                                    )}
+                                    ))}
                                 </div>
-                            ))}
+                            )}
                         </div>
                     )}
                 </MobileGlassCard>
             </div>
 
-            {/* Modal Preview Image */}
-            {previewUrl && (
-                <div
-                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-                    onClick={() => setPreviewUrl(null)}
-                >
-                    <button
-                        onClick={() => setPreviewUrl(null)}
-                        className="absolute top-4 right-4 p-2 bg-slate-800/80 rounded-full text-white"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                    <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="max-w-full max-h-full object-contain rounded-lg"
-                        onClick={(e) => e.stopPropagation()}
-                    />
+            {/* Modal Preview Plein Écran (Image ou PDF) */}
+            {previewData && (
+                <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 bg-slate-900/80 safe-area-top">
+                        <p className="text-white font-medium truncate flex-1 mr-4">
+                            {previewData.name || 'Aperçu'}
+                        </p>
+                        <button
+                            onClick={() => setPreviewData(null)}
+                            className="p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700 transition-colors flex-shrink-0"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    {/* Content */}
+                    <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+                        {previewData.type === 'image' ? (
+                            <img
+                                src={previewData.url}
+                                alt="Preview"
+                                className="max-w-full max-h-full object-contain"
+                            />
+                        ) : (
+                            <iframe
+                                src={previewData.url}
+                                title="PDF Preview"
+                                className="w-full h-full bg-white rounded-lg"
+                            />
+                        )}
+                    </div>
                 </div>
-            )}
-
-            {/* PDF Viewer */}
-            {pdfViewer && (
-                <MobilePdfViewer
-                    url={pdfViewer.url}
-                    fileName={pdfViewer.fileName}
-                    onClose={() => setPdfViewer(null)}
-                />
             )}
         </MobileLayout>
     );

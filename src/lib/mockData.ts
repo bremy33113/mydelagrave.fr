@@ -887,7 +887,50 @@ export const initial_chantiers_contacts: Tables<'chantiers_contacts'>[] = [
     },
 ];
 
-export const initial_documents_chantiers: Tables<'documents_chantiers'>[] = [];
+export const initial_documents_chantiers: Tables<'documents_chantiers'>[] = [
+    {
+        id: 'doc-001',
+        chantier_id: 'chantier-001',
+        type: 'plan',
+        nom: 'Plan implantation laboratoire.pdf',
+        description: 'Plan général d\'implantation du mobilier',
+        storage_path: 'chantiers/chantier-001/plan-implantation.pdf',
+        file_size: 2500000,
+        mime_type: 'application/pdf',
+        uploaded_by: 'ca-uuid-001',
+        deleted_at: null,
+        created_at: '2024-12-15T10:00:00Z',
+        updated_at: '2024-12-15T10:00:00Z',
+    },
+    {
+        id: 'doc-002',
+        chantier_id: 'chantier-001',
+        type: 'plan',
+        nom: 'Plan électrique paillasses.pdf',
+        description: 'Schéma des raccordements électriques',
+        storage_path: 'chantiers/chantier-001/plan-electrique.pdf',
+        file_size: 1800000,
+        mime_type: 'application/pdf',
+        uploaded_by: 'ca-uuid-001',
+        deleted_at: null,
+        created_at: '2024-12-18T14:30:00Z',
+        updated_at: '2024-12-18T14:30:00Z',
+    },
+    {
+        id: 'doc-003',
+        chantier_id: 'chantier-001',
+        type: 'devis',
+        nom: 'Devis mobilier CHU.pdf',
+        description: 'Devis détaillé du mobilier de laboratoire',
+        storage_path: 'chantiers/chantier-001/devis-mobilier.pdf',
+        file_size: 500000,
+        mime_type: 'application/pdf',
+        uploaded_by: 'ca-uuid-001',
+        deleted_at: null,
+        created_at: '2024-12-10T09:00:00Z',
+        updated_at: '2024-12-10T09:00:00Z',
+    },
+];
 
 export const initial_pointages: Tables<'pointages'>[] = [
     // Lundi 6 janvier 2026 - Pierre Durand

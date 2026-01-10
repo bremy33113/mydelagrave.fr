@@ -188,7 +188,7 @@ export function ChantierDocumentsSection({
                                             </div>
                                             {/* Actions - 10% */}
                                             <div className="w-[10%] flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {doc.mime_type.startsWith('image/') && (
+                                                {(doc.mime_type.startsWith('image/') || doc.mime_type === 'application/pdf') && (
                                                     <button
                                                         onClick={() => setPreviewDocument(doc)}
                                                         className="p-1 text-slate-400 hover:text-blue-400"
@@ -224,35 +224,50 @@ export function ChantierDocumentsSection({
                 )}
             </section>
 
-            {/* Document Preview Modal */}
+            {/* Document Preview Modal - Plein écran */}
             {previewDocument && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
-                    onClick={() => setPreviewDocument(null)}
+                    className="fixed inset-0 z-50 flex flex-col bg-black/95"
                     data-testid="document-preview-modal"
                 >
-                    <div className="relative max-w-4xl max-h-[90vh] p-2">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 py-4 bg-slate-900/80">
+                        <p className="text-white font-medium truncate" data-testid="preview-filename">
+                            {previewDocument.nom}
+                        </p>
                         <button
                             onClick={() => setPreviewDocument(null)}
-                            className="absolute top-4 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors z-10"
+                            className="p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700 transition-colors"
                             data-testid="btn-close-preview"
                         >
                             <X className="w-6 h-6" />
                         </button>
-                        <div className="bg-slate-900 rounded-lg p-4">
-                            <p className="text-white font-medium mb-2" data-testid="preview-filename">
-                                {previewDocument.nom}
+                    </div>
+                    {/* Content */}
+                    <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+                        {!previewUrl ? (
+                            <p className="text-slate-400 text-center py-8">
+                                Fichier non disponible en mode démonstration.
                             </p>
-                            {previewDocument.mime_type.startsWith('image/') && previewUrl && (
-                                <img
-                                    src={previewUrl}
-                                    alt={previewDocument.nom}
-                                    className="max-w-full max-h-[75vh] object-contain rounded-lg"
-                                    onClick={(e) => e.stopPropagation()}
-                                    data-testid="preview-image"
-                                />
-                            )}
-                        </div>
+                        ) : previewDocument.mime_type.startsWith('image/') ? (
+                            <img
+                                src={previewUrl}
+                                alt={previewDocument.nom}
+                                className="max-w-full max-h-full object-contain"
+                                data-testid="preview-image"
+                            />
+                        ) : previewDocument.mime_type === 'application/pdf' ? (
+                            <iframe
+                                src={previewUrl}
+                                title={previewDocument.nom}
+                                className="w-full h-full bg-white rounded-lg"
+                                data-testid="preview-pdf"
+                            />
+                        ) : (
+                            <p className="text-slate-400 text-center py-8">
+                                Aperçu non disponible pour ce type de fichier.
+                            </p>
+                        )}
                     </div>
                 </div>
             )}

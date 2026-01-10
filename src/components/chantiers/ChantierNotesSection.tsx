@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Plus, FileText, X, Image, Pencil, Trash2 } from 'lucide-react';
 import { supabase, isUsingMock } from '../../lib/supabase';
+import { useUserRole } from '../../hooks/useUserRole';
 import type { Note } from './types';
 
 interface ChantierNotesSectionProps {
@@ -14,6 +15,7 @@ export function ChantierNotesSection({
     defaultExpanded = true,
     onPhotoClick,
 }: ChantierNotesSectionProps) {
+    const { userId, isPoseur } = useUserRole();
     const [notes, setNotes] = useState<Note[]>([]);
     const [expanded, setExpanded] = useState(defaultExpanded);
     const [showForm, setShowForm] = useState(false);
@@ -31,7 +33,7 @@ export function ChantierNotesSection({
         const fetchNotes = async () => {
             const { data } = await supabase
                 .from('notes_chantiers')
-                .select('*')
+                .select('*, creator:users!created_by(first_name, last_name)')
                 .eq('chantier_id', chantierId)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false });
@@ -345,9 +347,16 @@ export function ChantierNotesSection({
                                         key={note.id}
                                         className="flex items-start gap-3 p-2 hover:bg-slate-800/30 group"
                                     >
-                                        <span className="text-xs text-slate-500 whitespace-nowrap pt-0.5">
-                                            {new Date(note.created_at).toLocaleDateString('fr-FR')}
-                                        </span>
+                                        <div className="text-xs whitespace-nowrap pt-0.5">
+                                            <span className="text-slate-500">
+                                                {new Date(note.created_at).toLocaleDateString('fr-FR')}
+                                            </span>
+                                            {note.creator && (
+                                                <span className="text-blue-400 ml-1">
+                                                    • {note.creator.first_name} {note.creator.last_name?.charAt(0)}.
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className="flex-1 text-sm text-slate-300 line-clamp-2">
                                             {note.contenu || (
                                                 <span className="italic text-slate-500">Pas de texte</span>
@@ -371,22 +380,25 @@ export function ChantierNotesSection({
                                                 />
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => handleEditNote(note)}
-                                                className="p-1 text-slate-400 hover:text-blue-400"
-                                                title="Modifier"
-                                            >
-                                                <Pencil className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteNote(note.id)}
-                                                className="p-1 text-slate-400 hover:text-red-400"
-                                                title="Supprimer"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
+                                        {/* Boutons edit/delete: visible si pas poseur OU si créateur de la note */}
+                                        {(!isPoseur || note.created_by === userId) && (
+                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => handleEditNote(note)}
+                                                    className="p-1 text-slate-400 hover:text-blue-400"
+                                                    title="Modifier"
+                                                >
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteNote(note.id)}
+                                                    className="p-1 text-slate-400 hover:text-red-400"
+                                                    title="Supprimer"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
