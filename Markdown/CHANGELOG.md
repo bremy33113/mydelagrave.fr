@@ -2,6 +2,24 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.5.4] - 2026-01-10
+
+### Tests E2E FloatingBurgerMenu et StatusTimeline
+
+### Tests
+- 🧪 Ajout 7 tests E2E pour FloatingBurgerMenu (ouverture, fermeture, navigation)
+- 🧪 Ajout 5 tests E2E pour ChantierStatusTimeline (affichage, changement statut)
+- 🧪 Ajout helpers `openBurgerMenu()` et `navigateFromDashboard()`
+- 🧪 Mise à jour tous les tests pour utiliser le menu burger sur Dashboard
+
+### Améliorations
+- 📝 Ajout data-testid sur FloatingBurgerMenu et ChantierStatusTimeline
+
+### Stats
+- ✅ 197 tests E2E passent
+
+---
+
 ## [2.5.3] - 2026-01-10
 
 ### Menu burger flottant Dashboard
