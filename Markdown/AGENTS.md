@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.6.1**
+**2.6.2**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.6.1 - Configuration Electron et optimisation build
+MyDelagrave v2.6.2 - Support relations imbriquées mock Supabase
 
 ## Mode d'Exécution
 

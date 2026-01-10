@@ -11,12 +11,16 @@ import { AddContactModal } from '../components/chantiers/AddContactModal';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import type { Tables } from '../lib/database.types';
 
+type PhaseWithPoseur = Tables<'phases_chantiers'> & {
+    poseur?: Tables<'users'> | null;
+};
+
 type Chantier = Tables<'chantiers'> & {
     client?: Tables<'clients'> | null;
     charge_affaire?: Tables<'users'> | null;
     ref_categories_chantier?: Tables<'ref_categories_chantier'> | null;
     ref_statuts_chantier?: Tables<'ref_statuts_chantier'> | null;
-    phases_chantiers?: Tables<'phases_chantiers'>[] | null;
+    phases_chantiers?: PhaseWithPoseur[] | null;
 };
 
 export function DashboardPage() {
@@ -62,7 +66,7 @@ export function DashboardPage() {
           poseur:users!poseur_id(*),
           ref_categories_chantier(*),
           ref_statuts_chantier(*),
-          phases_chantiers(*)
+          phases_chantiers(*, poseur:users!poseur_id(*))
         `)
                 .is('deleted_at', null)
                 .order('updated_at', { ascending: false });

@@ -2,6 +2,22 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.2] - 2026-01-10
+
+### Support relations imbriquées mock Supabase
+
+### Corrections
+- 🐛 Fix parsing des relations imbriquées (nested) dans le mock Supabase
+- 🐛 Support de `phases_chantiers(*, poseur:users!poseur_id(*))` pour charger les poseurs des phases
+- 🐛 Nouveau format cartes Dashboard : chevron + phases à venir en lignes
+
+### Technique
+- 🔧 Refactoring parseSelectRelations() pour parenthèses imbriquées
+- 🔧 Migration v2.6.2 pour recharger les phases avec dates futures
+- 🔧 ChantierCard : upcomingPhases avec poseur par phase
+
+---
+
 ## [2.6.1] - 2026-01-10
 
 ### Configuration Electron et optimisation build

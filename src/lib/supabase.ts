@@ -137,6 +137,13 @@ function migrateIfNeeded(): void {
         console.info('📦 Migration v1.5.1: phases_chantiers et chantiers mis à jour');
     }
 
+    // Migration v2.6.2: Mettre à jour les phases avec dates futures et poseurs variés
+    if (!localStorage.getItem(STORAGE_PREFIX + 'migration_v2_6_2')) {
+        setTable('phases_chantiers', initial_phases_chantiers);
+        localStorage.setItem(STORAGE_PREFIX + 'migration_v2_6_2', 'true');
+        console.info('📦 Migration v2.6.2: phases_chantiers mis à jour avec dates futures');
+    }
+
     // Migration v1.5.0: Mettre à jour notes_chantiers avec nouveaux champs
     const notes = getTable<Record<string, unknown>>('notes_chantiers');
     let notesMigrated = false;
@@ -621,7 +628,26 @@ class MockQueryBuilder {
 
                 if (relation.type === 'one-to-many') {
                     // One-to-many: find all related items where foreignKey matches this item's id
-                    const related = foreignTable.filter((r) => r[relation.foreignKey] === item.id);
+                    let related = foreignTable.filter((r) => r[relation.foreignKey] === item.id);
+
+                    // Support nested relations like phases_chantiers(*, poseur:users!poseur_id(*))
+                    if (relation.nestedRelations && relation.nestedRelations.length > 0) {
+                        related = related.map((relatedItem) => {
+                            const enrichedItem = { ...relatedItem };
+                            relation.nestedRelations!.forEach((nested) => {
+                                const nestedTable = getTable<Record<string, unknown>>(nested.table);
+                                const nestedFk = relatedItem[nested.foreignKey];
+                                if (nestedFk) {
+                                    const nestedRecord = nestedTable.find((r) => r[nested.primaryKey] === nestedFk);
+                                    enrichedItem[nested.alias] = nestedRecord || null;
+                                } else {
+                                    enrichedItem[nested.alias] = null;
+                                }
+                            });
+                            return enrichedItem;
+                        });
+                    }
+
                     result[relation.alias] = related;
                 } else {
                     // Many-to-one: find single related item
@@ -645,8 +671,16 @@ class MockQueryBuilder {
         foreignKey: string;
         primaryKey: string;
         type: 'many-to-one' | 'one-to-many';
+        nestedRelations?: Array<{ alias: string; table: string; foreignKey: string; primaryKey: string }>;
     }> {
-        const relations: Array<{ alias: string; table: string; foreignKey: string; primaryKey: string; type: 'many-to-one' | 'one-to-many' }> = [];
+        const relations: Array<{
+            alias: string;
+            table: string;
+            foreignKey: string;
+            primaryKey: string;
+            type: 'many-to-one' | 'one-to-many';
+            nestedRelations?: Array<{ alias: string; table: string; foreignKey: string; primaryKey: string }>;
+        }> = [];
 
         // Split by comma but not inside parentheses
         // e.g., "*, uploader:users!uploaded_by(first_name, last_name)" should split into:
@@ -673,12 +707,21 @@ class MockQueryBuilder {
         const oneToManyTables = ['phases_chantiers', 'notes_chantiers', 'chantiers_contacts', 'documents_chantiers'];
 
         selectParts.forEach((part) => {
-            // Format: client:clients(*) ou uploader:users!uploaded_by(first_name, last_name) ou phases_chantiers(*)
-            const colonMatch = part.match(/(\w+):(\w+)(?:!(\w+))?\(([^)]+)\)/);
-            const simpleMatch = part.match(/(\w+)\(([^)]+)\)/);
+            // Extract table name and inner content manually to handle nested parentheses
+            const firstParen = part.indexOf('(');
+            const lastParen = part.lastIndexOf(')');
+
+            if (firstParen === -1 || lastParen === -1) return; // Skip if no parentheses
+
+            const beforeParen = part.substring(0, firstParen).trim();
+            const innerContent = part.substring(firstParen + 1, lastParen);
+
+            // Format: client:clients or uploader:users!uploaded_by or phases_chantiers
+            const colonMatch = beforeParen.match(/^(\w+):(\w+)(?:!(\w+))?$/);
+            const simpleMatch = beforeParen.match(/^(\w+)$/);
 
             if (colonMatch) {
-                // client:clients(*) or uploader:users!uploaded_by(*)
+                // client:clients or uploader:users!uploaded_by
                 const [, alias, table, explicitForeignKey] = colonMatch;
                 // Use explicit foreign key if provided, otherwise fallback to convention
                 const foreignKey = explicitForeignKey || (alias === 'creator' ? 'created_by' : `${alias}_id`);
@@ -695,12 +738,32 @@ class MockQueryBuilder {
                 // Check if it's a one-to-many relation
                 if (oneToManyTables.includes(table)) {
                     // One-to-many: phases_chantiers(*), notes_chantiers(*), chantiers_contacts(*)
+                    // Also support nested relations: phases_chantiers(*, poseur:users!poseur_id(*))
+
+                    // Parse nested relations from inner content
+                    const nestedRelations: Array<{ alias: string; table: string; foreignKey: string; primaryKey: string }> = [];
+                    const nestedMatch = innerContent.match(/(\w+):(\w+)!(\w+)\([^)]*\)/g);
+                    if (nestedMatch) {
+                        nestedMatch.forEach((nested) => {
+                            const m = nested.match(/(\w+):(\w+)!(\w+)/);
+                            if (m) {
+                                nestedRelations.push({
+                                    alias: m[1],
+                                    table: m[2],
+                                    foreignKey: m[3],
+                                    primaryKey: 'id',
+                                });
+                            }
+                        });
+                    }
+
                     relations.push({
                         alias: table,
                         table,
                         foreignKey: `${this.state.tableName.replace(/s$/, '')}_id`, // chantiers -> chantier_id
                         primaryKey: 'id',
                         type: 'one-to-many',
+                        nestedRelations: nestedRelations.length > 0 ? nestedRelations : undefined,
                     });
                 } else if (table.startsWith('ref_')) {
                     // ref_statuts_chantier(*)
