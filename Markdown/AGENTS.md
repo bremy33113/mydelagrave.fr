@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.6.0**
+**2.6.1**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.6.0 - Réserves poseurs et Notifications
+MyDelagrave v2.6.1 - Configuration Electron et optimisation build
 
 ## Mode d'Exécution
 

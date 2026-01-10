@@ -2,6 +2,26 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.1] - 2026-01-10
+
+### Configuration Electron et optimisation build
+
+### Nouvelles Fonctionnalités
+- ✨ Support Electron pour version desktop (Windows NSIS installer)
+- ✨ Scripts npm : `electron:dev`, `electron:build`, `electron:preview`
+
+### Améliorations
+- ⚡ Code-splitting avec manualChunks (vendor-pdf, vendor-map, vendor-dnd, vendor-react)
+- ⚡ Configuration vite-plugin-electron avec sortie CommonJS (.cjs)
+- ⚡ Augmentation chunkSizeWarningLimit à 800KB
+
+### Technique
+- 🔧 electron/main.ts : Process principal Electron
+- 🔧 electron/preload.ts : Script preload avec contextBridge
+- 🔧 Correction ES Module vs CommonJS pour compatibilité Electron
+
+---
+
 ## [2.6.0] - 2026-01-10
 
 ### Réserves poseurs et Notifications
