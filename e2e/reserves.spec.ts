@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { login, clearAuth, ACCOUNTS } from './helpers';
+import { login, clearAuth, ACCOUNTS, navigateFromDashboard } from './helpers';
 
 test.describe('Reserves Page', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page);
 
-        // Navigate to reserves page
-        await page.getByRole('link', { name: /réserves/i }).click();
+        // Navigate to reserves page via burger menu
+        await navigateFromDashboard(page, /réserves/i);
         await page.waitForTimeout(500);
     });
 
@@ -78,26 +78,20 @@ test.describe('Reserves Page - RBAC', () => {
         await clearAuth(page);
         await login(page, ACCOUNTS.superviseur.email, ACCOUNTS.superviseur.password);
 
-        // Navigate to reserves page (superviseur has access)
-        const reservesLink = page.getByRole('link', { name: /réserves/i });
-        if (await reservesLink.isVisible()) {
-            await reservesLink.click();
-            await page.waitForTimeout(500);
-            await expect(page.getByRole('heading', { name: /réserves/i })).toBeVisible();
-        }
+        // Navigate to reserves page via burger menu
+        await navigateFromDashboard(page, /réserves/i);
+        await page.waitForTimeout(500);
+        await expect(page.getByRole('heading', { name: /réserves/i })).toBeVisible();
     });
 
     test('charge_affaire should access reserves page', async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.chargeAffaire.email, ACCOUNTS.chargeAffaire.password);
 
-        // Navigate to reserves page
-        const reservesLink = page.getByRole('link', { name: /réserves/i });
-        if (await reservesLink.isVisible()) {
-            await reservesLink.click();
-            await page.waitForTimeout(500);
-            await expect(page.getByRole('heading', { name: /réserves/i })).toBeVisible();
-        }
+        // Navigate to reserves page via burger menu
+        await navigateFromDashboard(page, /réserves/i);
+        await page.waitForTimeout(500);
+        await expect(page.getByRole('heading', { name: /réserves/i })).toBeVisible();
     });
 });
 
@@ -105,7 +99,7 @@ test.describe('Reserves Page - Actions', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page);
-        await page.getByRole('link', { name: /réserves/i }).click();
+        await navigateFromDashboard(page, /réserves/i);
         await page.waitForTimeout(500);
     });
 

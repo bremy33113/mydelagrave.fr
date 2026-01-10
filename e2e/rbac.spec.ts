@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ACCOUNTS, login, clearAuth } from './helpers';
+import { ACCOUNTS, login, clearAuth, navigateFromDashboard, openBurgerMenu } from './helpers';
 
 test.describe('RBAC - Dashboard Chantier Filtering', () => {
     test('Admin should see all chantiers', async ({ page }) => {
@@ -136,7 +136,7 @@ test.describe('RBAC - Contact Permissions', () => {
     test('Admin can create/edit/delete contacts', async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
-        await page.getByRole('link', { name: /contacts/i }).click();
+        await navigateFromDashboard(page, /contacts/i);
 
         await expect(page.getByRole('button', { name: /nouveau contact/i })).toBeVisible();
     });
@@ -144,7 +144,7 @@ test.describe('RBAC - Contact Permissions', () => {
     test('Superviseur can create/edit/delete contacts', async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.superviseur.email, ACCOUNTS.superviseur.password);
-        await page.getByRole('link', { name: /contacts/i }).click();
+        await navigateFromDashboard(page, /contacts/i);
 
         await expect(page.getByRole('button', { name: /nouveau contact/i })).toBeVisible();
     });
@@ -152,7 +152,7 @@ test.describe('RBAC - Contact Permissions', () => {
     test('Chargé d\'Affaires can create contacts', async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.chargeAffaire.email, ACCOUNTS.chargeAffaire.password);
-        await page.getByRole('link', { name: /contacts/i }).click();
+        await navigateFromDashboard(page, /contacts/i);
 
         await expect(page.getByRole('button', { name: /nouveau contact/i })).toBeVisible();
     });
@@ -160,7 +160,7 @@ test.describe('RBAC - Contact Permissions', () => {
     test('Poseur CANNOT create contacts', async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.poseur.email, ACCOUNTS.poseur.password);
-        await page.getByRole('link', { name: /contacts/i }).click();
+        await navigateFromDashboard(page, /contacts/i);
 
         await expect(page.getByRole('button', { name: /nouveau contact/i })).not.toBeVisible();
     });
@@ -168,7 +168,7 @@ test.describe('RBAC - Contact Permissions', () => {
     test('Poseur CANNOT see edit buttons on contacts', async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.poseur.email, ACCOUNTS.poseur.password);
-        await page.getByRole('link', { name: /contacts/i }).click();
+        await navigateFromDashboard(page, /contacts/i);
 
         await page.waitForTimeout(1000);
 
@@ -180,7 +180,7 @@ test.describe('RBAC - Contact Permissions', () => {
     test('Poseur CANNOT see delete buttons on contacts', async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.poseur.email, ACCOUNTS.poseur.password);
-        await page.getByRole('link', { name: /contacts/i }).click();
+        await navigateFromDashboard(page, /contacts/i);
 
         await page.waitForTimeout(1000);
 
@@ -195,6 +195,8 @@ test.describe('RBAC - Administration Access', () => {
         await clearAuth(page);
         await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
 
+        // Open burger menu and verify Admin link is visible
+        await openBurgerMenu(page);
         await expect(page.getByRole('link', { name: /administration/i })).toBeVisible();
 
         await page.getByRole('link', { name: /administration/i }).click();
@@ -205,6 +207,8 @@ test.describe('RBAC - Administration Access', () => {
         await clearAuth(page);
         await login(page, ACCOUNTS.superviseur.email, ACCOUNTS.superviseur.password);
 
+        // Open burger menu and verify Admin link is visible
+        await openBurgerMenu(page);
         await expect(page.getByRole('link', { name: /administration/i })).toBeVisible();
 
         await page.getByRole('link', { name: /administration/i }).click();
@@ -215,7 +219,8 @@ test.describe('RBAC - Administration Access', () => {
         await clearAuth(page);
         await login(page, ACCOUNTS.chargeAffaire.email, ACCOUNTS.chargeAffaire.password);
 
-        // Admin link should not be visible
+        // Open burger menu and verify Admin link is NOT visible
+        await openBurgerMenu(page);
         await expect(page.getByRole('link', { name: /administration/i })).not.toBeVisible();
     });
 
@@ -223,7 +228,8 @@ test.describe('RBAC - Administration Access', () => {
         await clearAuth(page);
         await login(page, ACCOUNTS.poseur.email, ACCOUNTS.poseur.password);
 
-        // Admin link should not be visible
+        // Open burger menu and verify Admin link is NOT visible
+        await openBurgerMenu(page);
         await expect(page.getByRole('link', { name: /administration/i })).not.toBeVisible();
     });
 });

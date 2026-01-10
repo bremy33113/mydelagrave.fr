@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { login, clearAuth } from './helpers';
+import { login, clearAuth, navigateFromDashboard } from './helpers';
 
 test.describe('Trash Page', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page);
-        await page.getByRole('link', { name: /corbeille/i }).click();
+        await navigateFromDashboard(page, /corbeille/i);
         await expect(page).toHaveURL(/#\/corbeille/);
     });
 
@@ -58,7 +58,7 @@ test.describe('Trash Page - Restore Actions', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page);
-        await page.getByRole('link', { name: /corbeille/i }).click();
+        await navigateFromDashboard(page, /corbeille/i);
     });
 
     test('should show restore button if items exist', async ({ page }) => {
@@ -98,7 +98,7 @@ test.describe('Trash Page - Permanent Delete Actions', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page);
-        await page.getByRole('link', { name: /corbeille/i }).click();
+        await navigateFromDashboard(page, /corbeille/i);
     });
 
     test('should show delete button if items exist', async ({ page }) => {
@@ -135,7 +135,7 @@ test.describe('Trash Page - Warning Message', () => {
     test('should display permanent deletion warning', async ({ page }) => {
         await clearAuth(page);
         await login(page);
-        await page.getByRole('link', { name: /corbeille/i }).click();
+        await navigateFromDashboard(page, /corbeille/i);
 
         // The page should show the warning about permanent deletion
         await expect(page.getByText(/éléments supprimés définitivement ne peuvent pas être récupérés/i)).toBeVisible();

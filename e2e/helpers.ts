@@ -34,3 +34,21 @@ export async function clearAuth(page: Page): Promise<void> {
     });
     await page.reload();
 }
+
+/**
+ * Open the burger menu on the dashboard page
+ * Dashboard uses a floating burger menu instead of sidebar
+ */
+export async function openBurgerMenu(page: Page): Promise<void> {
+    const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+    await burgerButton.click();
+    await expect(page.locator('[data-testid="burger-menu-panel"]')).toBeVisible();
+}
+
+/**
+ * Navigate to a page from the dashboard via the burger menu
+ */
+export async function navigateFromDashboard(page: Page, linkName: RegExp): Promise<void> {
+    await openBurgerMenu(page);
+    await page.getByRole('link', { name: linkName }).click();
+}

@@ -119,3 +119,66 @@ test.describe('Chantier Detail - RBAC', () => {
         await page.waitForTimeout(300);
     });
 });
+
+test.describe('Chantier Detail - Status Timeline', () => {
+    test.beforeEach(async ({ page }) => {
+        await clearAuth(page);
+        await login(page);
+
+        // Select a chantier to show detail panel
+        const firstCard = page.locator('[data-testid="chantier-card"]').first();
+        await firstCard.waitFor({ state: 'visible', timeout: 5000 });
+        await firstCard.click();
+
+        // Wait for detail panel to appear
+        await expect(page.locator('[data-testid="btn-edit-chantier"]')).toBeVisible();
+    });
+
+    test('should display status timeline in header', async ({ page }) => {
+        const timeline = page.locator('[data-testid="status-timeline"]');
+        await expect(timeline).toBeVisible();
+    });
+
+    test('should display all 6 status points', async ({ page }) => {
+        const timeline = page.locator('[data-testid="status-timeline"]');
+        await expect(timeline).toBeVisible();
+
+        // Check all status buttons are present (6 statuses)
+        const statusButtons = timeline.locator('button');
+        await expect(statusButtons).toHaveCount(6);
+    });
+
+    test('should display status labels', async ({ page }) => {
+        const timeline = page.locator('[data-testid="status-timeline"]');
+        await expect(timeline).toBeVisible();
+
+        // Check some of the status labels
+        await expect(timeline.getByText('Nouveau')).toBeVisible();
+        await expect(timeline.getByText('En cours')).toBeVisible();
+        await expect(timeline.getByText('Terminé')).toBeVisible();
+    });
+
+    test('should change status on click', async ({ page }) => {
+        const timeline = page.locator('[data-testid="status-timeline"]');
+        await expect(timeline).toBeVisible();
+
+        // Get the "Planifié" button and click it
+        const planifieButton = timeline.getByTitle(/passer en "planifié"/i);
+        await planifieButton.click();
+
+        // Wait for status update
+        await page.waitForTimeout(500);
+
+        // The button should now have the "current" styling (scale-110)
+        await expect(planifieButton.locator('div').first()).toHaveClass(/scale-110/);
+    });
+
+    test('should highlight current status', async ({ page }) => {
+        const timeline = page.locator('[data-testid="status-timeline"]');
+        await expect(timeline).toBeVisible();
+
+        // Find the current status (with scale-110 class indicating active)
+        const currentStatus = timeline.locator('div.scale-110');
+        await expect(currentStatus).toBeVisible();
+    });
+});

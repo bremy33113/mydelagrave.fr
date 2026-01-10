@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, ACCOUNTS } from './helpers';
+import { login, ACCOUNTS, navigateFromDashboard, openBurgerMenu } from './helpers';
 
 test.describe('Planning Page', () => {
     test.beforeEach(async ({ page }) => {
@@ -8,8 +8,8 @@ test.describe('Planning Page', () => {
     });
 
     test('should display planning page for admin', async ({ page }) => {
-        // Navigate to planning
-        await page.getByRole('link', { name: 'Planning' }).click();
+        // Navigate to planning via burger menu
+        await navigateFromDashboard(page, /planning/i);
 
         // Check page title (h1 heading)
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
@@ -32,7 +32,7 @@ test.describe('Planning Page', () => {
     });
 
     test('should navigate between weeks', async ({ page }) => {
-        await page.getByRole('link', { name: 'Planning' }).click();
+        await navigateFromDashboard(page, /planning/i);
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
 
         // Switch to 3Sem mode where navigation is by week (not by day like Hebdo)
@@ -59,7 +59,7 @@ test.describe('Planning Page', () => {
     });
 
     test('should switch view modes', async ({ page }) => {
-        await page.getByRole('link', { name: 'Planning' }).click();
+        await navigateFromDashboard(page, /planning/i);
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
 
         // Default is Hebdo (week view)
@@ -84,7 +84,7 @@ test.describe('Planning Page', () => {
     });
 
     test('should filter by poseur', async ({ page }) => {
-        await page.getByRole('link', { name: 'Planning' }).click();
+        await navigateFromDashboard(page, /planning/i);
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
 
         // Open poseur dropdown and select a poseur (using index since mock data order varies)
@@ -96,26 +96,30 @@ test.describe('Planning Page', () => {
         await expect(dropdown).not.toHaveValue('');
     });
 
-    test('should show planning navigation in sidebar for superviseur', async ({ page }) => {
+    test('should show planning navigation in burger menu for superviseur', async ({ page }) => {
         // Logout and login as superviseur
-        await page.click('button:has-text("Déconnexion")');
+        await openBurgerMenu(page);
+        await page.getByRole('button', { name: /déconnexion/i }).click();
         await login(page, ACCOUNTS.superviseur.email, ACCOUNTS.superviseur.password);
 
-        // Planning link should be visible
+        // Open burger menu and check Planning link is visible
+        await openBurgerMenu(page);
         await expect(page.getByRole('link', { name: 'Planning' })).toBeVisible();
     });
 
     test('should NOT show planning navigation for poseur role', async ({ page }) => {
         // Logout and login as poseur
-        await page.click('button:has-text("Déconnexion")');
+        await openBurgerMenu(page);
+        await page.getByRole('button', { name: /déconnexion/i }).click();
         await login(page, ACCOUNTS.poseur.email, ACCOUNTS.poseur.password);
 
-        // Planning link should NOT be visible
+        // Open burger menu and check Planning link is NOT visible
+        await openBurgerMenu(page);
         await expect(page.getByRole('link', { name: 'Planning' })).not.toBeVisible();
     });
 
     test('should display phases in timeline', async ({ page }) => {
-        await page.getByRole('link', { name: 'Planning' }).click();
+        await navigateFromDashboard(page, /planning/i);
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
 
         // Wait for loading to complete
@@ -129,7 +133,7 @@ test.describe('Planning Page', () => {
     });
 
     test('should switch to 3 Mois view', async ({ page }) => {
-        await page.getByRole('link', { name: 'Planning' }).click();
+        await navigateFromDashboard(page, /planning/i);
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
 
         // Click 3 Mois button
@@ -144,7 +148,7 @@ test.describe('Planning Page', () => {
     });
 
     test('should switch to Année view', async ({ page }) => {
-        await page.getByRole('link', { name: 'Planning' }).click();
+        await navigateFromDashboard(page, /planning/i);
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
 
         // Click Année button
@@ -158,22 +162,19 @@ test.describe('Planning Page', () => {
         await expect(page.getByText(currentYear.toString()).first()).toBeVisible();
     });
 
-    test('should have external window button next to Planning menu', async ({ page }) => {
-        // External window button should be visible next to Planning link
-        // The MonitorUp icon button is rendered next to Planning
-        const planningSection = page.locator('nav').filter({ has: page.getByRole('link', { name: 'Planning' }) });
-        await expect(planningSection).toBeVisible();
+    test('should have Planning link in burger menu', async ({ page }) => {
+        // Open burger menu to check for Planning link
+        await openBurgerMenu(page);
 
-        // Button with MonitorUp icon should exist (it has a title attribute)
-        const externalButton = page.locator('button[title*="fenêtre"], button[title*="écran"]');
-        await expect(externalButton).toBeVisible();
+        // Planning link should be visible in burger menu
+        await expect(page.getByRole('link', { name: 'Planning' })).toBeVisible();
     });
 });
 
 test.describe('Poseur Tournee Modal', () => {
     test.beforeEach(async ({ page }) => {
         await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
-        await page.getByRole('link', { name: 'Planning' }).click();
+        await navigateFromDashboard(page, /planning/i);
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
     });
 
@@ -264,7 +265,7 @@ test.describe('Poseur Tournee Modal', () => {
 test.describe('Planning - Unassigned Panel (v2.2.3)', () => {
     test.beforeEach(async ({ page }) => {
         await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
-        await page.getByRole('link', { name: 'Planning' }).click();
+        await navigateFromDashboard(page, /planning/i);
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
     });
 
@@ -281,22 +282,21 @@ test.describe('Planning - Unassigned Panel (v2.2.3)', () => {
         await expect(page.getByRole('button', { name: 'Tous' })).toBeVisible();
     });
 
-    test('should click on phase to focus it', async ({ page }) => {
-        // Look for a clickable phase in the unassigned panel
-        const phaseItem = page.locator('[class*="bg-slate-800/50"]').first();
+    test('should display phases in unassigned panel', async ({ page }) => {
+        // The unassigned panel header should show count
+        const panelHeader = page.getByText('À attribuer');
+        await expect(panelHeader).toBeVisible({ timeout: 5000 });
 
-        if (await phaseItem.isVisible()) {
-            await phaseItem.click();
-            await page.waitForTimeout(500);
-            // After click, should have highlighting or scrolling
-        }
+        // Check that a count badge is visible next to the header
+        const countBadge = page.locator('.bg-amber-500\\/20');
+        await expect(countBadge).toBeVisible();
     });
 });
 
 test.describe('Planning - Phase Display (v2.2.3)', () => {
     test.beforeEach(async ({ page }) => {
         await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
-        await page.getByRole('link', { name: 'Planning' }).click();
+        await navigateFromDashboard(page, /planning/i);
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
     });
 
@@ -332,7 +332,7 @@ test.describe('Planning - Phase Display (v2.2.3)', () => {
 test.describe('Planning - Drag and Drop (v2.2.3)', () => {
     test.beforeEach(async ({ page }) => {
         await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
-        await page.getByRole('link', { name: 'Planning' }).click();
+        await navigateFromDashboard(page, /planning/i);
         await expect(page.locator('h1').filter({ hasText: 'Planning' })).toBeVisible();
     });
 

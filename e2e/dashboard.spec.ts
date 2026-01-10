@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, clearAuth, ACCOUNTS } from './helpers';
+import { login, clearAuth, ACCOUNTS, navigateFromDashboard, openBurgerMenu } from './helpers';
 
 test.describe('Dashboard', () => {
     test.beforeEach(async ({ page }) => {
@@ -94,21 +94,86 @@ test.describe('Dashboard', () => {
         await expect(page.getByRole('heading', { name: /contacts du chantier/i })).toBeVisible();
     });
 
-    test('should navigate to sidebar menu items', async ({ page }) => {
-        // Click on Contacts in sidebar
+    test('should navigate to burger menu items', async ({ page }) => {
+        // Open burger menu and click on Contacts
+        await openBurgerMenu(page);
         await page.getByRole('link', { name: /contacts/i }).click();
         await expect(page).toHaveURL(/#\/contacts/);
 
-        // Click on Dashboard to go back
+        // Navigate back to Dashboard via sidebar (Contacts page has sidebar)
         await page.getByRole('link', { name: /dashboard/i }).click();
         await expect(page).toHaveURL(/#\/?$/);
     });
 
-    test('should navigate to admin page', async ({ page }) => {
-        await page.getByRole('link', { name: /administration/i }).click();
+    test('should navigate to admin page via burger menu', async ({ page }) => {
+        await navigateFromDashboard(page, /administration/i);
 
         await expect(page).toHaveURL(/#\/admin/);
         await expect(page.getByText(/gestion des utilisateurs/i)).toBeVisible();
+    });
+});
+
+test.describe('Dashboard - Floating Burger Menu', () => {
+    test.beforeEach(async ({ page }) => {
+        await clearAuth(page);
+        await login(page);
+    });
+
+    test('should display burger menu button', async ({ page }) => {
+        const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+        await expect(burgerButton).toBeVisible();
+    });
+
+    test('should open menu panel on burger click', async ({ page }) => {
+        const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+        await burgerButton.click();
+
+        const menuPanel = page.locator('[data-testid="burger-menu-panel"]');
+        await expect(menuPanel).toBeVisible();
+    });
+
+    test('should close menu panel via overlay', async ({ page }) => {
+        const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+
+        // Open menu
+        await burgerButton.click();
+        await expect(page.locator('[data-testid="burger-menu-panel"]')).toBeVisible();
+
+        // Close menu by clicking overlay
+        const overlay = page.locator('.bg-black\\/50.backdrop-blur-sm');
+        await overlay.click({ position: { x: 350, y: 300 } });
+        await page.waitForTimeout(350); // Wait for animation
+        await expect(page.locator('[data-testid="burger-menu-panel"]')).toHaveClass(/-translate-x-full/);
+    });
+
+    test('should navigate to Contacts page from menu', async ({ page }) => {
+        const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+        await burgerButton.click();
+
+        await page.getByRole('link', { name: /contacts/i }).click();
+        await expect(page).toHaveURL(/#\/contacts/);
+    });
+
+    test('should navigate to Admin page from menu', async ({ page }) => {
+        const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+        await burgerButton.click();
+
+        await page.getByRole('link', { name: /administration/i }).click();
+        await expect(page).toHaveURL(/#\/admin/);
+    });
+
+    test('should display user email in menu', async ({ page }) => {
+        const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+        await burgerButton.click();
+
+        await expect(page.getByText(ACCOUNTS.admin.email)).toBeVisible();
+    });
+
+    test('should display logout button in menu', async ({ page }) => {
+        const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+        await burgerButton.click();
+
+        await expect(page.getByRole('button', { name: /déconnexion/i })).toBeVisible();
     });
 });
 

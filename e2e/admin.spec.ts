@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { ACCOUNTS, login, clearAuth } from './helpers';
+import { ACCOUNTS, login, clearAuth, navigateFromDashboard } from './helpers';
 
 test.describe('Admin Page - Admin Access', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
-        await page.getByRole('link', { name: /administration/i }).click();
+        await navigateFromDashboard(page, /administration/i);
         await expect(page).toHaveURL(/#\/admin/);
     });
 
@@ -82,7 +82,7 @@ test.describe('Admin Page - Superviseur Access', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.superviseur.email, ACCOUNTS.superviseur.password);
-        await page.getByRole('link', { name: /administration/i }).click();
+        await navigateFromDashboard(page, /administration/i);
         await expect(page).toHaveURL(/#\/admin/);
     });
 
@@ -171,7 +171,11 @@ test.describe('Admin Page - Chargé d\'Affaires Access (Denied)', () => {
         await login(page, ACCOUNTS.chargeAffaire.email, ACCOUNTS.chargeAffaire.password);
     });
 
-    test('should NOT see Administration link in sidebar', async ({ page }) => {
+    test('should NOT see Administration link in burger menu', async ({ page }) => {
+        const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+        await burgerButton.click();
+        await expect(page.locator('[data-testid="burger-menu-panel"]')).toBeVisible();
+
         const adminLink = page.getByRole('link', { name: /administration/i });
         await expect(adminLink).not.toBeVisible();
     });
@@ -192,7 +196,11 @@ test.describe('Admin Page - Poseur Access (Denied)', () => {
         await login(page, ACCOUNTS.poseur.email, ACCOUNTS.poseur.password);
     });
 
-    test('should NOT see Administration link in sidebar', async ({ page }) => {
+    test('should NOT see Administration link in burger menu', async ({ page }) => {
+        const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+        await burgerButton.click();
+        await expect(page.locator('[data-testid="burger-menu-panel"]')).toBeVisible();
+
         const adminLink = page.getByRole('link', { name: /administration/i });
         await expect(adminLink).not.toBeVisible();
     });

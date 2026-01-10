@@ -39,7 +39,7 @@ export function ChantierStatusTimeline({
     };
 
     return (
-        <div className="w-full max-w-md py-1">
+        <div className="w-full max-w-md py-1" data-testid="status-timeline">
             <div className="relative flex items-start justify-between">
                 {/* Ligne de connexion de fond (grise) - centrée sur les icônes (16px = moitié de 32px) */}
                 <div className="absolute top-4 left-0 right-0 h-0.5 bg-slate-700" />

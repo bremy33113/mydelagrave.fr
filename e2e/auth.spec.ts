@@ -58,6 +58,11 @@ test.describe('Authentication', () => {
         await login(page);
         await expect(page.getByText('Tableau de bord')).toBeVisible();
 
+        // Open burger menu to access logout button
+        const burgerButton = page.locator('[data-testid="btn-burger-menu"]');
+        await burgerButton.click();
+        await expect(page.locator('[data-testid="burger-menu-panel"]')).toBeVisible();
+
         await page.getByRole('button', { name: /déconnexion/i }).click();
 
         await expect(page.getByPlaceholder('votre@email.fr')).toBeVisible();

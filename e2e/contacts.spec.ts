@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { ACCOUNTS, login, clearAuth } from './helpers';
+import { ACCOUNTS, login, clearAuth, navigateFromDashboard } from './helpers';
 
 test.describe('Contacts Page', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page);
-        await page.getByRole('link', { name: /contacts/i }).click();
+        await navigateFromDashboard(page, /contacts/i);
         await expect(page).toHaveURL(/#\/contacts/);
     });
 
@@ -54,7 +54,7 @@ test.describe('Contacts - Admin/Superviseur CRUD', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
-        await page.getByRole('link', { name: /contacts/i }).click();
+        await navigateFromDashboard(page, /contacts/i);
     });
 
     test('should open create contact modal', async ({ page }) => {
@@ -131,7 +131,7 @@ test.describe('Contacts - Chargé d\'Affaires Permissions', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.chargeAffaire.email, ACCOUNTS.chargeAffaire.password);
-        await page.getByRole('link', { name: /contacts/i }).click();
+        await navigateFromDashboard(page, /contacts/i);
     });
 
     test('should see create contact button', async ({ page }) => {
@@ -162,7 +162,7 @@ test.describe('Contacts - Poseur Permissions (Read-only)', () => {
     test.beforeEach(async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.poseur.email, ACCOUNTS.poseur.password);
-        await page.getByRole('link', { name: /contacts/i }).click();
+        await navigateFromDashboard(page, /contacts/i);
     });
 
     test('should NOT see create contact button', async ({ page }) => {
