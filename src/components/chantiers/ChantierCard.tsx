@@ -19,9 +19,10 @@ interface ChantierCardProps {
     chantier: Chantier;
     isSelected: boolean;
     onClick: () => void;
+    showChargeAffaire?: boolean; // Pour admin/superviseur
 }
 
-export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProps) {
+export function ChantierCard({ chantier, isSelected, onClick, showChargeAffaire = false }: ChantierCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Get upcoming phases (date_debut >= today), sorted by date
@@ -79,6 +80,11 @@ export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProp
         setIsExpanded(!isExpanded);
     };
 
+    // Largeurs des colonnes selon si on affiche le chargé d'affaire ou non
+    const colWidths = showChargeAffaire
+        ? { chevron: '5%', ref: '10%', nom: '50%', ca: '10%', poseur: '10%', semaine: '15%' }
+        : { chevron: '5%', ref: '10%', nom: '50%', ca: '0%', poseur: '20%', semaine: '15%' };
+
     return (
         <button
             onClick={onClick}
@@ -90,8 +96,8 @@ export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProp
         >
             {/* Ligne principale */}
             <div className="flex items-center">
-                {/* Chevron (5%) - only if multiple upcoming phases */}
-                <div className="w-[5%] flex items-center justify-center">
+                {/* Chevron - only if multiple upcoming phases */}
+                <div style={{ width: colWidths.chevron }} className="flex items-center justify-center">
                     {hasMultipleUpcomingPhases ? (
                         <ChevronRight
                             className={`w-4 h-4 text-slate-400 cursor-pointer hover:text-white transition-transform ${isExpanded ? 'rotate-90' : ''}`}
@@ -100,18 +106,29 @@ export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProp
                     ) : null}
                 </div>
 
-                {/* Colonne 1: Référence (10%) */}
-                <div className="w-[10%] text-xs text-blue-400 font-semibold truncate">
+                {/* Référence */}
+                <div style={{ width: colWidths.ref }} className="text-xs text-blue-400 font-semibold truncate">
                     {chantier.reference || '-'}
                 </div>
 
-                {/* Colonne 2: Nom (40%) */}
-                <div className="w-[40%] min-w-0">
+                {/* Nom */}
+                <div style={{ width: colWidths.nom }} className="min-w-0">
                     <h3 className="font-semibold text-white truncate text-sm uppercase">{chantier.nom}</h3>
                 </div>
 
-                {/* Colonne 3: Poseur de la phase (25%) */}
-                <div className="w-[25%] text-xs text-slate-400 truncate">
+                {/* Chargé d'affaire (conditionnel) */}
+                {showChargeAffaire && (
+                    <div style={{ width: colWidths.ca }} className="text-xs text-slate-400 truncate">
+                        {chantier.charge_affaire ? (
+                            <span>{chantier.charge_affaire.first_name?.[0]}.{chantier.charge_affaire.last_name}</span>
+                        ) : (
+                            <span className="text-slate-500">-</span>
+                        )}
+                    </div>
+                )}
+
+                {/* Poseur de la phase */}
+                <div style={{ width: colWidths.poseur }} className="text-xs text-slate-400 truncate">
                     {hasUpcomingPhases ? (
                         upcomingPhases[0].poseur ? (
                             <span>{upcomingPhases[0].poseur.first_name?.[0]}.{upcomingPhases[0].poseur.last_name}</span>
@@ -128,8 +145,8 @@ export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProp
                     )}
                 </div>
 
-                {/* Colonne 4: Semaine (20%) */}
-                <div className="w-[20%] flex items-center justify-end gap-1">
+                {/* Semaine */}
+                <div style={{ width: colWidths.semaine }} className="flex items-center justify-end gap-1">
                     {hasUpcomingPhases ? (
                         // Afficher la semaine de la première phase à venir
                         <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-medium text-xs">
@@ -152,17 +169,20 @@ export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProp
             {/* Lignes phases suivantes (si expanded) */}
             {isExpanded && upcomingPhases.slice(1).map(phase => (
                 <div key={phase.id} className="flex items-center mt-1">
-                    {/* Chevron placeholder (5%) */}
-                    <div className="w-[5%]" />
+                    {/* Chevron placeholder */}
+                    <div style={{ width: colWidths.chevron }} />
 
-                    {/* Référence placeholder (10%) */}
-                    <div className="w-[10%]" />
+                    {/* Référence placeholder */}
+                    <div style={{ width: colWidths.ref }} />
 
-                    {/* Nom placeholder (40%) */}
-                    <div className="w-[40%]" />
+                    {/* Nom placeholder */}
+                    <div style={{ width: colWidths.nom }} />
 
-                    {/* Poseur de la phase (25%) */}
-                    <div className="w-[25%] text-xs text-slate-400 truncate">
+                    {/* CA placeholder (conditionnel) */}
+                    {showChargeAffaire && <div style={{ width: colWidths.ca }} />}
+
+                    {/* Poseur de la phase */}
+                    <div style={{ width: colWidths.poseur }} className="text-xs text-slate-400 truncate">
                         {phase.poseur ? (
                             <span>{phase.poseur.first_name?.[0]}.{phase.poseur.last_name}</span>
                         ) : (
@@ -170,8 +190,8 @@ export function ChantierCard({ chantier, isSelected, onClick }: ChantierCardProp
                         )}
                     </div>
 
-                    {/* Semaine (20%) */}
-                    <div className="w-[20%] flex items-center justify-end">
+                    {/* Semaine */}
+                    <div style={{ width: colWidths.semaine }} className="flex items-center justify-end">
                         <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-medium text-xs">
                             S{phase.week}
                         </span>

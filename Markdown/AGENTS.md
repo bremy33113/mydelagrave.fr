@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.6.2**
+**2.6.3**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.6.2 - Support relations imbriquées mock Supabase
+MyDelagrave v2.6.3 - Colonne Chargé d'affaire Dashboard
 
 ## Mode d'Exécution
 

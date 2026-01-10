@@ -2,6 +2,16 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.3] - 2026-01-10
+
+### Colonne Chargé d'affaire Dashboard
+
+### Améliorations
+- ⚡ Ajout colonne "CA" dans les cartes chantier pour admin/superviseur
+- ⚡ Ajustement largeurs colonnes : Nom 50%, CA 10%, Poseur 10%, Semaine 15%
+
+---
+
 ## [2.6.2] - 2026-01-10
 
 ### Support relations imbriquées mock Supabase

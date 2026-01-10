@@ -138,9 +138,9 @@ function migrateIfNeeded(): void {
     }
 
     // Migration v2.6.2: Mettre à jour les phases avec dates futures et poseurs variés
-    if (!localStorage.getItem(STORAGE_PREFIX + 'migration_v2_6_2')) {
+    if (!localStorage.getItem(STORAGE_PREFIX + 'migration_v2_6_3')) {
         setTable('phases_chantiers', initial_phases_chantiers);
-        localStorage.setItem(STORAGE_PREFIX + 'migration_v2_6_2', 'true');
+        localStorage.setItem(STORAGE_PREFIX + 'migration_v2_6_3', 'true');
         console.info('📦 Migration v2.6.2: phases_chantiers mis à jour avec dates futures');
     }
 

@@ -405,6 +405,7 @@ export function DashboardPage() {
                                     key={chantier.id}
                                     chantier={chantier}
                                     isSelected={chantier.id === selectedId}
+                                    showChargeAffaire={canViewAllChantiers}
                                     onClick={() => setSelectedId(chantier.id)}
                                 />
                             ))
