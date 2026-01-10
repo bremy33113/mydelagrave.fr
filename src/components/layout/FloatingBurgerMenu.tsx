@@ -11,6 +11,7 @@ import {
     Building2,
     CalendarDays,
     AlertTriangle,
+    Bell,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
@@ -28,6 +29,35 @@ export function FloatingBurgerMenu({ userEmail, userId }: FloatingBurgerMenuProp
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
+    };
+
+    const handleTestNotification = async () => {
+        // Vérifier si les notifications sont supportées
+        if (!('Notification' in window)) {
+            alert('Les notifications ne sont pas supportées par ce navigateur.');
+            return;
+        }
+
+        // Demander la permission si nécessaire
+        if (Notification.permission === 'default') {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Permission de notification refusée.');
+                return;
+            }
+        }
+
+        if (Notification.permission === 'denied') {
+            alert('Les notifications sont bloquées. Activez-les dans les paramètres du navigateur.');
+            return;
+        }
+
+        // Envoyer la notification de test
+        new Notification('MyDelagrave - Test', {
+            body: 'Les notifications fonctionnent correctement !',
+            icon: '/favicon.ico',
+            tag: 'test-notification',
+        });
     };
 
     const navItems = [
@@ -167,6 +197,16 @@ export function FloatingBurgerMenu({ userEmail, userId }: FloatingBurgerMenuProp
                             </span>
                         </div>
                     )}
+
+                    {/* Bouton test notification */}
+                    <button
+                        onClick={handleTestNotification}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 mb-2 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-blue-500/20 hover:text-blue-400 transition-all"
+                        data-testid="btn-test-notification"
+                    >
+                        <Bell className="w-4 h-4" />
+                        <span className="text-sm">Test Notification</span>
+                    </button>
 
                     <button
                         onClick={handleLogout}

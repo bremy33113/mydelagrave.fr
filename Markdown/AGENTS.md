@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.5.4**
+**2.6.0**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.5.4 - Tests E2E FloatingBurgerMenu et StatusTimeline
+MyDelagrave v2.6.0 - Réserves poseurs et Notifications
 
 ## Mode d'Exécution
 
@@ -55,6 +55,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.6.0 | 2026-01-10 | Réserves poseurs et Notifications |
 | 2.5.4 | 2026-01-10 | Tests E2E FloatingBurgerMenu et StatusTimeline |
 | 2.5.3 | 2026-01-10 | Menu burger flottant Dashboard |
 | 2.5.2 | 2026-01-10 | Améliorations UI Dashboard et Détail Chantier |

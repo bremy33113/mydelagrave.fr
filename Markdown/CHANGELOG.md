@@ -2,6 +2,23 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.0] - 2026-01-10
+
+### Réserves poseurs et Notifications
+
+### Nouvelles Fonctionnalités
+- ✨ Bouton "Test Notification" dans le menu burger (Web Notifications API)
+- ✨ 6 nouvelles réserves ouvertes par les poseurs dans les données de démo
+- ✨ Vignettes photos affichées directement dans les réserves (avec placeholders SVG)
+
+### Améliorations
+- ⚡ Page Réserves : titre décalé à droite du menu burger
+- ⚡ Recherche réserves inclut maintenant la référence chantier
+- ⚡ Sous-titre mis à jour : "poseurs et chargés d'affaires"
+- ⚡ Placeholder de recherche explicite : "Nom, référence chantier ou description..."
+
+---
+
 ## [2.5.4] - 2026-01-10
 
 ### Tests E2E FloatingBurgerMenu et StatusTimeline

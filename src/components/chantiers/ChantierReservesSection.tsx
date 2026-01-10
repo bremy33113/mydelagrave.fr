@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, AlertTriangle, Image } from 'lucide-react';
+import { ChevronDown, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Note } from './types';
 
@@ -123,20 +123,37 @@ export function ChantierReservesSection({
                                                 </p>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            {(reserve.photo_1_url || reserve.photo_2_url) && (
-                                                <button
-                                                    onClick={() => {
-                                                        const url = reserve.photo_1_url || reserve.photo_2_url;
-                                                        if (url) onPhotoClick?.(url);
-                                                    }}
-                                                    className="p-1.5 text-slate-400 hover:text-blue-400 transition-colors"
-                                                    title="Voir photo"
-                                                >
-                                                    <Image className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                        </div>
+                                        {/* Vignettes photos */}
+                                        {(reserve.photo_1_url || reserve.photo_2_url) && (
+                                            <div className="flex gap-2 flex-shrink-0">
+                                                {reserve.photo_1_url && (
+                                                    <button
+                                                        onClick={() => onPhotoClick?.(reserve.photo_1_url!)}
+                                                        className="w-16 h-12 rounded overflow-hidden border border-slate-600 hover:border-blue-400 transition-colors"
+                                                        title="Voir photo 1"
+                                                    >
+                                                        <img
+                                                            src={reserve.photo_1_url}
+                                                            alt="Photo réserve 1"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </button>
+                                                )}
+                                                {reserve.photo_2_url && (
+                                                    <button
+                                                        onClick={() => onPhotoClick?.(reserve.photo_2_url!)}
+                                                        className="w-16 h-12 rounded overflow-hidden border border-slate-600 hover:border-blue-400 transition-colors"
+                                                        title="Voir photo 2"
+                                                    >
+                                                        <img
+                                                            src={reserve.photo_2_url}
+                                                            alt="Photo réserve 2"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );

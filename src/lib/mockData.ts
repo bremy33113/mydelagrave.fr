@@ -60,6 +60,21 @@ export const ref_types_document: Tables<'ref_types_document'>[] = [
     { id: 'feuille_pointage', libelle: 'Feuille de pointage', icon: '⏱️', ordre: 5 },
 ];
 
+// ============ IMAGES PLACEHOLDER POUR LES RÉSERVES ============
+
+// SVG placeholder images encodées en base64 (petites vignettes de démonstration)
+const PLACEHOLDER_PHOTO_1 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNDAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPvCfk7ggUGhvdG8gcmVzZXJ2ZTwvdGV4dD48dGV4dCB4PSI1MCUiIHk9IjYwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SYXl1cmUgdmlzaWJsZTwvdGV4dD48L3N2Zz4=';
+
+const PLACEHOLDER_PHOTO_2 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2U4ZThlOCIvPjx0ZXh0IHg9IjUwJSIgeT0iNDAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPvCfk7ggRMOpdGFpbDwvdGV4dD48dGV4dCB4PSI1MCUiIHk9IjYwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ab29tIHN1ciBkw6lmYXV0PC90ZXh0Pjwvc3ZnPg==';
+
+const PLACEHOLDER_PHOTO_ECLAT = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2Y1ZjVmNSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9Ijc1IiByPSIzMCIgZmlsbD0iI2ZmYzEwNyIgb3BhY2l0eT0iMC41Ii8+PHRleHQgeD0iNTAlIiB5PSI0MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SoSDDiWNsYXQgMmNtPC90ZXh0Pjx0ZXh0IHg9IjUwJSIgeT0iODAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBsYW4gZGUgdHJhdmFpbDwvdGV4dD48L3N2Zz4=';
+
+const PLACEHOLDER_PHOTO_LED = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzMzMyIvPjxyZWN0IHg9IjIwIiB5PSI1MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzU1NSIgcng9IjUiLz48dGV4dCB4PSI1MCUiIHk9IjQwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5S0IExFRCDDqXRlaW50ZTwvdGV4dD48dGV4dCB4PSI1MCUiIHk9IjgwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiBmaWxsPSIjYWFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NZXVibGUgdml0cmluZTwvdGV4dD48L3N2Zz4=';
+
+const PLACEHOLDER_PHOTO_PRISE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2YwZjBmMCIvPjxyZWN0IHg9IjcwIiB5PSI0MCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNjY2MiIHN0cm9rZS13aWR0aD0iMiIgcng9IjMiLz48Y2lyY2xlIGN4PSI4NSIgY3k9IjY1IiByPSI1IiBmaWxsPSIjZTc0YzNjIi8+PGNpcmNsZSBjeD0iMTE1IiBjeT0iNjUiIHI9IjUiIGZpbGw9IiNlNzRjM2MiLz48dGV4dCB4PSI1MCUiIHk9IjkwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZTc0YzNjIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7imqHvuI8gSFMgcHJpc2U8L3RleHQ+PC9zdmc+';
+
+const PLACEHOLDER_PHOTO_FISSURE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2U4ZThlOCIvPjxwYXRoIGQ9Ik0gMTAwIDIwIEwgOTUgNTAgTCAxMDUgNzAgTCA5NSA5MCBMIDY1IDEzMCIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48dGV4dCB4PSI1MCUiIHk9IjkwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5GaXNzdXJlIHRhYmxldHRlPC90ZXh0Pjwvc3ZnPg==';
+
 // ============ DONNÉES DE DÉMO ============
 
 // Mots de passe en clair pour le mock (en prod, hashés par Supabase)
@@ -477,8 +492,8 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         chantier_id: 'chantier-001',
         type: 'reserve',
         contenu: 'Rayure visible sur le comptoir arrière gauche. Semble provenir du déplacement du mobilier.',
-        photo_1_url: null,
-        photo_2_url: null,
+        photo_1_url: PLACEHOLDER_PHOTO_1,
+        photo_2_url: PLACEHOLDER_PHOTO_2,
         created_by: 'poseur-uuid-001',
         localisation: 'Accueil',
         statut_reserve: 'ouverte',
@@ -521,7 +536,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         chantier_id: 'chantier-001',
         type: 'reserve',
         contenu: 'Éclat sur le plan de travail côté fenêtre. Impact visible de 2cm.',
-        photo_1_url: null,
+        photo_1_url: PLACEHOLDER_PHOTO_ECLAT,
         photo_2_url: null,
         created_by: 'poseur-uuid-001',
         localisation: 'Laboratoire principal',
@@ -633,7 +648,7 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         chantier_id: 'chantier-003',
         type: 'reserve',
         contenu: 'Éclairage LED du meuble vitrine ne fonctionne pas.',
-        photo_1_url: null,
+        photo_1_url: PLACEHOLDER_PHOTO_LED,
         photo_2_url: null,
         created_by: 'poseur-uuid-001',
         localisation: 'Hall d\'accueil',
@@ -694,6 +709,139 @@ export const initial_notes_chantiers: Tables<'notes_chantiers'>[] = [
         deleted_at: null,
         created_at: '2025-09-17T14:00:00Z',
         updated_at: '2025-09-22T16:00:00Z',
+    },
+    // Nouvelles réserves ouvertes par les poseurs
+    {
+        id: 'reserve-011',
+        chantier_id: 'chantier-001',
+        type: 'reserve',
+        contenu: 'Prise électrique sous le plan de travail non fonctionnelle.',
+        photo_1_url: PLACEHOLDER_PHOTO_PRISE,
+        photo_2_url: null,
+        created_by: 'poseur-uuid-002', // Lucas Bernard
+        localisation: 'Bureau 103',
+        statut_reserve: 'ouverte',
+        priorite: 'haute',
+        traite_par: null,
+        date_traitement: null,
+        date_resolution: null,
+        commentaire_resolution: null,
+        phase_id: null,
+        heure_arrivee: null,
+        heure_depart: null,
+        deleted_at: null,
+        created_at: '2026-01-08T10:15:00Z',
+        updated_at: '2026-01-08T10:15:00Z',
+    },
+    {
+        id: 'reserve-012',
+        chantier_id: 'chantier-001',
+        type: 'reserve',
+        contenu: 'Joint silicone mal fini entre paillasse et mur.',
+        photo_1_url: null,
+        photo_2_url: null,
+        created_by: 'poseur-uuid-003', // Thomas Petit
+        localisation: 'Laboratoire B',
+        statut_reserve: 'ouverte',
+        priorite: 'normale',
+        traite_par: null,
+        date_traitement: null,
+        date_resolution: null,
+        commentaire_resolution: null,
+        phase_id: null,
+        heure_arrivee: null,
+        heure_depart: null,
+        deleted_at: null,
+        created_at: '2026-01-08T14:30:00Z',
+        updated_at: '2026-01-08T14:30:00Z',
+    },
+    {
+        id: 'reserve-013',
+        chantier_id: 'chantier-002',
+        type: 'reserve',
+        contenu: 'Étagère du haut légèrement de travers (2mm).',
+        photo_1_url: null,
+        photo_2_url: null,
+        created_by: 'poseur-uuid-004', // Antoine Moreau
+        localisation: 'Salle des professeurs',
+        statut_reserve: 'ouverte',
+        priorite: 'basse',
+        traite_par: null,
+        date_traitement: null,
+        date_resolution: null,
+        commentaire_resolution: null,
+        phase_id: null,
+        heure_arrivee: null,
+        heure_depart: null,
+        deleted_at: null,
+        created_at: '2026-01-09T09:45:00Z',
+        updated_at: '2026-01-09T09:45:00Z',
+    },
+    {
+        id: 'reserve-014',
+        chantier_id: 'chantier-002',
+        type: 'reserve',
+        contenu: 'Revêtement du bureau abîmé lors de la livraison.',
+        photo_1_url: null,
+        photo_2_url: null,
+        created_by: 'poseur-uuid-005', // Nicolas Roux
+        localisation: 'Bureau directeur',
+        statut_reserve: 'ouverte',
+        priorite: 'urgente',
+        traite_par: null,
+        date_traitement: null,
+        date_resolution: null,
+        commentaire_resolution: null,
+        phase_id: null,
+        heure_arrivee: null,
+        heure_depart: null,
+        deleted_at: null,
+        created_at: '2026-01-09T11:20:00Z',
+        updated_at: '2026-01-09T11:20:00Z',
+    },
+    {
+        id: 'reserve-015',
+        chantier_id: 'chantier-003',
+        type: 'reserve',
+        contenu: 'Meuble de rangement : charnière à régler, porte ne ferme pas correctement.',
+        photo_1_url: null,
+        photo_2_url: null,
+        created_by: 'poseur-uuid-002', // Lucas Bernard
+        localisation: 'Chambre 15',
+        statut_reserve: 'ouverte',
+        priorite: 'normale',
+        traite_par: null,
+        date_traitement: null,
+        date_resolution: null,
+        commentaire_resolution: null,
+        phase_id: null,
+        heure_arrivee: null,
+        heure_depart: null,
+        deleted_at: null,
+        created_at: '2026-01-10T08:00:00Z',
+        updated_at: '2026-01-10T08:00:00Z',
+    },
+    {
+        id: 'reserve-016',
+        chantier_id: 'chantier-003',
+        type: 'reserve',
+        contenu: 'Tablette du chariot de soins fissurée.',
+        photo_1_url: PLACEHOLDER_PHOTO_FISSURE,
+        photo_2_url: null,
+        created_by: 'poseur-uuid-001', // Pierre Durand
+        localisation: 'Poste de soins 2',
+        statut_reserve: 'ouverte',
+        priorite: 'haute',
+        traite_par: null,
+        date_traitement: null,
+        date_resolution: null,
+        commentaire_resolution: null,
+        phase_id: null,
+        heure_arrivee: null,
+        heure_depart: null,
+        deleted_at: null,
+        created_at: '2026-01-10T09:30:00Z',
+        updated_at: '2026-01-10T09:30:00Z',
     },
     // Rapports journaliers
     {
