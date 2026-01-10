@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.6.3**
+**2.6.4**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.6.3 - Colonne Chargé d'affaire Dashboard
+MyDelagrave v2.6.4 - Dashboard Poseur et Viewer PDF Mobile
 
 ## Mode d'Exécution
 
@@ -55,6 +55,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.6.4 | 2026-01-10 | Dashboard Poseur et Viewer PDF Mobile |
 | 2.6.0 | 2026-01-10 | Réserves poseurs et Notifications |
 | 2.5.4 | 2026-01-10 | Tests E2E FloatingBurgerMenu et StatusTimeline |
 | 2.5.3 | 2026-01-10 | Menu burger flottant Dashboard |

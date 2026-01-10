@@ -2,6 +2,30 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.4] - 2026-01-10
+
+### Dashboard Poseur et Viewer PDF Mobile
+
+### Nouvelles Fonctionnalités
+- ✨ Viewer PDF mobile avec gestures (pinch-to-zoom, swipe navigation entre pages)
+- ✨ Accès aux plans (documents PDF) depuis la fiche chantier mobile pour poseurs
+- ✨ En-tête des colonnes triables sur le Dashboard (Réf, Nom, CA, Poseur, Sem)
+- ✨ Bouton expand/collapse all pour les cartes chantier multi-phases
+- ✨ Badge semaine + date dans le titre du Dashboard
+
+### Améliorations
+- ⚡ Poseur ne voit que les chantiers avec ses phases attribuées et planifiées
+- ⚡ Poseur ne voit que ses propres phases dans les cartes (pas celles des autres)
+- ⚡ Colonne Chargé d'affaire visible pour les poseurs
+- ⚡ Badge semaine vert translucide + date dans les cartes chantier
+
+### Technique
+- 🔧 MobilePdfViewer : react-pdf avec gestures tactiles
+- 🔧 ChantierCard : props filterByPoseurId et forceExpanded
+- 🔧 DashboardPage : tri colonnes avec sortColumn/sortDirection
+
+---
+
 ## [2.6.3] - 2026-01-10
 
 ### Colonne Chargé d'affaire Dashboard

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MobileLayout } from '../../components/mobile/MobileLayout';
 import { MobileGlassCard } from '../../components/mobile/MobileGlassCard';
 import { MobileStatusBadge, getCategoryGradient, getCategoryIcon } from '../../components/mobile/MobileStatusBadge';
+import { MobilePdfViewer } from '../../components/mobile/MobilePdfViewer';
 import { supabase } from '../../lib/supabase';
 import {
     Navigation,
@@ -15,7 +16,10 @@ import {
     Camera,
     Clock,
     User,
-    Phone
+    Phone,
+    FileImage,
+    Download,
+    Eye
 } from 'lucide-react';
 
 interface Chantier {
@@ -56,6 +60,16 @@ interface Phase {
     heure_fin: string;
 }
 
+interface Document {
+    id: string;
+    nom: string;
+    description: string | null;
+    storage_path: string;
+    mime_type: string;
+    file_size: number;
+    created_at: string;
+}
+
 const RESERVE_STATUS_LABELS: Record<string, string> = {
     ouverte: 'Ouverte',
     en_cours: 'En cours',
@@ -76,8 +90,11 @@ export function MobileChantierDetail() {
     const [chantier, setChantier] = useState<Chantier | null>(null);
     const [reserves, setReserves] = useState<Reserve[]>([]);
     const [phases, setPhases] = useState<Phase[]>([]);
+    const [plans, setPlans] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedReserve, setExpandedReserve] = useState<string | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [pdfViewer, setPdfViewer] = useState<{ url: string; fileName: string } | null>(null);
 
     const fetchChantier = useCallback(async () => {
         if (!id) return;
@@ -137,6 +154,17 @@ export function MobileChantierDetail() {
 
             setPhases((phasesData as Phase[]) || []);
 
+            // Charger les documents de type "plan"
+            const { data: plansData } = await supabase
+                .from('documents_chantiers')
+                .select('id, nom, description, storage_path, mime_type, file_size, created_at')
+                .eq('chantier_id', id)
+                .eq('type', 'plan')
+                .is('deleted_at', null)
+                .order('created_at', { ascending: false });
+
+            setPlans((plansData as Document[]) || []);
+
         } catch (err) {
             console.error('Erreur chargement chantier:', err);
         } finally {
@@ -187,6 +215,52 @@ export function MobileChantierDetail() {
             month: '2-digit',
             year: 'numeric'
         });
+    };
+
+    const formatFileSize = (bytes: number) => {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    const handlePreviewDocument = async (doc: Document) => {
+        try {
+            const { data } = await supabase.storage
+                .from('documents')
+                .createSignedUrl(doc.storage_path, 3600);
+
+            if (data?.signedUrl) {
+                if (doc.mime_type.startsWith('image/')) {
+                    // Images: preview plein écran
+                    setPreviewUrl(data.signedUrl);
+                } else if (doc.mime_type === 'application/pdf') {
+                    // PDFs: viewer avec gestures
+                    setPdfViewer({ url: data.signedUrl, fileName: doc.nom });
+                } else {
+                    // Autres: ouvrir dans un nouvel onglet
+                    window.open(data.signedUrl, '_blank');
+                }
+            }
+        } catch (err) {
+            console.error('Erreur preview:', err);
+        }
+    };
+
+    const handleDownloadDocument = async (doc: Document) => {
+        try {
+            const { data } = await supabase.storage
+                .from('documents')
+                .createSignedUrl(doc.storage_path, 3600);
+
+            if (data?.signedUrl) {
+                const link = document.createElement('a');
+                link.href = data.signedUrl;
+                link.download = doc.nom;
+                link.click();
+            }
+        } catch (err) {
+            console.error('Erreur téléchargement:', err);
+        }
     };
 
     const reservesOuvertes = reserves.filter(r => r.statut_reserve === 'ouverte');
@@ -346,6 +420,51 @@ export function MobileChantierDetail() {
                     </MobileGlassCard>
                 )}
 
+                {/* Section Plans */}
+                {plans.length > 0 && (
+                    <MobileGlassCard className="p-4">
+                        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
+                            Plans ({plans.length})
+                        </h2>
+                        <div className="space-y-2">
+                            {plans.map(doc => (
+                                <div
+                                    key={doc.id}
+                                    className="flex items-center gap-3 py-2 px-3 bg-slate-800/50 rounded-xl"
+                                >
+                                    <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                                        <FileImage size={18} className="text-indigo-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-medium text-white truncate">
+                                            {doc.nom}
+                                        </p>
+                                        <p className="text-[10px] text-slate-500">
+                                            {formatFileSize(doc.file_size)} • {formatDate(doc.created_at)}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={() => handlePreviewDocument(doc)}
+                                            className="p-2 bg-slate-700/50 rounded-lg active:scale-95 transition-transform"
+                                            title="Voir"
+                                        >
+                                            <Eye size={16} className="text-sky-400" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDownloadDocument(doc)}
+                                            className="p-2 bg-slate-700/50 rounded-lg active:scale-95 transition-transform"
+                                            title="Télécharger"
+                                        >
+                                            <Download size={16} className="text-emerald-400" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </MobileGlassCard>
+                )}
+
                 {/* Section Réserves */}
                 <MobileGlassCard className="p-4">
                     <div className="flex items-center justify-between mb-3">
@@ -450,6 +569,38 @@ export function MobileChantierDetail() {
                     )}
                 </MobileGlassCard>
             </div>
+
+            {/* Modal Preview Image */}
+            {previewUrl && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                    onClick={() => setPreviewUrl(null)}
+                >
+                    <button
+                        onClick={() => setPreviewUrl(null)}
+                        className="absolute top-4 right-4 p-2 bg-slate-800/80 rounded-full text-white"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <img
+                        src={previewUrl}
+                        alt="Preview"
+                        className="max-w-full max-h-full object-contain rounded-lg"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
+
+            {/* PDF Viewer */}
+            {pdfViewer && (
+                <MobilePdfViewer
+                    url={pdfViewer.url}
+                    fileName={pdfViewer.fileName}
+                    onClose={() => setPdfViewer(null)}
+                />
+            )}
         </MobileLayout>
     );
 }

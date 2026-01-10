@@ -20,19 +20,30 @@ interface ChantierCardProps {
     isSelected: boolean;
     onClick: () => void;
     showChargeAffaire?: boolean; // Pour admin/superviseur
+    filterByPoseurId?: string; // Pour poseur: ne montrer que ses phases
+    forceExpanded?: boolean | null; // null = individuel, true = forcer ouvert, false = forcer fermé
 }
 
-export function ChantierCard({ chantier, isSelected, onClick, showChargeAffaire = false }: ChantierCardProps) {
-    const [isExpanded, setIsExpanded] = useState(false);
+export function ChantierCard({ chantier, isSelected, onClick, showChargeAffaire = false, filterByPoseurId, forceExpanded = null }: ChantierCardProps) {
+    const [localExpanded, setLocalExpanded] = useState(false);
+
+    // Si forceExpanded est défini, l'utiliser, sinon utiliser l'état local
+    const isExpanded = forceExpanded !== null ? forceExpanded : localExpanded;
+    const setIsExpanded = (value: boolean) => setLocalExpanded(value);
 
     // Get upcoming phases (date_debut >= today), sorted by date
+    // Si filterByPoseurId est défini, ne montrer que les phases du poseur
     const upcomingPhases = useMemo(() => {
         if (!chantier.phases_chantiers?.length) return [];
 
         const today = formatLocalDate(new Date());
 
         return chantier.phases_chantiers
-            .filter(phase => phase.duree_heures > 0 && phase.date_debut >= today)
+            .filter(phase => {
+                const isUpcoming = phase.duree_heures > 0 && phase.date_debut >= today;
+                const matchesPoseur = !filterByPoseurId || phase.poseur_id === filterByPoseurId;
+                return isUpcoming && matchesPoseur;
+            })
             .sort((a, b) => a.date_debut.localeCompare(b.date_debut))
             .map(phase => {
                 const [year, month, day] = phase.date_debut.split('-').map(Number);
@@ -44,9 +55,10 @@ export function ChantierCard({ chantier, isSelected, onClick, showChargeAffaire 
                     date_debut: phase.date_debut,
                 };
             });
-    }, [chantier.phases_chantiers]);
+    }, [chantier.phases_chantiers, filterByPoseurId]);
 
     // Get past phases (date_debut < today) for fallback display
+    // Si filterByPoseurId est défini, ne montrer que les phases du poseur
     const pastWeeks = useMemo(() => {
         if (!chantier.phases_chantiers?.length) return [];
 
@@ -54,7 +66,11 @@ export function ChantierCard({ chantier, isSelected, onClick, showChargeAffaire 
 
         const weeksMap = new Map<number, Date>();
         chantier.phases_chantiers
-            .filter(phase => phase.duree_heures > 0 && phase.date_debut < today)
+            .filter(phase => {
+                const isPast = phase.duree_heures > 0 && phase.date_debut < today;
+                const matchesPoseur = !filterByPoseurId || phase.poseur_id === filterByPoseurId;
+                return isPast && matchesPoseur;
+            })
             .forEach(phase => {
                 if (phase.date_debut) {
                     const [year, month, day] = phase.date_debut.split('-').map(Number);
@@ -70,7 +86,7 @@ export function ChantierCard({ chantier, isSelected, onClick, showChargeAffaire 
         return Array.from(weeksMap.entries())
             .sort((a, b) => a[1].getTime() - b[1].getTime())
             .map(([week]) => week);
-    }, [chantier.phases_chantiers]);
+    }, [chantier.phases_chantiers, filterByPoseurId]);
 
     const hasMultipleUpcomingPhases = upcomingPhases.length > 1;
     const hasUpcomingPhases = upcomingPhases.length > 0;
@@ -145,13 +161,19 @@ export function ChantierCard({ chantier, isSelected, onClick, showChargeAffaire 
                     )}
                 </div>
 
-                {/* Semaine */}
-                <div style={{ width: colWidths.semaine }} className="flex items-center justify-end gap-1">
+                {/* Semaine + Date */}
+                <div style={{ width: colWidths.semaine }} className="flex items-center justify-end gap-2">
                     {hasUpcomingPhases ? (
-                        // Afficher la semaine de la première phase à venir
-                        <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-medium text-xs">
-                            S{upcomingPhases[0].week}
-                        </span>
+                        <>
+                            {/* Badge semaine vert */}
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-xs">
+                                S{upcomingPhases[0].week}
+                            </span>
+                            {/* Date */}
+                            <span className="text-[10px] text-slate-400 min-w-[40px] text-right">
+                                {upcomingPhases[0].date_debut.split('-').slice(1).reverse().join('/')}
+                            </span>
+                        </>
                     ) : pastWeeks.length > 0 ? (
                         // Fallback: afficher les semaines passées en grisé
                         pastWeeks.map((week) => (
@@ -190,10 +212,15 @@ export function ChantierCard({ chantier, isSelected, onClick, showChargeAffaire 
                         )}
                     </div>
 
-                    {/* Semaine */}
-                    <div style={{ width: colWidths.semaine }} className="flex items-center justify-end">
-                        <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-medium text-xs">
+                    {/* Semaine + Date */}
+                    <div style={{ width: colWidths.semaine }} className="flex items-center justify-end gap-2">
+                        {/* Badge semaine vert */}
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-xs">
                             S{phase.week}
+                        </span>
+                        {/* Date */}
+                        <span className="text-[10px] text-slate-400 min-w-[40px] text-right">
+                            {phase.date_debut.split('-').slice(1).reverse().join('/')}
                         </span>
                     </div>
                 </div>

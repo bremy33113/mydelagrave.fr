@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Search, RefreshCw, AlertCircle, ChevronDown } from 'lucide-react';
+import { Plus, Search, RefreshCw, AlertCircle, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, ChevronsUpDown, ChevronsDownUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
 import { KPIBar } from '../components/dashboard/KPIBar';
 import { ChantierCard } from '../components/chantiers/ChantierCard';
+import { getWeekNumber } from '../lib/dateUtils';
 import { ChantierDetail } from '../components/chantiers/ChantierDetail';
 import { CreateChantierModal } from '../components/chantiers/CreateChantierModal';
 import { PhasesModal } from '../components/chantiers/PhasesModal';
@@ -42,6 +43,15 @@ export function DashboardPage() {
     const [poseurList, setPoseurList] = useState<Tables<'users'>[]>([]);
     const [statutList, setStatutList] = useState<Tables<'ref_statuts_chantier'>[]>([]);
 
+    // Tri des colonnes
+    type SortColumn = 'reference' | 'nom' | 'charge_affaire' | 'poseur' | 'semaine' | null;
+    type SortDirection = 'asc' | 'desc';
+    const [sortColumn, setSortColumn] = useState<SortColumn>(null);
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+    // Expand/Collapse all
+    const [allExpanded, setAllExpanded] = useState<boolean | null>(null); // null = individuel, true = tous ouverts, false = tous fermés
+
     // Modal states
     const [showChantierModal, setShowChantierModal] = useState(false);
     const [editingChantier, setEditingChantier] = useState<Chantier | null>(null);
@@ -74,14 +84,24 @@ export function DashboardPage() {
             if (fetchError) throw fetchError;
 
             let filteredData = (data as Chantier[]) || [];
+            const today = new Date().toISOString().split('T')[0];
 
             // Apply role-based filtering
             if (!canViewAllChantiers && userId) {
-                // Charge d'affaire sees only assigned chantiers
-                // Poseur sees only assigned chantiers (via poseur_id or phases - simplified to chantiers assignment here)
-                filteredData = filteredData.filter(
-                    (c) => c.charge_affaire_id === userId || c.poseur_id === userId
-                );
+                if (isPoseur) {
+                    // Poseur: voir uniquement les chantiers avec des phases attribuées et planifiées
+                    filteredData = filteredData.filter((c) => {
+                        const hasAssignedUpcomingPhase = c.phases_chantiers?.some(
+                            (phase) => phase.poseur_id === userId && phase.date_debut >= today
+                        );
+                        return hasAssignedUpcomingPhase;
+                    });
+                } else {
+                    // Charge d'affaire: voir ses chantiers assignés
+                    filteredData = filteredData.filter(
+                        (c) => c.charge_affaire_id === userId
+                    );
+                }
             } else if (!canViewAllChantiers && !userId) {
                 // If role loaded but no user ID (shouldn't happen if logged in), show nothing
                 filteredData = [];
@@ -103,7 +123,7 @@ export function DashboardPage() {
     useEffect(() => {
         fetchChantiers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId, canViewAllChantiers, roleLoading]);
+    }, [userId, canViewAllChantiers, roleLoading, isPoseur]);
 
     // Détecter les modifications de phases depuis le Planning et rafraîchir
     const lastKnownUpdate = useRef<string | null>(null);
@@ -221,13 +241,81 @@ export function DashboardPage() {
             result = result.filter((c) => c.poseur_id === filterPoseur);
         }
 
+        // Tri
+        if (sortColumn) {
+            const today = new Date().toISOString().split('T')[0];
+            result = [...result].sort((a, b) => {
+                let valA: string | number = '';
+                let valB: string | number = '';
+
+                switch (sortColumn) {
+                    case 'reference':
+                        valA = a.reference || '';
+                        valB = b.reference || '';
+                        break;
+                    case 'nom':
+                        valA = a.nom.toLowerCase();
+                        valB = b.nom.toLowerCase();
+                        break;
+                    case 'charge_affaire':
+                        valA = a.charge_affaire ? `${a.charge_affaire.last_name}`.toLowerCase() : '';
+                        valB = b.charge_affaire ? `${b.charge_affaire.last_name}`.toLowerCase() : '';
+                        break;
+                    case 'poseur':
+                        // Trouver le premier poseur des phases à venir
+                        const phaseA = a.phases_chantiers?.find(p => p.date_debut >= today && p.poseur_id);
+                        const phaseB = b.phases_chantiers?.find(p => p.date_debut >= today && p.poseur_id);
+                        valA = phaseA?.poseur ? `${phaseA.poseur.last_name}`.toLowerCase() : '';
+                        valB = phaseB?.poseur ? `${phaseB.poseur.last_name}`.toLowerCase() : '';
+                        break;
+                    case 'semaine':
+                        // Trouver la première semaine des phases à venir
+                        const firstPhaseA = a.phases_chantiers?.filter(p => p.date_debut >= today).sort((x, y) => x.date_debut.localeCompare(y.date_debut))[0];
+                        const firstPhaseB = b.phases_chantiers?.filter(p => p.date_debut >= today).sort((x, y) => x.date_debut.localeCompare(y.date_debut))[0];
+                        valA = firstPhaseA?.date_debut || '9999-99-99';
+                        valB = firstPhaseB?.date_debut || '9999-99-99';
+                        break;
+                }
+
+                if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
         return result;
-    }, [chantiers, searchQuery, statusFilter, filterChargeAffaire, filterStatut, filterPoseur]);
+    }, [chantiers, searchQuery, statusFilter, filterChargeAffaire, filterStatut, filterPoseur, sortColumn, sortDirection]);
 
     const selectedChantier = useMemo(
         () => chantiers.find((c) => c.id === selectedId),
         [chantiers, selectedId]
     );
+
+    // Gestion du tri sur les colonnes
+    const handleSort = (column: SortColumn) => {
+        if (sortColumn === column) {
+            // Même colonne: inverser la direction ou désactiver
+            if (sortDirection === 'asc') {
+                setSortDirection('desc');
+            } else {
+                setSortColumn(null);
+                setSortDirection('asc');
+            }
+        } else {
+            // Nouvelle colonne
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    const SortIcon = ({ column }: { column: SortColumn }) => {
+        if (sortColumn !== column) {
+            return <ArrowUpDown size={12} className="text-slate-500" />;
+        }
+        return sortDirection === 'asc'
+            ? <ArrowUp size={12} className="text-blue-400" />
+            : <ArrowDown size={12} className="text-blue-400" />;
+    };
 
     // Open delete confirmation modal
     const handleDelete = () => {
@@ -263,7 +351,15 @@ export function DashboardPage() {
         <div className="h-full flex flex-col p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-6 ml-14">
-                <h1 className="text-2xl font-bold text-white">Tableau de bord</h1>
+                <h1 className="text-2xl font-bold text-white flex items-baseline gap-3">
+                    Tableau de bord
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                        S{getWeekNumber(new Date())}
+                    </span>
+                    <span className="text-slate-400">
+                        {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </span>
+                </h1>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={fetchChantiers}
@@ -389,6 +485,67 @@ export function DashboardPage() {
                         </div>
                     )}
 
+                    {/* En-tête des colonnes */}
+                    {!loading && filteredChantiers.length > 0 && (
+                        <div className="flex items-center px-3 py-2 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-700/50">
+                            {/* Expand/Collapse All */}
+                            <button
+                                onClick={() => setAllExpanded(prev => prev === true ? false : true)}
+                                className="flex items-center justify-center hover:text-slate-300 transition-colors"
+                                style={{ width: '5%' }}
+                                title={allExpanded ? 'Tout réduire' : 'Tout développer'}
+                            >
+                                {allExpanded ? (
+                                    <ChevronsDownUp size={14} className="text-blue-400" />
+                                ) : (
+                                    <ChevronsUpDown size={14} />
+                                )}
+                            </button>
+                            {/* Référence */}
+                            <button
+                                onClick={() => handleSort('reference')}
+                                className="flex items-center gap-1 hover:text-slate-300 transition-colors"
+                                style={{ width: '10%' }}
+                            >
+                                Réf. <SortIcon column="reference" />
+                            </button>
+                            {/* Nom */}
+                            <button
+                                onClick={() => handleSort('nom')}
+                                className="flex items-center gap-1 hover:text-slate-300 transition-colors"
+                                style={{ width: (canViewAllChantiers || isPoseur) ? '50%' : '50%' }}
+                            >
+                                Nom <SortIcon column="nom" />
+                            </button>
+                            {/* Chargé d'affaire (conditionnel) */}
+                            {(canViewAllChantiers || isPoseur) && (
+                                <button
+                                    onClick={() => handleSort('charge_affaire')}
+                                    className="flex items-center gap-1 hover:text-slate-300 transition-colors"
+                                    style={{ width: '10%' }}
+                                >
+                                    CA <SortIcon column="charge_affaire" />
+                                </button>
+                            )}
+                            {/* Poseur */}
+                            <button
+                                onClick={() => handleSort('poseur')}
+                                className="flex items-center gap-1 hover:text-slate-300 transition-colors"
+                                style={{ width: (canViewAllChantiers || isPoseur) ? '10%' : '20%' }}
+                            >
+                                Poseur <SortIcon column="poseur" />
+                            </button>
+                            {/* Semaine + Date */}
+                            <button
+                                onClick={() => handleSort('semaine')}
+                                className="flex items-center gap-1 justify-end hover:text-slate-300 transition-colors"
+                                style={{ width: '15%' }}
+                            >
+                                Sem / Date <SortIcon column="semaine" />
+                            </button>
+                        </div>
+                    )}
+
                     {/* Chantier list */}
                     <div className="flex-1 overflow-auto space-y-3 pr-2">
                         {loading ? (
@@ -405,7 +562,9 @@ export function DashboardPage() {
                                     key={chantier.id}
                                     chantier={chantier}
                                     isSelected={chantier.id === selectedId}
-                                    showChargeAffaire={canViewAllChantiers}
+                                    showChargeAffaire={canViewAllChantiers || isPoseur}
+                                    filterByPoseurId={isPoseur ? userId ?? undefined : undefined}
+                                    forceExpanded={allExpanded}
                                     onClick={() => setSelectedId(chantier.id)}
                                 />
                             ))
