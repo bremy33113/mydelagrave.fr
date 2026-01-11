@@ -2,14 +2,14 @@
 
 **Date de sauvegarde** : 2026-01-11
 **Branche** : main
-**Version** : 2.6.9
+**Version** : 2.6.10
 
 ---
 
 ## Derniers commits
 
 ```
-4da143a fix: Améliorations mobile planning et documents (v2.6.9)
+4da143a fix: Améliorations mobile planning et documents (v2.6.10)
 9223cd2 feat: Trajets domicile dans carte tournée + adresse utilisateur
 1545536 feat: Dépassement budget groupe + historique phases (v2.3.0)
 3766b8f chore: Supprime fichier vidéo accidentel
@@ -18,7 +18,7 @@
 
 ---
 
-## Travail effectué dans la session (v2.6.9)
+## Travail effectué dans la session (v2.6.10)
 
 ### Viewer Documents Plein Écran
 

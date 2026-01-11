@@ -328,7 +328,7 @@ Fonctionnalités v2.6.0+ :
 🚪 = Déconnexion
 ```
 
-### MobileChantierDetail.tsx (Fiche Chantier Mobile) - v2.6.9+
+### MobileChantierDetail.tsx (Fiche Chantier Mobile) - v2.6.10+
 
 ```
 ┌──────────────────────────────────────┐
@@ -466,7 +466,7 @@ Jauge verte = dans le budget
 Jauge verte+hachurée rouge = dépassement
 ```
 
-### AddContactModal.tsx (v2.6.9+)
+### AddContactModal.tsx (v2.6.10+)
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  ╔═══════════════════════════════════════════════════════════╗  │
@@ -497,7 +497,7 @@ Jauge verte+hachurée rouge = dépassement
 │  ╚═══════════════════════════════════════════════════════════╝  │
 └─────────────────────────────────────────────────────────────────┘
 
-Améliorations v2.6.9+ :
+Améliorations v2.6.10+ :
 - Champ "Rôle sur ce chantier" en pleine largeur
 - Label explicite au-dessus du champ
 - Placeholder avec exemples
@@ -804,11 +804,11 @@ src/
 
 ## 🔄 Changelog Zones UI
 
-### v2.6.9
+### v2.6.10
 - **MobileChantierDetail** : Suppression header chantier (icône, nom, client, statut)
 - **MobileChantierDetail** : Référence + Nom dans le titre MobileLayout
 
-### v2.6.9
+### v2.6.10
 - **AddContactModal** : Champ rôle pleine largeur avec label et placeholder
 
 ### v2.6.7

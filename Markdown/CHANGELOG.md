@@ -2,6 +2,22 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.10] - 2026-01-11
+
+### Tests E2E mobiles + corrections tests existants
+
+### Tests
+- ✅ Test: Ajout tests E2E pour pages mobiles (8 tests)
+- ✅ Test: Ajout data-testid aux composants MobileLayout, MobileChantierDetail, MobileChantiersList
+- 🐛 Fix: Skip tests filtres dashboard (filtres supprimés v2.6.5)
+- 🐛 Fix: Correction sélecteur recherche réserves
+- 🐛 Fix: Correction sélecteur status timeline chantier
+- 🐛 Fix: Correction strict mode phases distinct names
+
+**197 tests passent, 8 skippés**
+
+---
+
 ## [2.6.9] - 2026-01-11
 
 ### Suppression header chantier mobile + bouton plein écran

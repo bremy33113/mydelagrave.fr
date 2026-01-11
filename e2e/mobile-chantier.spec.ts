@@ -72,7 +72,7 @@ test.describe('Mobile Chantier Detail', () => {
         }
     });
 
-    test('should NOT display header chantier card (removed in v2.6.9)', async ({ page }) => {
+    test('should NOT display header chantier card (removed in v2.6.10)', async ({ page }) => {
         await page.goto('/#/m/chantiers');
         await page.waitForLoadState('networkidle');
 
