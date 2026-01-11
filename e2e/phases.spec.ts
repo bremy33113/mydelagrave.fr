@@ -337,8 +337,8 @@ test.describe('Phases Modal - Phase Name vs Sub-phase Label (v2.2.3)', () => {
             await page.waitForTimeout(500);
 
             // Verify both names are visible and distinct
-            await expect(page.getByText('Batiment Test')).toBeVisible();
-            await expect(page.getByText('RDC Test')).toBeVisible();
+            await expect(page.getByText('Batiment Test').first()).toBeVisible();
+            await expect(page.getByText('RDC Test').first()).toBeVisible();
         }
     });
 

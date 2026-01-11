@@ -22,7 +22,7 @@ test.describe('Reserves Page', () => {
     });
 
     test('should have search functionality', async ({ page }) => {
-        const searchInput = page.getByPlaceholder(/rechercher/i);
+        const searchInput = page.getByPlaceholder(/nom, référence|description/i);
         await expect(searchInput).toBeVisible();
 
         await searchInput.fill('test');

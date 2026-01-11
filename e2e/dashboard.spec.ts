@@ -177,7 +177,8 @@ test.describe('Dashboard - Floating Burger Menu', () => {
     });
 });
 
-test.describe('Dashboard - Filters (Admin/Superviseur only)', () => {
+// SKIP: Filtres supprimés en v2.6.5
+test.describe.skip('Dashboard - Filters (Admin/Superviseur only)', () => {
     test('should display filter dropdowns for admin', async ({ page }) => {
         await clearAuth(page);
         await login(page, ACCOUNTS.admin.email, ACCOUNTS.admin.password);
