@@ -20,6 +20,8 @@ interface PhaseWithChantier {
     groupe_phase: number;
     numero_phase: number;
     libelle: string | null;
+    date_debut: string;
+    date_fin: string;
     heure_debut: string;
     heure_fin: string;
     chantier: {
@@ -65,6 +67,7 @@ interface TourStop {
     phase: Omit<PhaseWithChantier, 'chantier'> & { chantier: ChantierWithCoords };
     lat: number;
     lon: number;
+    dayLabel: string; // "Lun 12", "Mar 13", etc.
 }
 
 // Couleurs par catégorie
@@ -156,7 +159,54 @@ export function MobilePlanningMap({ phases, onChantierClick }: MobilePlanningMap
     const [routeData, setRouteData] = useState<RouteData | null>(null);
     const [loadingRoute, setLoadingRoute] = useState(false);
 
-    // Trier les phases par heure de début et dédupliquer par chantier
+    // Jours de la semaine courts
+    const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+    // Formater le label du jour (ex: "Lun 12")
+    const formatDayLabel = (dateStr: string): string => {
+        const date = new Date(dateStr + 'T12:00:00'); // Éviter problèmes timezone
+        return `${DAYS_SHORT[date.getDay()]} ${date.getDate()}`;
+    };
+
+    // Calculer les heures pour un jour donné d'une phase multi-jours
+    const getHoursForDay = (phase: PhaseWithChantier, dayStr: string): { start: string; end: string } => {
+        const phaseStart = phase.date_debut.split('T')[0];
+        const phaseEnd = phase.date_fin.split('T')[0];
+        const isSingleDay = phaseStart === phaseEnd;
+        const isFirstDay = dayStr === phaseStart;
+        const isLastDay = dayStr === phaseEnd;
+
+        if (isSingleDay) {
+            return { start: phase.heure_debut, end: phase.heure_fin };
+        }
+        if (isFirstDay) {
+            return { start: phase.heure_debut, end: '17:00' };
+        }
+        if (isLastDay) {
+            return { start: '08:00', end: phase.heure_fin };
+        }
+        // Jour intermédiaire
+        return { start: '08:00', end: '17:00' };
+    };
+
+    // Générer tous les jours entre deux dates
+    const getDaysBetween = (startStr: string, endStr: string): string[] => {
+        const days: string[] = [];
+        const start = new Date(startStr + 'T12:00:00');
+        const end = new Date(endStr + 'T12:00:00');
+        const current = new Date(start);
+
+        while (current <= end) {
+            const y = current.getFullYear();
+            const m = String(current.getMonth() + 1).padStart(2, '0');
+            const d = String(current.getDate()).padStart(2, '0');
+            days.push(`${y}-${m}-${d}`);
+            current.setDate(current.getDate() + 1);
+        }
+        return days;
+    };
+
+    // Expandre les phases multi-jours et trier chronologiquement
     const tourStops = useMemo<TourStop[]>(() => {
         // Filtrer les phases avec coordonnées valides
         const validPhases = phases.filter(
@@ -171,22 +221,45 @@ export function MobilePlanningMap({ phases, onChantierClick }: MobilePlanningMap
                 p.chantier.adresse_livraison_longitude !== null
         );
 
-        // Dédupliquer par chantier (garder le premier par heure)
-        const chantierMap = new Map<string, typeof validPhases[0]>();
-        validPhases
-            .sort((a, b) => a.heure_debut.localeCompare(b.heure_debut))
-            .forEach((phase) => {
-                if (!chantierMap.has(phase.chantier.id)) {
-                    chantierMap.set(phase.chantier.id, phase);
-                }
+        // Expandre les phases multi-jours en entrées individuelles par jour
+        interface ExpandedPhase {
+            phase: typeof validPhases[0];
+            dayStr: string;
+            hours: { start: string; end: string };
+        }
+
+        const expandedPhases: ExpandedPhase[] = [];
+        validPhases.forEach((phase) => {
+            const startDate = phase.date_debut.split('T')[0];
+            const endDate = phase.date_fin.split('T')[0];
+            const days = getDaysBetween(startDate, endDate);
+
+            days.forEach((dayStr) => {
+                expandedPhases.push({
+                    phase,
+                    dayStr,
+                    hours: getHoursForDay(phase, dayStr),
+                });
             });
+        });
+
+        // Trier par date puis par heure de début
+        expandedPhases.sort((a, b) => {
+            if (a.dayStr !== b.dayStr) return a.dayStr.localeCompare(b.dayStr);
+            return a.hours.start.localeCompare(b.hours.start);
+        });
 
         // Convertir en TourStop avec index
-        return Array.from(chantierMap.values()).map((phase, index) => ({
+        return expandedPhases.map((entry, index) => ({
             index: index + 1,
-            phase: phase as TourStop['phase'],
-            lat: phase.chantier.adresse_livraison_latitude,
-            lon: phase.chantier.adresse_livraison_longitude,
+            phase: {
+                ...entry.phase,
+                heure_debut: entry.hours.start,
+                heure_fin: entry.hours.end,
+            } as TourStop['phase'],
+            lat: entry.phase.chantier.adresse_livraison_latitude,
+            lon: entry.phase.chantier.adresse_livraison_longitude,
+            dayLabel: formatDayLabel(entry.dayStr),
         }));
     }, [phases]);
 
@@ -388,7 +461,7 @@ export function MobilePlanningMap({ phases, onChantierClick }: MobilePlanningMap
                 <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden">
                     <div className="px-4 py-2 bg-slate-800/50 border-b border-slate-700/50">
                         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                            Tournée ({tourStops.length} étape{tourStops.length > 1 ? 's' : ''})
+                            Planning ({tourStops.length} intervention{tourStops.length > 1 ? 's' : ''})
                         </h3>
                     </div>
                     <div className="divide-y divide-slate-700/30">
@@ -397,8 +470,21 @@ export function MobilePlanningMap({ phases, onChantierClick }: MobilePlanningMap
                             const { chantier } = phase;
                             const segment = routeData?.segments.find(s => s.fromIndex === idx);
 
+                            // Détecter si c'est le premier élément d'un nouveau jour
+                            const prevStop = idx > 0 ? tourStops[idx - 1] : null;
+                            const isNewDay = !prevStop || prevStop.dayLabel !== stop.dayLabel;
+
                             return (
-                                <div key={chantier.id}>
+                                <div key={phase.id}>
+                                    {/* Séparateur de jour */}
+                                    {isNewDay && (
+                                        <div className="px-4 py-2 bg-slate-700/30 border-b border-slate-700/50">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-sky-400">
+                                                {stop.dayLabel}
+                                            </span>
+                                        </div>
+                                    )}
+
                                     {/* Étape */}
                                     <button
                                         onClick={() => onChantierClick(chantier.id)}
@@ -419,18 +505,23 @@ export function MobilePlanningMap({ phases, onChantierClick }: MobilePlanningMap
                                                 {chantier.client?.nom && ` • ${chantier.client.nom}`}
                                             </p>
                                         </div>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                window.open(
-                                                    `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lon}`,
-                                                    '_blank'
-                                                );
-                                            }}
-                                            className="p-2 rounded-lg bg-blue-500/20 text-blue-400 active:scale-95"
-                                        >
-                                            <Navigation size={16} />
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <span className="px-2 py-0.5 rounded bg-slate-700/50 text-[10px] font-bold text-slate-300">
+                                                {phase.groupe_phase}.{phase.numero_phase}
+                                            </span>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(
+                                                        `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lon}`,
+                                                        '_blank'
+                                                    );
+                                                }}
+                                                className="p-2 rounded-lg bg-blue-500/20 text-blue-400 active:scale-95"
+                                            >
+                                                <Navigation size={16} />
+                                            </button>
+                                        </div>
                                     </button>
 
                                     {/* Trajet vers l'étape suivante */}

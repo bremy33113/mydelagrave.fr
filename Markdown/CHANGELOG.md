@@ -2,6 +2,18 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.11] - 2026-01-11
+
+### Fix planning tournée mobile - phases multi-jours
+
+### Corrections
+- 🐛 Fix: Expansion des phases multi-jours dans la tournée carte
+- 🐛 Fix: Calcul correct des heures par jour (premier/dernier/intermédiaire)
+- 🐛 Fix: Groupement par jour avec séparateurs (Lun 12, Mar 13, etc.)
+- 🐛 Fix: Affichage du numéro de phase (1.2, 1.3)
+
+---
+
 ## [2.6.10] - 2026-01-11
 
 ### Tests E2E mobiles + corrections tests existants

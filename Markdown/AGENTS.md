@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.6.10**
+**2.6.11**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.6.10 - Améliorations mobile planning et documents
+MyDelagrave v2.6.11 - Améliorations mobile planning et documents
 
 ## Mode d'Exécution
 

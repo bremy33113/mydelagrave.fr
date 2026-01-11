@@ -1,7 +1,7 @@
 {
   "name": "mydelagrave",
   "private": true,
-  "version": "2.6.10",
+  "version": "2.6.11",
   "description": "Application de gestion de chantiers Delagrave",
   "author": "Delagrave",
   "type": "module",
