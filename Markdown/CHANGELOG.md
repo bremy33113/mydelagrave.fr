@@ -2,6 +2,19 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.9] - 2026-01-11
+
+### Suppression header chantier mobile + bouton plein écran
+
+### Corrections
+- 🐛 Fix: Suppression header chantier mobile (icône catégorie, nom, client, statut)
+- 🐛 Fix: Titre MobileLayout affiche "Référence - Nom" au lieu de "CHANTIER"
+- ✨ Feat: Bouton plein écran dans le header mobile (Fullscreen API)
+- 📝 Doc: Mise à jour ZONES.md avec nouveau design MobileChantierDetail
+- 📝 Doc: Mise à jour CLAUDE.md (Current State, Electron, RLS, Deployment)
+
+---
+
 ## [2.6.8] - 2026-01-11
 
 ### Améliorations planning mobile + fix RLS documents

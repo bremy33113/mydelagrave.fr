@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Monitor, User } from 'lucide-react';
+import { ChevronLeft, Monitor, User, Maximize, Minimize } from 'lucide-react';
 import { useMobileMode } from '../../hooks/useMobileMode';
 import { MobileBottomNav } from './MobileBottomNav';
 
@@ -23,6 +23,30 @@ export function MobileLayout({
 }: MobileLayoutProps) {
     const navigate = useNavigate();
     const { forceMobile, toggleForceMobile, showDevToggle } = useMobileMode();
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Détecter si on est en plein écran
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        // Vérifier l'état initial
+        setIsFullscreen(!!document.fullscreenElement);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = async () => {
+        try {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+            } else {
+                await document.exitFullscreen();
+            }
+        } catch (err) {
+            console.log('Fullscreen non supporté:', err);
+        }
+    };
 
     const handleBack = () => {
         if (onBack) {
@@ -59,6 +83,15 @@ export function MobileLayout({
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {/* Bouton plein écran */}
+                        <button
+                            onClick={toggleFullscreen}
+                            className="p-2 rounded-lg bg-slate-800/50 text-slate-400"
+                            title={isFullscreen ? "Quitter plein écran" : "Plein écran"}
+                        >
+                            {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+                        </button>
+
                         {/* Toggle vers mode desktop (dev only) */}
                         {showDevToggle && forceMobile && (
                             <button

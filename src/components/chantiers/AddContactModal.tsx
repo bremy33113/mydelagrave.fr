@@ -27,6 +27,8 @@ export function AddContactModal({
     const [loading, setLoading] = useState(true);
     const [showSelectModal, setShowSelectModal] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [localRoles, setLocalRoles] = useState<Record<string, string>>({});
+    const [savingRole, setSavingRole] = useState<string | null>(null);
 
     // Delete modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -48,7 +50,15 @@ export function AddContactModal({
                 .eq('chantier_id', chantierId)
                 .order('created_at', { ascending: true });
 
-            setContacts((data as ChantierContact[]) || []);
+            const contactsList = (data as ChantierContact[]) || [];
+            setContacts(contactsList);
+
+            // Initialiser les rôles locaux
+            const roles: Record<string, string> = {};
+            contactsList.forEach(c => {
+                roles[c.id] = c.role || '';
+            });
+            setLocalRoles(roles);
         } catch (err) {
             console.error('Error fetching contacts:', err);
         } finally {
@@ -72,16 +82,30 @@ export function AddContactModal({
         }
     };
 
-    const handleUpdateRole = async (contactId: string, role: string) => {
+    const handleRoleChange = (contactId: string, role: string) => {
+        setLocalRoles(prev => ({ ...prev, [contactId]: role }));
+    };
+
+    const handleSaveRole = async (contactId: string) => {
+        const role = localRoles[contactId];
+        const currentContact = contacts.find(c => c.id === contactId);
+        // Ne sauvegarder que si le rôle a changé
+        if (role === (currentContact?.role || '')) return;
+
+        setSavingRole(contactId);
         try {
             await supabase
                 .from('chantiers_contacts')
                 .update({ role: role || null, updated_at: new Date().toISOString() })
                 .eq('id', contactId);
-
-            fetchContacts();
+            // Mettre à jour le contact local pour éviter de re-sauvegarder
+            setContacts(prev => prev.map(c =>
+                c.id === contactId ? { ...c, role: role || null } : c
+            ));
         } catch {
             alert('Erreur lors de la mise à jour');
+        } finally {
+            setSavingRole(null);
         }
     };
 
@@ -151,50 +175,66 @@ export function AddContactModal({
                                 {contacts.map((contact) => (
                                     <div
                                         key={contact.id}
-                                        className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 group"
+                                        className="p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 group"
                                     >
-                                        <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-xl flex-shrink-0">
-                                            👤
-                                        </div>
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-xl flex-shrink-0">
+                                                👤
+                                            </div>
 
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-white">{contact.client?.nom}</p>
-                                            <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-slate-400">
-                                                {contact.client?.entreprise && (
-                                                    <span className="flex items-center gap-1">
-                                                        <Building2 className="w-3.5 h-3.5" />
-                                                        {contact.client.entreprise}
-                                                    </span>
-                                                )}
-                                                {contact.client?.telephone && (
-                                                    <span className="flex items-center gap-1">
-                                                        <Phone className="w-3.5 h-3.5" />
-                                                        {contact.client.telephone}
-                                                    </span>
-                                                )}
-                                                {contact.client?.email && (
-                                                    <span className="flex items-center gap-1">
-                                                        <Mail className="w-3.5 h-3.5" />
-                                                        {contact.client.email}
-                                                    </span>
-                                                )}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="font-medium text-white">{contact.client?.nom}</p>
+                                                    <button
+                                                        onClick={() => handleRemove(contact.id)}
+                                                        className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-all"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-slate-400">
+                                                    {contact.client?.entreprise && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Building2 className="w-3.5 h-3.5" />
+                                                            {contact.client.entreprise}
+                                                        </span>
+                                                    )}
+                                                    {contact.client?.telephone && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Phone className="w-3.5 h-3.5" />
+                                                            {contact.client.telephone}
+                                                        </span>
+                                                    )}
+                                                    {contact.client?.email && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Mail className="w-3.5 h-3.5" />
+                                                            {contact.client.email}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="text"
-                                                value={contact.role || ''}
-                                                onChange={(e) => handleUpdateRole(contact.id, e.target.value)}
-                                                placeholder="Rôle..."
-                                                className="w-32 px-3 py-1.5 text-sm bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                            />
-                                            <button
-                                                onClick={() => handleRemove(contact.id)}
-                                                className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-all"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                        {/* Champ Rôle sur chantier - pleine largeur */}
+                                        <div className="mt-3 pt-3 border-t border-slate-700/30">
+                                            <label className="block text-xs text-slate-500 mb-1.5">
+                                                Rôle sur ce chantier
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={localRoles[contact.id] ?? contact.role ?? ''}
+                                                    onChange={(e) => handleRoleChange(contact.id, e.target.value)}
+                                                    onBlur={() => handleSaveRole(contact.id)}
+                                                    placeholder="Ex: Contact livraison, Responsable technique, Architecte..."
+                                                    className="w-full px-3 py-2 text-sm bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                                {savingRole === contact.id && (
+                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-400">
+                                                        Sauvegarde...
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

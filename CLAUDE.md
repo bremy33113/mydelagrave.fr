@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 MyDelagrave is a construction site (chantier) management application for Delagrave, a French company. The app manages construction projects, clients, contacts, and work phases with role-based access control.
 
-**Current State**: Uses a mock Supabase client (`src/lib/supabase.ts`) with localStorage persistence. Designed for future migration to real Supabase backend.
+**Current State**: Connected to production Supabase backend with RLS (Row Level Security) policies. The mock client (`src/lib/supabase.ts` with `VITE_USE_MOCK=true`) is available for local development without credentials.
 
 ## Commands
 
@@ -24,6 +24,11 @@ npx playwright test --grep "should login"     # Run tests matching pattern
 npx playwright test --headed                  # Run with visible browser
 npx playwright test --debug                   # Debug with Playwright Inspector
 npx playwright show-report                    # View test report after failure
+
+# Electron (desktop app)
+npm run electron:dev      # Dev mode with Electron
+npm run electron:build    # Build + package for Windows (NSIS installer)
+npm run electron:preview  # Build and run Electron locally
 ```
 
 ### E2E Test Suites
@@ -102,9 +107,17 @@ Four roles with hierarchical permissions:
 - **admin**: Full access, user management
 - **superviseur**: View all chantiers, user management
 - **charge_affaire**: Manage assigned chantiers only
-- **poseur**: Read-only access to assigned chantiers
+- **poseur**: Read-only access to assigned chantiers (via `poseur_id` on chantier OR phases assigned)
 
 Use `useUserRole()` hook to check permissions: `isAdmin`, `isSuperviseur`, `canManageUsers`, `canViewAllChantiers`, etc.
+
+### Supabase RLS Policies
+Key function `can_view_chantier(p_chantier_id)` checks:
+1. User is admin/superviseur (via `is_supervisor_or_admin()`)
+2. User is `charge_affaire_id` or `poseur_id` on the chantier
+3. User has phases assigned on the chantier (`phases_chantiers.poseur_id`)
+
+Documents, notes, reserves visibility depends on `can_view_chantier()` returning true.
 
 ### Mock Authentication
 Test accounts defined in `e2e/helpers.ts`:
@@ -144,7 +157,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGci...
 
 Mobile views are available at `/m/*` routes:
 - `/m/chantiers` - Chargé d'affaire's chantier list
-- `/m/planning` - Poseur's weekly planning
+- `/m/chantiers/:id` - Chantier detail with notes, documents, reserves
+- `/m/planning` - Poseur's weekly planning (phases multi-jours supported)
 
 Mobile mode is auto-detected via viewport width (<768px), `window.name === 'MobileSimulator'`, or `localStorage.force_mobile_mode`.
 
@@ -171,6 +185,16 @@ The planning page (`PlanningPage.tsx`) uses drag & drop (`@dnd-kit`) to assign p
 - `DroppablePoseurRow.tsx` - Drop zones for each poseur
 
 French holidays are defined in `PlanningCalendar.tsx` (HOLIDAYS array) for 2025-2027.
+
+## Deployment
+
+Production is deployed to Supabase Storage bucket `website`:
+```bash
+npm run build
+# Upload dist/ contents to Supabase Storage via Dashboard or CLI
+```
+
+Note: Supabase CLI `storage cp` has issues with Windows paths (backslashes). Use the Supabase Dashboard for manual uploads or individual file uploads.
 
 ## Additional Documentation
 

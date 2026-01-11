@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MobileLayout } from '../../components/mobile/MobileLayout';
 import { MobileGlassCard } from '../../components/mobile/MobileGlassCard';
-import { MobileStatusBadge, getCategoryGradient, getCategoryIcon } from '../../components/mobile/MobileStatusBadge';
 import { supabase } from '../../lib/supabase';
 import {
     Navigation,
@@ -80,6 +79,17 @@ interface Document {
     uploader?: { first_name: string; last_name: string } | null;
 }
 
+interface Contact {
+    id: string;
+    role: string | null;
+    client: {
+        nom: string;
+        telephone: string | null;
+        email: string | null;
+        entreprise: string | null;
+    } | null;
+}
+
 const RESERVE_STATUS_LABELS: Record<string, string> = {
     ouverte: 'Ouverte',
     en_cours: 'En cours',
@@ -102,11 +112,13 @@ export function MobileChantierDetail() {
     const [notes, setNotes] = useState<Note[]>([]);
     const [phases, setPhases] = useState<Phase[]>([]);
     const [documents, setDocuments] = useState<Document[]>([]);
+    const [contacts, setContacts] = useState<Contact[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedReserve, setExpandedReserve] = useState<string | null>(null);
     const [previewData, setPreviewData] = useState<{ url: string; type: 'image' | 'pdf'; name?: string } | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     // Sections expandables (fermées par défaut sauf réserves)
+    const [localisationExpanded, setLocalisationExpanded] = useState(false);
     const [documentsExpanded, setDocumentsExpanded] = useState(false);
     const [informationsExpanded, setInformationsExpanded] = useState(false);
     const [reservesExpanded, setReservesExpanded] = useState(true);
@@ -213,6 +225,18 @@ export function MobileChantierDetail() {
                 .order('created_at', { ascending: false });
 
             setDocuments((docsData as Document[]) || []);
+
+            // Charger les contacts du chantier
+            const { data: contactsData } = await supabase
+                .from('chantiers_contacts')
+                .select(`
+                    id,
+                    role,
+                    client:clients!client_id(nom, telephone, email, entreprise)
+                `)
+                .eq('chantier_id', id);
+
+            setContacts((contactsData as Contact[]) || []);
 
         } catch (err) {
             console.error('Erreur chargement chantier:', err);
@@ -327,39 +351,11 @@ export function MobileChantierDetail() {
 
     return (
         <MobileLayout
-            title="CHANTIER"
-            subtitle={chantier.reference || undefined}
+            title={chantier.reference ? `${chantier.reference} - ${chantier.nom}` : chantier.nom}
             showBack
             showBottomNav
         >
             <div className="p-4 space-y-4">
-                {/* Header Chantier */}
-                <MobileGlassCard className="p-4">
-                    <div className="flex gap-3">
-                        {/* Icône catégorie */}
-                        <div
-                            className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-black text-xl flex-shrink-0"
-                            style={{ background: getCategoryGradient(chantier.categorie) }}
-                        >
-                            {getCategoryIcon(chantier.categorie)}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                            <h1 className="font-bold text-white text-lg leading-tight">
-                                {chantier.nom}
-                            </h1>
-                            {chantier.client?.nom && (
-                                <p className="text-sm text-slate-400 mt-0.5">
-                                    {chantier.client.nom}
-                                </p>
-                            )}
-                            <div className="mt-2">
-                                <MobileStatusBadge status={chantier.statut} />
-                            </div>
-                        </div>
-                    </div>
-                </MobileGlassCard>
-
                 {/* Boutons Actions */}
                 <div className="grid grid-cols-2 gap-3">
                     <button
@@ -378,52 +374,105 @@ export function MobileChantierDetail() {
                     </button>
                 </div>
 
-                {/* Section Localisation */}
+                {/* Section Localisation & Contacts - Expandable */}
                 <MobileGlassCard className="p-4">
-                    <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
-                        Localisation & Contact
-                    </h2>
+                    <button
+                        onClick={() => setLocalisationExpanded(!localisationExpanded)}
+                        className="w-full flex items-center gap-2"
+                    >
+                        <ChevronDown
+                            size={16}
+                            className={`text-slate-500 transition-transform ${localisationExpanded ? '' : '-rotate-90'}`}
+                        />
+                        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            Localisation & Contacts ({contacts.length})
+                        </h2>
+                    </button>
 
-                    {/* Adresse chantier */}
-                    {chantier.adresse_livraison && (
-                        <div className="flex gap-3 mb-3">
-                            <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center flex-shrink-0">
-                                <MapPin size={16} className="text-sky-400" />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold uppercase text-slate-500 mb-0.5">Chantier</p>
-                                <p className="text-sm text-white">{chantier.adresse_livraison}</p>
-                            </div>
+                    {localisationExpanded && (
+                        <div className="mt-3 space-y-3">
+                            {/* Adresse chantier */}
+                            {chantier.adresse_livraison && (
+                                <div className="flex gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center flex-shrink-0">
+                                        <MapPin size={16} className="text-sky-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase text-slate-500 mb-0.5">Chantier</p>
+                                        <p className="text-sm text-white">{chantier.adresse_livraison}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Adresse client (si différente) */}
+                            {chantier.client?.adresse && chantier.client.adresse !== chantier.adresse_livraison && (
+                                <div className="flex gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                        <Truck size={16} className="text-amber-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase text-slate-500 mb-0.5">Client</p>
+                                        <p className="text-sm text-white">{chantier.client.adresse}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Contacts du chantier */}
+                            {contacts.length > 0 && (
+                                <div className="pt-2 border-t border-slate-700/50">
+                                    <p className="text-[10px] font-bold uppercase text-slate-500 mb-2">Contacts</p>
+                                    <div className="space-y-2">
+                                        {contacts.map(c => (
+                                            <div key={c.id} className="flex gap-3 py-2 bg-slate-800/30 rounded-lg px-3">
+                                                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                                                    <User size={16} className="text-indigo-400" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-white">
+                                                        {c.client?.nom}
+                                                    </p>
+                                                    {c.role && (
+                                                        <p className="text-[10px] text-indigo-400 uppercase font-bold">
+                                                            {c.role}
+                                                        </p>
+                                                    )}
+                                                    {c.client?.entreprise && (
+                                                        <p className="text-[10px] text-slate-500">
+                                                            {c.client.entreprise}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                {c.client?.telephone && (
+                                                    <a
+                                                        href={`tel:${c.client.telephone}`}
+                                                        className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <Phone size={14} className="text-emerald-400" />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Téléphone client (si pas de contacts) */}
+                            {contacts.length === 0 && chantier.client?.telephone && (
+                                <button
+                                    onClick={callClient}
+                                    className="flex gap-3 w-full text-left"
+                                >
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                                        <Phone size={16} className="text-emerald-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase text-slate-500 mb-0.5">Contact Client</p>
+                                        <p className="text-sm text-emerald-400">{chantier.client.telephone}</p>
+                                    </div>
+                                </button>
+                            )}
                         </div>
-                    )}
-
-                    {/* Adresse livraison (si différente du client) */}
-                    {chantier.client?.adresse && chantier.client.adresse !== chantier.adresse_livraison && (
-                        <div className="flex gap-3 mb-3">
-                            <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                                <Truck size={16} className="text-amber-400" />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold uppercase text-slate-500 mb-0.5">Client</p>
-                                <p className="text-sm text-white">{chantier.client.adresse}</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Téléphone client */}
-                    {chantier.client?.telephone && (
-                        <button
-                            onClick={callClient}
-                            className="flex gap-3 w-full text-left"
-                        >
-                            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                                <Phone size={16} className="text-emerald-400" />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold uppercase text-slate-500 mb-0.5">Contact</p>
-                                <p className="text-sm text-emerald-400">{chantier.client.telephone}</p>
-                            </div>
-                        </button>
                     )}
                 </MobileGlassCard>
 
