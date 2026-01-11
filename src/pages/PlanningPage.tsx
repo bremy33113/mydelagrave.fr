@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
-import { getWeekNumber } from '../lib/dateUtils';
+import { getWeekNumber, formatLocalDate } from '../lib/dateUtils';
 import { recordPhaseHistory } from '../lib/phaseHistoryUtils';
 import { PlanningCalendar } from '../components/planning/PlanningCalendar';
 import { UnassignedPhasesPanel } from '../components/planning/UnassignedPhasesPanel';
@@ -161,8 +161,8 @@ export function PlanningPage() {
     // Filter phases for calendar view (within date range)
     // Only show real sub-phases (duree_heures > 0), not phase group headers
     const calendarPhases = useMemo(() => {
-        const startStr = dateRange.start.toISOString().split('T')[0];
-        const endStr = dateRange.end.toISOString().split('T')[0];
+        const startStr = formatLocalDate(dateRange.start);
+        const endStr = formatLocalDate(dateRange.end);
 
         return phases.filter((p) => {
             // Exclude phase group headers (placeholder with 0 hours)

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useUserRole } from '../hooks/useUserRole';
 import { KPIBar } from '../components/dashboard/KPIBar';
 import { ChantierCard } from '../components/chantiers/ChantierCard';
-import { getWeekNumber } from '../lib/dateUtils';
+import { getWeekNumber, formatLocalDate } from '../lib/dateUtils';
 import { ChantierDetail } from '../components/chantiers/ChantierDetail';
 import { CreateChantierModal } from '../components/chantiers/CreateChantierModal';
 import { PhasesModal } from '../components/chantiers/PhasesModal';
@@ -71,7 +71,7 @@ export function DashboardPage() {
             if (fetchError) throw fetchError;
 
             let filteredData = (data as Chantier[]) || [];
-            const today = new Date().toISOString().split('T')[0];
+            const today = formatLocalDate(new Date());
 
             // Apply role-based filtering
             if (!canViewAllChantiers && userId) {

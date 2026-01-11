@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '../../components/mobile/MobileLayout';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
@@ -27,43 +28,83 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export function MobileChantiersList() {
+    const navigate = useNavigate();
     const [chantiers, setChantiers] = useState<Chantier[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [search, setSearch] = useState('');
-    const { userId } = useUserRole();
+    const { userId, isPoseur } = useUserRole();
 
     const fetchChantiers = useCallback(async () => {
         if (!userId) return;
 
         try {
-            const { data, error } = await supabase
-                .from('chantiers')
-                .select(`
-                    id,
-                    reference,
-                    nom,
-                    adresse_livraison,
-                    date_debut,
-                    date_fin,
-                    statut,
-                    categorie,
-                    type,
-                    client:client_id(nom)
-                `)
-                .eq('charge_affaire_id', userId)
-                .is('deleted_at', null)
-                .order('date_debut', { ascending: false });
+            if (isPoseur) {
+                // Pour les poseurs: récupérer les chantiers où ils ont des phases assignées
+                const { data: phasesData, error: phasesError } = await supabase
+                    .from('phases_chantiers')
+                    .select('chantier_id')
+                    .eq('poseur_id', userId);
 
-            if (error) throw error;
-            setChantiers(data || []);
+                if (phasesError) throw phasesError;
+
+                const chantierIds = [...new Set((phasesData || []).map((p: { chantier_id: string }) => p.chantier_id))];
+
+                if (chantierIds.length === 0) {
+                    setChantiers([]);
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from('chantiers')
+                    .select(`
+                        id,
+                        reference,
+                        nom,
+                        adresse_livraison,
+                        date_debut,
+                        date_fin,
+                        statut,
+                        categorie,
+                        type,
+                        client:client_id(nom)
+                    `)
+                    .in('id', chantierIds)
+                    .is('deleted_at', null)
+                    .order('date_debut', { ascending: false });
+
+                if (error) throw error;
+                setChantiers(data || []);
+            } else {
+                // Pour les chargés d'affaire: filtre par charge_affaire_id
+                const { data, error } = await supabase
+                    .from('chantiers')
+                    .select(`
+                        id,
+                        reference,
+                        nom,
+                        adresse_livraison,
+                        date_debut,
+                        date_fin,
+                        statut,
+                        categorie,
+                        type,
+                        client:client_id(nom)
+                    `)
+                    .eq('charge_affaire_id', userId)
+                    .is('deleted_at', null)
+                    .order('date_debut', { ascending: false });
+
+                if (error) throw error;
+                setChantiers(data || []);
+            }
         } catch (err) {
             console.error('Erreur chargement chantiers:', err);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [userId]);
+    }, [userId, isPoseur]);
 
     useEffect(() => {
         fetchChantiers();
@@ -145,7 +186,8 @@ export function MobileChantiersList() {
                             return (
                                 <div
                                     key={chantier.id}
-                                    className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 active:bg-slate-700/50 transition-colors"
+                                    onClick={() => navigate(`/m/chantier/${chantier.id}`)}
+                                    className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 active:bg-slate-700/50 transition-colors cursor-pointer"
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">

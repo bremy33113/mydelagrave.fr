@@ -1,115 +1,155 @@
 # Context Backup - MyDelagrave
 
-**Date de sauvegarde** : 2026-01-09
+**Date de sauvegarde** : 2026-01-11
 **Branche** : main
-**Version** : 2.3.0
+**Version** : 2.6.7
 
 ---
 
 ## Derniers commits
 
 ```
-0816daf test: Ajout tests E2E non-régression v2.2.3
-46c02ae fix: Correction nom phase vs libellé sous-phase (v2.2.3)
-f12aa5d feat: Planning par chantier et focus phases (v2.2.2)
-7ade2bf fix: Améliorations phases et filtres utilisateurs (v2.2.1)
-3cd4be0 feat: Navigation et mise en évidence des phases (v2.2.0)
+4da143a fix: Améliorations mobile planning et documents (v2.6.7)
+9223cd2 feat: Trajets domicile dans carte tournée + adresse utilisateur
+1545536 feat: Dépassement budget groupe + historique phases (v2.3.0)
+3766b8f chore: Supprime fichier vidéo accidentel
+8f23786 fix: Améliore tooltip phases + debug création sous-phases
 ```
 
 ---
 
-## Tâche en cours
+## Travail effectué dans la session (v2.6.7)
 
-### Déploiement v2.2.3 vers main (INTERROMPU)
+### Viewer Documents Plein Écran
 
-L'utilisateur a demandé de déployer la version dev vers main. Le processus a été interrompu avant le merge.
-
-**Étapes restantes :**
-1. `git stash` (pour les fichiers non commités)
-2. `git checkout main`
-3. `git pull origin main`
-4. `git merge dev`
-5. `git push origin main`
-6. `git checkout dev && git stash pop`
-
----
-
-## Fichiers non commités (WIP)
-
-### Split de ChantierDetail.tsx
-
-Un travail de refactoring est en cours pour diviser `ChantierDetail.tsx` en sous-composants :
-
-**Fichiers créés (non commités) :**
-- `src/components/chantiers/ChantierCompletionStatus.tsx`
-- `src/components/chantiers/ChantierContactsList.tsx`
-- `src/components/chantiers/ChantierCoordonnees.tsx`
-- `src/components/chantiers/ChantierDetailHeader.tsx`
+**Fichiers modifiés :**
 - `src/components/chantiers/ChantierDocumentsSection.tsx`
-- `src/components/chantiers/ChantierNotesSection.tsx`
-- `src/components/chantiers/ChantierReservesSection.tsx`
-- `src/components/chantiers/PhotoModal.tsx`
-- `src/components/chantiers/types.ts`
-- `Markdown/SPLIT.md` (documentation du split)
+  - Ajout bouton viewer (Eye) pour images ET PDFs
+  - Modal plein écran avec header (nom fichier + bouton fermer)
+  - Support iframe pour PDFs, img pour images
 
-**Fichier modifié :**
-- `src/components/chantiers/ChantierDetail.tsx`
+- `src/pages/mobile/MobileChantierDetail.tsx`
+  - Même viewer plein écran sur mobile
+  - State `previewData` avec `{ url, type, name? }`
+
+### Sections Expandables Mobile
+
+**Modifications dans `MobileChantierDetail.tsx` :**
+- Ajout states : `documentsExpanded`, `informationsExpanded`, `reservesExpanded`
+- Documents et Informations fermées par défaut, Réserves ouverte
+- Chevrons à gauche des titres de section
+- Boutons "+ Ajouter" toujours visibles (Informations, Réserves)
+
+### Notes Poseur (CRUD)
+
+**Nouveau fichier créé :**
+- `src/pages/mobile/MobileNoteForm.tsx`
+  - Formulaire création/édition notes
+  - Support mode édition via query param `?edit=noteId`
+  - Compression images avant stockage base64
+
+**Modifications :**
+- `src/App.tsx` : Ajout route `/m/chantier/:id/note`
+- `src/pages/mobile/MobileChantierDetail.tsx` :
+  - Boutons edit/delete sur notes du poseur (seulement ses propres notes)
+  - Fonction `handleDeleteNote` (soft delete)
+  - State `currentUserId` pour vérification permissions
+
+### Section Informations Mobile
+
+- Vignettes photos à droite de la section (au lieu d'en dessous)
+- Taille réduite de 50% : `w-8 h-8` au lieu de `w-16 h-16`
+- Layout flex avec contenu à gauche, photos à droite
+
+### Planning Mobile - Jours Fériés
+
+**Fichier modifié : `src/pages/mobile/MobilePlanningV2.tsx`**
+- Import `FRENCH_HOLIDAYS` depuis constants
+- Fonction `isHoliday(date)` pour détecter jours fériés
+- Weekends supprimés : `weekDates` = 5 jours (Lun-Ven)
+- Jours fériés affichés en rouge hachuré :
+  - Badge date : `bg-red-500/30 text-red-400`
+  - Badge "Férié" à côté du jour
+  - Zone hachurée : `repeating-linear-gradient(135deg, ...)`
 
 ---
 
-## Résumé des changements v2.2.3
+## Architecture Composants Mobile Chantier
 
-### Corrections
-- Fix: Le nom de la phase affiche maintenant le nom défini (ex: "Batiment") et non le libellé de la sous-phase (ex: "RDC")
-- Fix: Correction dans PhasesModal et PlanningPage pour utiliser le placeholder (duree_heures=0) comme source du nom de phase
-- Fix: Erreurs ESLint (non-null assertions) dans DroppablePoseurRow et SansPoseRow
-
-### Améliorations
-- Scroll automatique vers le formulaire "Nouvelle sous-phase" lors de son ouverture
-- Placeholders mis à jour dans les formulaires (Phase: "Batiment", Sous-phase: "RDC")
-
-### Tests E2E ajoutés
-- `e2e/chantier-detail.spec.ts` - 10 tests
-- `e2e/reserves.spec.ts` - 11 tests
-- Tests enrichis dans `phases.spec.ts` et `planning.spec.ts`
-
----
-
-## Prochaines étapes suggérées
-
-1. **Terminer le déploiement** : Merger dev vers main
-2. **Décider pour le split ChantierDetail** :
-   - Option A : Commiter le refactoring
-   - Option B : Annuler (`git checkout -- .` + supprimer les nouveaux fichiers)
-3. **Implémenter react-rnd** : Plan existant dans `.claude/plans/idempotent-meandering-pizza.md` pour le drag & resize des phases sur le planning
+```
+MobileChantierDetail.tsx
+├── Header (nom, client, statut, catégorie)
+├── Boutons Actions (GPS, Rapport)
+├── Section Localisation & Contact
+├── Section Phases à venir (si présentes)
+├── Section Documents [expandable, fermée par défaut]
+│   └── Liste docs type='plan' avec viewer
+├── Section Informations [expandable, fermée par défaut]
+│   ├── Notes (hors réserves)
+│   ├── Vignettes photos (à droite)
+│   └── Boutons edit/delete (propres notes)
+├── Section Réserves [expandable, ouverte par défaut]
+│   └── Accordéon par réserve
+└── Modal Preview Plein Écran (images/PDFs)
+```
 
 ---
 
-## Notes techniques
+## Fichiers Clés Modifiés
 
-### Structure des phases (v2.2.3)
-- **Placeholder de phase** : `numero_phase: 0`, `duree_heures: 0` → contient le nom de la phase
-- **Sous-phases réelles** : `numero_phase: 1, 2, 3...`, `duree_heures > 0` → contiennent le libellé
+| Fichier | Modifications |
+|---------|---------------|
+| `ChantierDocumentsSection.tsx` | Viewer plein écran desktop |
+| `ChantierNotesSection.tsx` | Permissions poseur (edit/delete) |
+| `MobileChantierDetail.tsx` | Sections expandables, viewer, CRUD notes |
+| `MobileNoteForm.tsx` | **Nouveau** - Formulaire notes mobile |
+| `MobilePlanningV2.tsx` | Weekends masqués, jours fériés |
+| `App.tsx` | Route `/m/chantier/:id/note` |
 
-### Pour les phases existantes sans placeholder
-Les utilisateurs doivent éditer la phase (icône crayon) pour créer le placeholder avec le bon nom.
+---
+
+## États Importants
+
+### MobileChantierDetail States
+```typescript
+const [documentsExpanded, setDocumentsExpanded] = useState(false);
+const [informationsExpanded, setInformationsExpanded] = useState(false);
+const [reservesExpanded, setReservesExpanded] = useState(true);
+const [previewData, setPreviewData] = useState<{ url: string; type: 'image' | 'pdf'; name?: string } | null>(null);
+const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+```
+
+### Jours Fériés (constants.ts)
+```typescript
+export const FRENCH_HOLIDAYS = [
+    '2025-01-01', '2025-04-21', '2025-05-01', ...
+    '2026-01-01', '2026-04-06', '2026-05-01', ...
+];
+```
+
+---
+
+## Prochaines Étapes Suggérées
+
+1. **Tester les fonctionnalités mobile** avec un compte poseur
+2. **Ajouter jours fériés 2027** dans `FRENCH_HOLIDAYS`
+3. **Considérer** : Synchronisation offline pour notes/réserves mobile
 
 ---
 
 ## Déploiement
 
 - Site production : https://mydelagrave.fr
-- FTP : `admin@mydelagrave.fr` sur `node117-eu.n0c.com`
 - Build : `npm run build -- --mode production`
+- Tests E2E : `npm run test:e2e`
 
-## Comment tester
+---
 
-```bash
-cd H:\MyDelagrave
-npm run dev
-```
+## Comptes Test
 
-### Tests E2E
-```bash
-npm run test:e2e
-```
+| Email | Rôle | Mot de passe |
+|-------|------|--------------|
+| admin@delagrave.fr | Admin | admin123 |
+| jean.dupont@delagrave.fr | Chargé d'affaire | password123 |
+| marie.martin@delagrave.fr | Superviseur | password123 |
+| pierre.durand@delagrave.fr | Poseur | password123 |

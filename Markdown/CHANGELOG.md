@@ -2,6 +2,16 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.7] - 2026-01-11
+
+### Correction RLS poseurs - visibilité chantiers
+
+### Corrections
+- 🐛 Fix: Les poseurs peuvent maintenant voir les chantiers où ils ont des phases assignées
+- 🐛 Fix: Correction dépendance circulaire policies RLS Supabase (chantiers + phases_chantiers)
+
+---
+
 ## [2.6.6] - 2026-01-11
 
 ### Améliorations mobile planning et documents
