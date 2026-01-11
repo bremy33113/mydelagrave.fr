@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '../../components/mobile/MobileLayout';
 import { MobileGlassCard } from '../../components/mobile/MobileGlassCard';
-import { MobileStatusBadge, getCategoryGradient, getCategoryIcon } from '../../components/mobile/MobileStatusBadge';
+import { getCategoryGradient, getCategoryIcon } from '../../components/mobile/MobileStatusBadge';
 import { MobilePlanningMap } from '../../components/mobile/MobilePlanningMap';
 import { supabase } from '../../lib/supabase';
 import { useUserRole } from '../../hooks/useUserRole';
@@ -136,6 +136,8 @@ export function MobilePlanningV2() {
 
             console.log('📱 MobilePlanningV2 - Fetching phases:', { userId, startDate, endDate, viewMode });
 
+            // Récupérer les phases qui chevauchent la période
+            // Une phase est visible si: date_debut <= endDate ET date_fin >= startDate
             const { data, error } = await supabase
                 .from('phases_chantiers')
                 .select(`
@@ -162,8 +164,8 @@ export function MobilePlanningV2() {
                     )
                 `)
                 .eq('poseur_id', userId)
-                .gte('date_debut', startDate)
-                .lte('date_debut', endDate)
+                .lte('date_debut', endDate)   // Phase commence avant ou pendant la fin de période
+                .gte('date_fin', startDate)   // Phase finit après ou pendant le début de période
                 .order('date_debut', { ascending: true });
 
             console.log('📱 MobilePlanningV2 - Query result:', { data, error });
@@ -217,17 +219,22 @@ export function MobilePlanningV2() {
 
     const goToToday = () => setDayOffset(0);
 
-    // Grouper par jour pour vue semaine
+    // Grouper par jour pour vue semaine (phases multi-jours apparaissent sur chaque jour)
     const phasesByDay = useMemo(() => {
         const grouped: Record<string, PhaseWithChantier[]> = {};
         weekDates.forEach(day => {
             grouped[formatLocalDate(day)] = [];
         });
         phases.forEach(phase => {
-            const dateKey = phase.date_debut.split('T')[0];
-            if (grouped[dateKey]) {
-                grouped[dateKey].push(phase);
-            }
+            const phaseStart = phase.date_debut.split('T')[0];
+            const phaseEnd = phase.date_fin.split('T')[0];
+            // Ajouter la phase à chaque jour qu'elle couvre
+            weekDates.forEach(day => {
+                const dayStr = formatLocalDate(day);
+                if (dayStr >= phaseStart && dayStr <= phaseEnd) {
+                    grouped[dayStr].push(phase);
+                }
+            });
         });
         return grouped;
     }, [phases, weekDates]);
@@ -258,54 +265,78 @@ export function MobilePlanningV2() {
         navigate(`/m/chantier/${chantierId}`);
     };
 
+    // Calculer les heures pour un jour spécifique d'une phase multi-jours
+    const getHoursForDay = (phase: PhaseWithChantier, dayStr: string): { start: string; end: string } => {
+        const phaseStart = phase.date_debut.split('T')[0];
+        const phaseEnd = phase.date_fin.split('T')[0];
+        const isFirstDay = dayStr === phaseStart;
+        const isLastDay = dayStr === phaseEnd;
+        const isSingleDay = phaseStart === phaseEnd;
+
+        if (isSingleDay) {
+            // Phase sur un seul jour
+            return { start: phase.heure_debut, end: phase.heure_fin };
+        }
+
+        if (isFirstDay) {
+            // Premier jour : heure_debut de la phase → 17:00
+            return { start: phase.heure_debut, end: '17:00' };
+        }
+
+        if (isLastDay) {
+            // Dernier jour : 08:00 → heure_fin de la phase
+            return { start: '08:00', end: phase.heure_fin };
+        }
+
+        // Jour intermédiaire : journée complète
+        return { start: '08:00', end: '17:00' };
+    };
+
     // Rendu d'une carte intervention
-    const renderPhaseCard = (phase: PhaseWithChantier) => {
-        console.log('📱 renderPhaseCard - phase:', phase);
+    const renderPhaseCard = (phase: PhaseWithChantier, forDay?: string) => {
         const chantier = phase.chantier;
         if (!chantier) {
-            console.log('📱 renderPhaseCard - chantier is null!');
             return null;
         }
 
         const reservesCount = getReservesCount(chantier.id);
 
+        // Calculer les heures pour le jour affiché
+        const dayStr = forDay || phase.date_debut.split('T')[0];
+        const hours = getHoursForDay(phase, dayStr);
+
         return (
             <MobileGlassCard
-                key={phase.id}
-                className="p-4"
+                key={`${phase.id}-${dayStr}`}
+                className="p-3"
                 onClick={() => openChantierDetail(chantier.id)}
             >
-                {/* Header: Statut + Horaires */}
-                <div className="flex items-center justify-between mb-3">
-                    <MobileStatusBadge status={chantier.statut} />
+                {/* Header: Horaires uniquement */}
+                <div className="flex items-center justify-end mb-2">
                     <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
                         <Clock size={12} />
-                        <span>{formatTime(phase.heure_debut)}-{formatTime(phase.heure_fin)}</span>
+                        <span>{formatTime(hours.start)}-{formatTime(hours.end)}</span>
                     </div>
                 </div>
 
                 {/* Contenu principal */}
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                     {/* Icône catégorie */}
                     <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-lg flex-shrink-0"
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-black text-base flex-shrink-0"
                         style={{ background: getCategoryGradient(chantier.categorie) }}
                     >
                         {getCategoryIcon(chantier.categorie)}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                        {/* Nom chantier */}
+                        {/* Référence + Nom chantier */}
                         <h3 className="font-bold text-white text-sm truncate">
+                            {chantier.reference && (
+                                <span className="text-blue-400 mr-2">{chantier.reference}</span>
+                            )}
                             {chantier.nom}
                         </h3>
-
-                        {/* Client */}
-                        {chantier.client?.nom && (
-                            <p className="text-xs text-slate-400 truncate">
-                                {chantier.client.nom}
-                            </p>
-                        )}
 
                         {/* Adresse */}
                         {chantier.adresse_livraison && (
@@ -332,18 +363,6 @@ export function MobilePlanningV2() {
                         )}
                     </div>
                 </div>
-
-                {/* Footer: Libellé phase + Référence */}
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700/50">
-                    <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wide truncate">
-                        {phase.libelle || `Phase ${phase.groupe_phase}.${phase.numero_phase}`}
-                    </span>
-                    {chantier.reference && (
-                        <span className="text-[10px] text-slate-500 font-mono">
-                            {chantier.reference}
-                        </span>
-                    )}
-                </div>
             </MobileGlassCard>
         );
     };
@@ -354,7 +373,7 @@ export function MobilePlanningV2() {
             subtitle={formatDateNav()}
             showBottomNav
         >
-            <div className="p-4 space-y-4">
+            <div className="p-3 space-y-3">
                 {/* Toggles Vue */}
                 <div className="flex gap-2">
                     {/* Toggle Jour/Semaine */}
@@ -455,7 +474,7 @@ export function MobilePlanningV2() {
                     />
                 ) : viewMode === 'jour' ? (
                     // Vue Jour
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         {isHoliday(selectedDate) ? (
                             <div
                                 className="p-8 rounded-xl text-center"
@@ -475,13 +494,13 @@ export function MobilePlanningV2() {
                                 <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
                                     {phases.length} intervention{phases.length > 1 ? 's' : ''}
                                 </p>
-                                {phases.map(renderPhaseCard)}
+                                {phases.map(phase => renderPhaseCard(phase, formatLocalDate(selectedDate)))}
                             </>
                         )}
                     </div>
                 ) : (
                     // Vue Semaine (Lun-Ven)
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                         {weekDates.map(day => {
                             const dateKey = formatLocalDate(day);
                             const dayPhases = phasesByDay[dateKey] || [];
@@ -491,10 +510,10 @@ export function MobilePlanningV2() {
                             return (
                                 <div key={dateKey}>
                                     {/* En-tête jour */}
-                                    <div className={`flex items-center gap-2 mb-2 ${
+                                    <div className={`flex items-center gap-2 mb-1 ${
                                         isToday ? 'text-sky-400' : dayIsHoliday ? 'text-red-400' : 'text-slate-400'
                                     }`}>
-                                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${
+                                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black ${
                                             isToday ? 'bg-sky-500 text-white' : dayIsHoliday ? 'bg-red-500/30 text-red-400' : 'bg-slate-800/50'
                                         }`}>
                                             {day.getDate()}
@@ -520,7 +539,7 @@ export function MobilePlanningV2() {
                                     {/* Phases du jour ou jour férié */}
                                     {dayIsHoliday ? (
                                         <div
-                                            className="ml-10 py-3 px-4 rounded-lg text-xs text-red-400 font-medium"
+                                            className="ml-9 py-2 px-3 rounded-lg text-xs text-red-400 font-medium"
                                             style={{
                                                 background: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(239, 68, 68, 0.1) 4px, rgba(239, 68, 68, 0.1) 8px)'
                                             }}
@@ -528,10 +547,10 @@ export function MobilePlanningV2() {
                                             Jour férié
                                         </div>
                                     ) : dayPhases.length === 0 ? (
-                                        <p className="text-xs text-slate-600 pl-10 py-1">-</p>
+                                        <p className="text-xs text-slate-600 pl-9 py-0.5">-</p>
                                     ) : (
-                                        <div className="space-y-2 pl-10">
-                                            {dayPhases.map(renderPhaseCard)}
+                                        <div className="space-y-1.5 pl-9">
+                                            {dayPhases.map(phase => renderPhaseCard(phase, dateKey))}
                                         </div>
                                     )}
                                 </div>

@@ -2,6 +2,20 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.8] - 2026-01-11
+
+### Améliorations planning mobile + fix RLS documents
+
+### Corrections
+- 🐛 Fix: Planning mobile plus compact verticalement
+- 🐛 Fix: Cartes intervention simplifiées (référence + nom, sans statut/footer)
+- 🐛 Fix: Phases multi-jours apparaissent sur tous les jours couverts
+- 🐛 Fix: Heures correctes calculées par jour pour phases multi-jours
+- 🐛 Fix: Sanitisation noms de fichiers pour upload Supabase Storage
+- 🐛 Fix: RLS can_view_chantier() inclut poseurs avec phases assignées (documents visibles)
+
+---
+
 ## [2.6.7] - 2026-01-11
 
 ### Correction RLS poseurs - visibilité chantiers

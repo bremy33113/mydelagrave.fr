@@ -117,9 +117,12 @@ export function DocumentUploadModal({ chantierId, onClose, onSuccess }: Document
                 throw new Error('Utilisateur non connecté');
             }
 
-            // Generate unique storage path
+            // Generate unique storage path (sanitize filename for Supabase Storage)
             const timestamp = Date.now();
-            const storagePath = `chantier_${chantierId}/${timestamp}_${file.name}`;
+            const sanitizedFileName = file.name
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+                .replace(/[^a-zA-Z0-9._-]/g, '_'); // Replace special chars with underscore
+            const storagePath = `chantier_${chantierId}/${timestamp}_${sanitizedFileName}`;
 
             // Upload file to storage
             const { error: uploadError } = await supabase.storage
