@@ -43,8 +43,8 @@ export function MobileLayout({
             } else {
                 await document.exitFullscreen();
             }
-        } catch (err) {
-            console.log('Fullscreen non supporté:', err);
+        } catch {
+            // Fullscreen non supporté sur certains navigateurs
         }
     };
 
@@ -57,13 +57,14 @@ export function MobileLayout({
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col text-slate-100">
+        <div data-testid="mobile-layout" className="min-h-screen bg-slate-950 flex flex-col text-slate-100">
             {/* Header style Gemini Canvas */}
-            <header className="sticky top-0 z-40 bg-slate-900/40 backdrop-blur-md border-b border-slate-700/50 p-4 pt-6">
+            <header data-testid="mobile-header" className="sticky top-0 z-40 bg-slate-900/40 backdrop-blur-md border-b border-slate-700/50 p-4 pt-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {showBack ? (
                             <button
+                                data-testid="btn-back"
                                 onClick={handleBack}
                                 className="p-2 rounded-xl bg-slate-800/50"
                             >
@@ -75,7 +76,7 @@ export function MobileLayout({
                             </div>
                         )}
                         <div>
-                            <h1 className="font-black text-sm tracking-tight uppercase">{title}</h1>
+                            <h1 data-testid="mobile-title" className="font-black text-sm tracking-tight uppercase">{title}</h1>
                             {subtitle && (
                                 <p className="text-[9px] text-slate-500 font-bold uppercase">{subtitle}</p>
                             )}
@@ -85,6 +86,7 @@ export function MobileLayout({
                     <div className="flex items-center gap-2">
                         {/* Bouton plein écran */}
                         <button
+                            data-testid="btn-fullscreen"
                             onClick={toggleFullscreen}
                             className="p-2 rounded-lg bg-slate-800/50 text-slate-400"
                             title={isFullscreen ? "Quitter plein écran" : "Plein écran"}
@@ -95,6 +97,7 @@ export function MobileLayout({
                         {/* Toggle vers mode desktop (dev only) */}
                         {showDevToggle && forceMobile && (
                             <button
+                                data-testid="btn-desktop-toggle"
                                 onClick={toggleForceMobile}
                                 className="p-2 rounded-lg bg-blue-500/20 text-blue-400"
                                 title="Revenir en mode desktop"
@@ -104,6 +107,7 @@ export function MobileLayout({
                         )}
 
                         <button
+                            data-testid="btn-profile"
                             onClick={() => navigate('/m/profil')}
                             className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shadow-inner"
                         >

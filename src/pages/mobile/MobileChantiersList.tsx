@@ -186,6 +186,7 @@ export function MobileChantiersList() {
                             return (
                                 <div
                                     key={chantier.id}
+                                    data-testid="chantier-card"
                                     onClick={() => navigate(`/m/chantier/${chantier.id}`)}
                                     className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 active:bg-slate-700/50 transition-colors cursor-pointer"
                                 >

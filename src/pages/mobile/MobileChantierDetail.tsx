@@ -357,8 +357,9 @@ export function MobileChantierDetail() {
         >
             <div className="p-4 space-y-4">
                 {/* Boutons Actions */}
-                <div className="grid grid-cols-2 gap-3">
+                <div data-testid="action-buttons" className="grid grid-cols-2 gap-3">
                     <button
+                        data-testid="btn-gps"
                         onClick={openGPS}
                         className="flex items-center justify-center gap-2 py-3 px-4 bg-sky-500/20 text-sky-400 rounded-2xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-transform"
                     >
@@ -366,6 +367,7 @@ export function MobileChantierDetail() {
                         GPS Site
                     </button>
                     <button
+                        data-testid="btn-rapport"
                         onClick={openRapportForm}
                         className="flex items-center justify-center gap-2 py-3 px-4 bg-emerald-500/20 text-emerald-400 rounded-2xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-transform"
                     >
@@ -375,8 +377,9 @@ export function MobileChantierDetail() {
                 </div>
 
                 {/* Section Localisation & Contacts - Expandable */}
-                <MobileGlassCard className="p-4">
+                <MobileGlassCard data-testid="section-localisation" className="p-4">
                     <button
+                        data-testid="btn-expand-localisation"
                         onClick={() => setLocalisationExpanded(!localisationExpanded)}
                         className="w-full flex items-center gap-2"
                     >
