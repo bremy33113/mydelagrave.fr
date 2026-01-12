@@ -2,7 +2,7 @@
 
 **Date de sauvegarde** : 2026-01-12
 **Branche** : main
-**Version** : 2.6.12
+**Version** : 2.6.13
 
 ---
 

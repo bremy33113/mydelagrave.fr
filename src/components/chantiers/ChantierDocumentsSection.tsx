@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, Plus, File, Eye, Download, Trash2, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ChevronDown, Plus, File, Eye, Download, Trash2, X, Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { DOCUMENT_TYPE_ICONS, DOCUMENT_TYPE_LABELS } from '../../lib/constants';
 import { DocumentUploadModal } from './DocumentUploadModal';
@@ -19,6 +20,7 @@ export function ChantierDocumentsSection({
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [previewFullscreen, setPreviewFullscreen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
 
     // Fetch documents
@@ -42,6 +44,12 @@ export function ChantierDocumentsSection({
                 setPreviewUrl(null);
                 return;
             }
+            // Si le storage_path est un data URI (base64), l'utiliser directement
+            if (previewDocument.storage_path.startsWith('data:')) {
+                setPreviewUrl(previewDocument.storage_path);
+                return;
+            }
+            // Sinon, essayer Supabase Storage
             const { data } = await supabase.storage
                 .from('documents')
                 .createSignedUrl(previewDocument.storage_path, 3600);
@@ -224,52 +232,90 @@ export function ChantierDocumentsSection({
                 )}
             </section>
 
-            {/* Document Preview Modal - Plein écran */}
-            {previewDocument && (
+            {/* Document Preview Modal */}
+            {previewDocument && createPortal(
                 <div
-                    className="fixed inset-0 z-50 flex flex-col bg-black/95"
+                    className={`fixed z-[9999] flex flex-col ${
+                        previewFullscreen
+                            ? 'inset-0 bg-black'
+                            : 'inset-4 md:inset-10 lg:inset-20 bg-slate-900 rounded-xl shadow-2xl'
+                    }`}
                     data-testid="document-preview-modal"
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 bg-slate-900/80">
-                        <p className="text-white font-medium truncate" data-testid="preview-filename">
+                    <div className={`flex items-center justify-between px-4 py-3 border-b border-slate-700 ${
+                        previewFullscreen ? 'bg-slate-900' : ''
+                    }`}>
+                        <p className="text-white font-medium truncate flex-1 mr-4" data-testid="preview-filename">
                             {previewDocument.nom}
                         </p>
-                        <button
-                            onClick={() => setPreviewDocument(null)}
-                            className="p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700 transition-colors"
-                            data-testid="btn-close-preview"
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPreviewFullscreen(!previewFullscreen)}
+                                className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors"
+                                title={previewFullscreen ? 'Réduire' : 'Plein écran'}
+                            >
+                                {previewFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setPreviewDocument(null);
+                                    setPreviewFullscreen(false);
+                                }}
+                                className="p-2 bg-slate-800 hover:bg-red-600 rounded-lg text-white transition-colors"
+                                data-testid="btn-close-preview"
+                                title="Fermer"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                     {/* Content */}
-                    <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+                    <div className="flex-1 overflow-hidden">
                         {!previewUrl ? (
-                            <p className="text-slate-400 text-center py-8">
-                                Fichier non disponible en mode démonstration.
-                            </p>
+                            <div className="flex-1 flex items-center justify-center h-full">
+                                <p className="text-slate-400 text-center py-8">
+                                    Fichier non disponible en mode démonstration.
+                                </p>
+                            </div>
                         ) : previewDocument.mime_type.startsWith('image/') ? (
-                            <img
-                                src={previewUrl}
-                                alt={previewDocument.nom}
-                                className="max-w-full max-h-full object-contain"
-                                data-testid="preview-image"
-                            />
+                            <div className="flex items-center justify-center h-full p-4 overflow-auto">
+                                <img
+                                    src={previewUrl}
+                                    alt={previewDocument.nom}
+                                    className="max-w-full max-h-full object-contain"
+                                    data-testid="preview-image"
+                                />
+                            </div>
                         ) : previewDocument.mime_type === 'application/pdf' ? (
                             <iframe
                                 src={previewUrl}
                                 title={previewDocument.nom}
-                                className="w-full h-full bg-white rounded-lg"
+                                className="w-full h-full border-0"
+                                style={{ background: 'white' }}
                                 data-testid="preview-pdf"
                             />
                         ) : (
-                            <p className="text-slate-400 text-center py-8">
-                                Aperçu non disponible pour ce type de fichier.
-                            </p>
+                            <div className="flex items-center justify-center h-full">
+                                <p className="text-slate-400 text-center py-8">
+                                    Aperçu non disponible pour ce type de fichier.
+                                </p>
+                            </div>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
+            )}
+            {/* Backdrop pour modal non-fullscreen */}
+            {previewDocument && !previewFullscreen && createPortal(
+                <div
+                    className="fixed inset-0 z-[9998] bg-black/60"
+                    onClick={() => {
+                        setPreviewDocument(null);
+                        setPreviewFullscreen(false);
+                    }}
+                />,
+                document.body
             )}
 
             {/* Document Upload Modal */}

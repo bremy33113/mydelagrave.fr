@@ -22,7 +22,9 @@ import {
     Car,
     Wrench,
     X,
-    Check
+    Check,
+    Maximize2,
+    Minimize2
 } from 'lucide-react';
 import { useUserRole } from '../../hooks/useUserRole';
 import { formatLocalDate } from '../../lib/dateUtils';
@@ -122,6 +124,7 @@ export function MobileChantierDetail() {
     const [loading, setLoading] = useState(true);
     const [expandedReserve, setExpandedReserve] = useState<string | null>(null);
     const [previewData, setPreviewData] = useState<{ url: string; type: 'image' | 'pdf'; name?: string } | null>(null);
+    const [previewFullscreen, setPreviewFullscreen] = useState(false);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     // Sections expandables (fermées par défaut sauf réserves)
     const [localisationExpanded, setLocalisationExpanded] = useState(false);
@@ -373,6 +376,14 @@ export function MobileChantierDetail() {
 
     const handleViewDocument = async (doc: Document) => {
         try {
+            // Si le storage_path est un data URI (base64), l'utiliser directement
+            if (doc.storage_path.startsWith('data:')) {
+                const type = doc.mime_type === 'application/pdf' ? 'pdf' : 'image';
+                setPreviewData({ url: doc.storage_path, type, name: doc.nom });
+                return;
+            }
+
+            // Sinon, essayer Supabase Storage
             const { data, error } = await supabase.storage
                 .from('documents')
                 .createSignedUrl(doc.storage_path, 3600);
@@ -844,40 +855,68 @@ export function MobileChantierDetail() {
                 </MobileGlassCard>
             </div>
 
-            {/* Modal Preview Plein Écran (Image ou PDF) */}
+            {/* Modal Preview (Image ou PDF) */}
             {previewData && (
-                <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-slate-900/80 safe-area-top">
-                        <p className="text-white font-medium truncate flex-1 mr-4">
-                            {previewData.name || 'Aperçu'}
-                        </p>
-                        <button
-                            onClick={() => setPreviewData(null)}
-                            className="p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700 transition-colors flex-shrink-0"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                <>
+                    {/* Backdrop */}
+                    {!previewFullscreen && (
+                        <div
+                            className="fixed inset-0 z-40 bg-black/60"
+                            onClick={() => {
+                                setPreviewData(null);
+                                setPreviewFullscreen(false);
+                            }}
+                        />
+                    )}
+                    <div className={`fixed z-50 flex flex-col ${
+                        previewFullscreen
+                            ? 'inset-0 bg-black'
+                            : 'inset-3 bg-slate-900 rounded-2xl shadow-2xl'
+                    }`}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+                            <p className="text-white font-medium truncate flex-1 mr-3 text-sm">
+                                {previewData.name || 'Aperçu'}
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setPreviewFullscreen(!previewFullscreen)}
+                                    className="p-2 bg-slate-800 active:bg-slate-700 rounded-lg text-white"
+                                >
+                                    {previewFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setPreviewData(null);
+                                        setPreviewFullscreen(false);
+                                    }}
+                                    className="p-2 bg-slate-800 active:bg-red-600 rounded-lg text-white"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+                        {/* Content */}
+                        <div className="flex-1 overflow-hidden">
+                            {previewData.type === 'image' ? (
+                                <div className="flex items-center justify-center h-full p-4 overflow-auto">
+                                    <img
+                                        src={previewData.url}
+                                        alt="Preview"
+                                        className="max-w-full max-h-full object-contain"
+                                    />
+                                </div>
+                            ) : (
+                                <iframe
+                                    src={previewData.url}
+                                    title="PDF Preview"
+                                    className="w-full h-full border-0"
+                                    style={{ background: 'white' }}
+                                />
+                            )}
+                        </div>
                     </div>
-                    {/* Content */}
-                    <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
-                        {previewData.type === 'image' ? (
-                            <img
-                                src={previewData.url}
-                                alt="Preview"
-                                className="max-w-full max-h-full object-contain"
-                            />
-                        ) : (
-                            <iframe
-                                src={previewData.url}
-                                title="PDF Preview"
-                                className="w-full h-full bg-white rounded-lg"
-                            />
-                        )}
-                    </div>
-                </div>
+                </>
             )}
 
             {/* Modal Pointage */}

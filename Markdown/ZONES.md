@@ -748,7 +748,7 @@ src/
         ├── MobileChantiersList.tsx  # Liste chantiers CA
         ├── MobileChantierDetail.tsx # Fiche chantier mobile (v2.6.0+)
         ├── MobilePlanningV2.tsx     # Planning poseur vue jour/semaine (v2.6.0+)
-        ├── MobileFeuillePointage.tsx # ⏱️ Feuille pointage hebdo (v2.6.12+)
+        ├── MobileFeuillePointage.tsx # ⏱️ Feuille pointage hebdo (v2.6.13+)
         ├── MobilePointageWeek.tsx   # Récap pointage semaine
         ├── MobileRapportForm.tsx    # Formulaire rapport journalier
         ├── MobileReserveForm.tsx    # Formulaire réserve
@@ -806,7 +806,7 @@ src/
 
 ---
 
-## ⏱️ Page Pointage Mobile (v2.6.12+)
+## ⏱️ Page Pointage Mobile (v2.6.13+)
 
 ### MobileFeuillePointage.tsx
 
@@ -888,7 +888,7 @@ Actions :
 
 ## 🔄 Changelog Zones UI
 
-### v2.6.12
+### v2.6.13
 - **MobileFeuillePointage** : Nouvelle page feuille de pointage hebdomadaire
 - **Pointage** : Affichage par jour avec chantiers de la semaine (même que planning)
 - **Pointage** : Ordre d'affichage : Trajet Matin → Travail Matin → Travail PM → Trajet PM

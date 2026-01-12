@@ -2,6 +2,22 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.13] - 2026-01-12
+
+### Viewer documents avec mode plein écran
+
+### Corrections
+- 🐛 Fix viewer PDF base64 (documents stockés en base64 maintenant supportés)
+- 🐛 Fix modal viewer avec Portal React (escape overflow-hidden sur desktop)
+- 🐛 Fix colonnes PDF pointage (Trajet/Travail séparés, centré sur page)
+
+### Améliorations
+- ✨ Bouton plein écran/réduire sur viewer documents (desktop + mobile)
+- ✨ Bouton "Envoyer" rapport pointage sauvegarde le PDF dans documents_chantiers
+- ✨ PDF enregistré pour chaque chantier de la semaine (type: feuille_pointage)
+
+---
+
 ## [2.6.12] - 2026-01-12
 
 ### Feuille de pointage mobile avec CRUD

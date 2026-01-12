@@ -14,8 +14,13 @@ import {
     Check,
     Clock,
     Pencil,
-    Trash2
+    Trash2,
+    FileText,
+    Send,
+    Loader2
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import type { Tables } from '../../lib/database.types';
 
 type Pointage = Tables<'pointages'>;
@@ -67,6 +72,9 @@ export function MobileFeuillePointage() {
     const [pointagePeriode, setPointagePeriode] = useState<'matin' | 'apres_midi'>('matin');
     const [pointageSaving, setPointageSaving] = useState(false);
     const [pointageSuccess, setPointageSuccess] = useState(false);
+    const [rapportOpen, setRapportOpen] = useState(false);
+    const [savingRapport, setSavingRapport] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
 
     // Calculer les dates de la semaine (Lun-Ven)
     const weekDates = useMemo(() => {
@@ -351,6 +359,211 @@ export function MobileFeuillePointage() {
         }
     };
 
+    // Enregistrer le rapport dans les documents des chantiers
+    const saveRapportToDocuments = async () => {
+        if (savingRapport) return;
+        setSavingRapport(true);
+
+        try {
+            // Récupérer le nom de l'utilisateur pour le PDF
+            let userNom = '';
+            let userPrenom = '';
+
+            if (userId) {
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('first_name, last_name')
+                    .eq('id', userId)
+                    .single();
+
+                if (userData) {
+                    userNom = userData.last_name || '';
+                    userPrenom = userData.first_name || '';
+                }
+            }
+
+            // Générer le PDF en base64
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pageWidth = doc.internal.pageSize.getWidth();
+
+            // En-tête DELAGRAVE
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('DELAGRAVE', 14, 15);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text('350 rue Bilingue', 14, 20);
+            doc.text('27610 Romilly sur Andelle', 14, 24);
+            doc.text('Tél : 02.32.49.74.02', 14, 28);
+
+            // Titre centré
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Feuille de Pointage', pageWidth / 2, 20, { align: 'center' });
+
+            // Période
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            const dateDebut = weekDates[0].toLocaleDateString('fr-FR');
+            const dateFin = weekDates[4].toLocaleDateString('fr-FR');
+            doc.text(`Semaine du ${dateDebut} au ${dateFin}`, pageWidth / 2, 28, { align: 'center' });
+
+            // Nom et Prénom employé
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Nom', pageWidth - 70, 15);
+            doc.text('Prénom', pageWidth - 70, 22);
+            doc.setFont('helvetica', 'normal');
+            doc.text(userNom.toUpperCase(), pageWidth - 45, 15);
+            doc.text(userPrenom.toUpperCase(), pageWidth - 45, 22);
+
+            // Préparer les données du tableau
+            const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+            const tableData: (string | number)[][] = [];
+
+            days.forEach((dayName, index) => {
+                const dateIdx = index < 5 ? index : -1;
+                const dateStr = dateIdx >= 0 ? formatLocalDate(weekDates[dateIdx]) : null;
+                const dayPhases = dateStr ? (phasesByDay[dateStr] || []) : [];
+
+                let trajetMatin = 0, travailMatin = 0, trajetPM = 0, travailPM = 0;
+                let chantierMatin = '', chantierPM = '';
+                let nomMatin = '', nomPM = '';
+
+                dayPhases.forEach(pd => {
+                    pd.pointages.forEach(p => {
+                        if (p.periode === 'matin') {
+                            if (p.type === 'trajet') trajetMatin += p.duree_minutes;
+                            else travailMatin += p.duree_minutes;
+                            if (!chantierMatin && pd.phase.chantier?.reference) {
+                                chantierMatin = pd.phase.chantier.reference;
+                                nomMatin = pd.phase.chantier.nom || '';
+                            }
+                        } else {
+                            if (p.type === 'trajet') trajetPM += p.duree_minutes;
+                            else travailPM += p.duree_minutes;
+                            if (!chantierPM && pd.phase.chantier?.reference) {
+                                chantierPM = pd.phase.chantier.reference;
+                                nomPM = pd.phase.chantier.nom || '';
+                            }
+                        }
+                    });
+                });
+
+                const totalTrajetJour = trajetMatin + trajetPM;
+                const totalTravailJour = travailMatin + travailPM;
+
+                tableData.push([
+                    dayName, 'Trajet', chantierMatin, nomMatin.substring(0, 25),
+                    trajetMatin > 0 ? formatMinutes(trajetMatin) : '',
+                    chantierPM, nomPM.substring(0, 25),
+                    trajetPM > 0 ? formatMinutes(trajetPM) : '',
+                    totalTrajetJour > 0 ? formatMinutes(totalTrajetJour) : '', ''
+                ]);
+
+                tableData.push([
+                    '', 'Travail', chantierMatin, nomMatin.substring(0, 25),
+                    travailMatin > 0 ? formatMinutes(travailMatin) : '',
+                    chantierPM, nomPM.substring(0, 25),
+                    travailPM > 0 ? formatMinutes(travailPM) : '',
+                    '', totalTravailJour > 0 ? formatMinutes(totalTravailJour) : ''
+                ]);
+            });
+
+            const tableWidth = 228;
+            const marginLeft = (pageWidth - tableWidth) / 2;
+
+            autoTable(doc, {
+                startY: 35,
+                margin: { left: marginLeft },
+                head: [[
+                    'Jour', 'Type',
+                    { content: 'MATIN', colSpan: 3 },
+                    { content: 'APRÈS-MIDI', colSpan: 3 },
+                    { content: 'Total', colSpan: 2 }
+                ], [
+                    '', '',
+                    'N° Chantier', 'Nom', 'Heures',
+                    'N° Chantier', 'Nom', 'Heures',
+                    'Trajet', 'Travail'
+                ]],
+                body: tableData,
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1, lineColor: [0, 0, 0] },
+                headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
+                columnStyles: {
+                    0: { cellWidth: 20 }, 1: { cellWidth: 16 }, 2: { cellWidth: 22 }, 3: { cellWidth: 40 },
+                    4: { cellWidth: 16, halign: 'center' }, 5: { cellWidth: 22 }, 6: { cellWidth: 40 },
+                    7: { cellWidth: 16, halign: 'center' }, 8: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+                    9: { cellWidth: 18, halign: 'center', fontStyle: 'bold' }
+                }
+            });
+
+            const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Total Trajet : ${formatMinutes(totaux.trajet)}`, marginLeft, finalY);
+            doc.text(`Total Travail : ${formatMinutes(totaux.travail)}`, marginLeft + 80, finalY);
+            doc.text(`TOTAL : ${formatMinutes(totaux.travail + totaux.trajet)}`, marginLeft + 160, finalY);
+
+            doc.setFont('helvetica', 'normal');
+            doc.text('Validation :', marginLeft, finalY + 15);
+            doc.rect(marginLeft, finalY + 18, 60, 20);
+            doc.text('Observations :', marginLeft + 80, finalY + 15);
+            doc.rect(marginLeft + 80, finalY + 18, 148, 20);
+
+            // Convertir en base64
+            const pdfBase64 = doc.output('datauristring');
+
+            // Récupérer les chantiers uniques de la semaine
+            const chantierIds = [...new Set(phaseDays
+                .filter(pd => pd.phase.chantier?.id)
+                .map(pd => pd.phase.chantier!.id)
+            )];
+
+            if (chantierIds.length === 0) {
+                alert('Aucun chantier trouvé pour enregistrer le rapport');
+                setSavingRapport(false);
+                return;
+            }
+
+            const fileName = `Pointage_S${weekNumber}_${userNom.toUpperCase()}_${userPrenom}.pdf`;
+            const fileSize = Math.round(pdfBase64.length * 0.75); // Approximation taille base64
+
+            // Enregistrer dans chaque chantier
+            for (const chantierId of chantierIds) {
+                await supabase.from('documents_chantiers').insert({
+                    chantier_id: chantierId,
+                    type: 'feuille_pointage',
+                    nom: fileName,
+                    description: `Feuille de pointage Semaine ${weekNumber} - ${userPrenom} ${userNom}`,
+                    storage_path: pdfBase64,
+                    file_size: fileSize,
+                    mime_type: 'application/pdf',
+                    uploaded_by: userId
+                });
+            }
+
+            setSaveSuccess(true);
+            setTimeout(() => {
+                setSaveSuccess(false);
+                setRapportOpen(false);
+            }, 1500);
+
+        } catch (err) {
+            console.error('Erreur sauvegarde rapport:', err);
+            alert('Erreur lors de la sauvegarde du rapport');
+        } finally {
+            setSavingRapport(false);
+        }
+    };
+
     // Totaux
     const totaux = useMemo(() => {
         let travail = 0;
@@ -428,7 +641,7 @@ export function MobileFeuillePointage() {
                 {/* Totaux semaine */}
                 <MobileGlassCard className="p-3">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                             <div className="flex items-center gap-1.5">
                                 <Wrench size={14} className="text-emerald-400" />
                                 <span className="text-sm font-bold text-emerald-400">
@@ -442,11 +655,19 @@ export function MobileFeuillePointage() {
                                 </span>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <span className="text-lg font-black text-sky-400">
-                                {formatMinutes(totaux.travail + totaux.trajet)}
-                            </span>
-                            <span className="text-[9px] text-slate-500 ml-1">TOTAL</span>
+                        <div className="flex items-center gap-3">
+                            <div className="text-right">
+                                <span className="text-lg font-black text-sky-400">
+                                    {formatMinutes(totaux.travail + totaux.trajet)}
+                                </span>
+                                <span className="text-[9px] text-slate-500 ml-1">TOTAL</span>
+                            </div>
+                            <button
+                                onClick={() => setRapportOpen(true)}
+                                className="p-2 bg-sky-500/20 rounded-xl text-sky-400 active:scale-95"
+                            >
+                                <FileText size={18} />
+                            </button>
                         </div>
                     </div>
                 </MobileGlassCard>
@@ -714,6 +935,139 @@ export function MobileFeuillePointage() {
                                 </button>
                             </>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Rapport */}
+            {rapportOpen && (
+                <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-4 border-b border-slate-800">
+                        <h2 className="text-lg font-black text-white">
+                            Rapport Semaine {weekNumber}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={saveRapportToDocuments}
+                                disabled={savingRapport}
+                                className={`p-2 rounded-full ${
+                                    saveSuccess
+                                        ? 'bg-emerald-500/20 text-emerald-400'
+                                        : 'bg-sky-500/20 text-sky-400'
+                                } active:scale-95 disabled:opacity-50`}
+                                title="Envoyer le rapport"
+                            >
+                                {savingRapport ? (
+                                    <Loader2 size={20} className="animate-spin" />
+                                ) : saveSuccess ? (
+                                    <Check size={20} />
+                                ) : (
+                                    <Send size={20} />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setRapportOpen(false)}
+                                className="p-2 rounded-full bg-slate-800 text-slate-400"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Contenu rapport */}
+                    <div className="flex-1 overflow-auto p-4 space-y-4">
+                        {/* En-tête rapport */}
+                        <div className="text-center border-b border-slate-700 pb-4">
+                            <h3 className="text-xl font-black text-white">FEUILLE DE POINTAGE</h3>
+                            <p className="text-slate-400">
+                                Semaine {weekNumber} • {weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </p>
+                        </div>
+
+                        {/* Totaux */}
+                        <div className="bg-slate-800/50 rounded-xl p-4">
+                            <h4 className="text-xs font-bold uppercase text-slate-500 mb-3">Récapitulatif</h4>
+                            <div className="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <div className="flex items-center justify-center gap-1 text-emerald-400 mb-1">
+                                        <Wrench size={16} />
+                                    </div>
+                                    <p className="text-lg font-black text-emerald-400">{formatMinutes(totaux.travail)}</p>
+                                    <p className="text-[10px] text-slate-500">TRAVAIL</p>
+                                </div>
+                                <div>
+                                    <div className="flex items-center justify-center gap-1 text-amber-400 mb-1">
+                                        <Car size={16} />
+                                    </div>
+                                    <p className="text-lg font-black text-amber-400">{formatMinutes(totaux.trajet)}</p>
+                                    <p className="text-[10px] text-slate-500">TRAJET</p>
+                                </div>
+                                <div>
+                                    <div className="flex items-center justify-center gap-1 text-sky-400 mb-1">
+                                        <Clock size={16} />
+                                    </div>
+                                    <p className="text-lg font-black text-sky-400">{formatMinutes(totaux.travail + totaux.trajet)}</p>
+                                    <p className="text-[10px] text-slate-500">TOTAL</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Détail par jour */}
+                        <div className="space-y-3">
+                            <h4 className="text-xs font-bold uppercase text-slate-500">Détail par jour</h4>
+                            {Object.entries(phasesByDay).map(([date, phases]) => {
+                                const dateObj = new Date(date + 'T00:00:00');
+                                const dayName = DAYS_FULL[dateObj.getDay()];
+                                const dayNum = dateObj.getDate();
+
+                                // Calculer totaux du jour
+                                let dayTravail = 0;
+                                let dayTrajet = 0;
+                                phases.forEach(pd => {
+                                    pd.pointages.forEach(p => {
+                                        if (p.type === 'travail') dayTravail += p.duree_minutes;
+                                        else dayTrajet += p.duree_minutes;
+                                    });
+                                });
+
+                                return (
+                                    <div key={date} className="bg-slate-800/30 rounded-xl p-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="font-bold text-white">
+                                                {dayName} {dayNum}
+                                            </span>
+                                            <span className="text-sm font-bold text-sky-400">
+                                                {formatMinutes(dayTravail + dayTrajet)}
+                                            </span>
+                                        </div>
+                                        {phases.map((pd, idx) => (
+                                            <div key={idx} className="text-sm text-slate-400 ml-2 mb-1">
+                                                <span className="text-slate-300">
+                                                    {pd.phase.chantier?.reference || pd.phase.chantier?.nom}
+                                                </span>
+                                                {pd.pointages.length > 0 && (
+                                                    <span className="ml-2">
+                                                        {pd.pointages.map(p => (
+                                                            <span key={p.id} className={`mr-2 ${p.type === 'trajet' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                                                {p.type === 'trajet' ? '🚗' : '🔧'} {formatMinutes(p.duree_minutes)}
+                                                            </span>
+                                                        ))}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Signature */}
+                        <div className="border-t border-slate-700 pt-4 mt-6">
+                            <p className="text-xs text-slate-500 text-center">
+                                Généré le {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </p>
+                        </div>
                     </div>
                 </div>
             )}
