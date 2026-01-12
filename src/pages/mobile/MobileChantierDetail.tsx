@@ -18,8 +18,14 @@ import {
     FileImage,
     Eye,
     Pencil,
-    Trash2
+    Trash2,
+    Car,
+    Wrench,
+    X,
+    Check
 } from 'lucide-react';
+import { useUserRole } from '../../hooks/useUserRole';
+import { formatLocalDate } from '../../lib/dateUtils';
 
 interface Chantier {
     id: string;
@@ -122,6 +128,15 @@ export function MobileChantierDetail() {
     const [documentsExpanded, setDocumentsExpanded] = useState(false);
     const [informationsExpanded, setInformationsExpanded] = useState(false);
     const [reservesExpanded, setReservesExpanded] = useState(true);
+
+    // Modal Pointage
+    const [pointageModalOpen, setPointageModalOpen] = useState(false);
+    const [pointageType, setPointageType] = useState<'travail' | 'trajet'>('travail');
+    const [pointageDuree, setPointageDuree] = useState('04:00');
+    const [pointagePeriode, setPointagePeriode] = useState<'matin' | 'apres_midi'>('matin');
+    const [pointageSaving, setPointageSaving] = useState(false);
+    const [pointageSuccess, setPointageSuccess] = useState(false);
+    const { userId } = useUserRole();
 
     // Récupérer l'utilisateur connecté
     useEffect(() => {
@@ -282,6 +297,58 @@ export function MobileChantierDetail() {
         navigate(`/m/chantier/${id}/note`);
     };
 
+    // Convertir durée hh:mm en minutes
+    const parseDuration = (duree: string): number => {
+        const [h, m] = duree.split(':').map(Number);
+        return (h || 0) * 60 + (m || 0);
+    };
+
+    // Sauvegarder le pointage
+    const savePointage = async () => {
+        if (!userId || !id) return;
+
+        const duration = parseDuration(pointageDuree);
+        if (duration <= 0) {
+            alert('La durée doit être supérieure à 0');
+            return;
+        }
+
+        setPointageSaving(true);
+        try {
+            const today = formatLocalDate(new Date());
+            // Calculer heure_debut et heure_fin à partir de la période
+            const heureDebut = pointagePeriode === 'matin' ? '08:00' : '13:00';
+            const totalMinutes = (pointagePeriode === 'matin' ? 8 * 60 : 13 * 60) + duration;
+            const heureFin = `${Math.floor(totalMinutes / 60).toString().padStart(2, '0')}:${(totalMinutes % 60).toString().padStart(2, '0')}`;
+
+            const { error } = await supabase.from('pointages').insert({
+                poseur_id: userId,
+                chantier_id: id,
+                date: today,
+                periode: pointagePeriode,
+                type: pointageType,
+                heure_debut: heureDebut,
+                heure_fin: heureFin,
+                duree_minutes: duration,
+                mode_saisie: 'manuel',
+                type_trajet: null
+            });
+
+            if (error) throw error;
+
+            setPointageSuccess(true);
+            setTimeout(() => {
+                setPointageModalOpen(false);
+                setPointageSuccess(false);
+            }, 1500);
+        } catch (err) {
+            console.error('Erreur pointage:', err);
+            alert('Erreur lors de l\'enregistrement du pointage');
+        } finally {
+            setPointageSaving(false);
+        }
+    };
+
     const toggleReserve = (reserveId: string) => {
         setExpandedReserve(expandedReserve === reserveId ? null : reserveId);
     };
@@ -357,22 +424,30 @@ export function MobileChantierDetail() {
         >
             <div className="p-4 space-y-4">
                 {/* Boutons Actions */}
-                <div data-testid="action-buttons" className="grid grid-cols-2 gap-3">
+                <div data-testid="action-buttons" className="grid grid-cols-3 gap-2">
                     <button
                         data-testid="btn-gps"
                         onClick={openGPS}
-                        className="flex items-center justify-center gap-2 py-3 px-4 bg-sky-500/20 text-sky-400 rounded-2xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-transform"
+                        className="flex items-center justify-center gap-1.5 py-3 px-2 bg-sky-500/20 text-sky-400 rounded-2xl font-black text-[10px] uppercase tracking-wider active:scale-95 transition-transform"
                     >
-                        <Navigation size={18} />
-                        GPS Site
+                        <Navigation size={16} />
+                        GPS
                     </button>
                     <button
                         data-testid="btn-rapport"
                         onClick={openRapportForm}
-                        className="flex items-center justify-center gap-2 py-3 px-4 bg-emerald-500/20 text-emerald-400 rounded-2xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-transform"
+                        className="flex items-center justify-center gap-1.5 py-3 px-2 bg-emerald-500/20 text-emerald-400 rounded-2xl font-black text-[10px] uppercase tracking-wider active:scale-95 transition-transform"
                     >
-                        <FileText size={18} />
+                        <FileText size={16} />
                         Rapport
+                    </button>
+                    <button
+                        data-testid="btn-pointage"
+                        onClick={() => setPointageModalOpen(true)}
+                        className="flex items-center justify-center gap-1.5 py-3 px-2 bg-amber-500/20 text-amber-400 rounded-2xl font-black text-[10px] uppercase tracking-wider active:scale-95 transition-transform"
+                    >
+                        <Clock size={16} />
+                        Pointage
                     </button>
                 </div>
 
@@ -800,6 +875,120 @@ export function MobileChantierDetail() {
                                 title="PDF Preview"
                                 className="w-full h-full bg-white rounded-lg"
                             />
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Pointage */}
+            {pointageModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPointageModalOpen(false)}>
+                    <div
+                        className="w-full max-w-sm bg-slate-900 rounded-3xl p-5"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-lg font-black text-white">Pointage</h2>
+                            <button
+                                onClick={() => setPointageModalOpen(false)}
+                                className="p-2 rounded-full bg-slate-800 text-slate-400"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {pointageSuccess ? (
+                            <div className="flex flex-col items-center justify-center py-6">
+                                <div className="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
+                                    <Check size={28} className="text-emerald-400" />
+                                </div>
+                                <p className="text-emerald-400 font-bold">Pointage enregistré !</p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Type de pointage */}
+                                <div className="mb-4">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
+                                        Type
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={() => setPointageType('travail')}
+                                            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                                                pointageType === 'travail'
+                                                    ? 'bg-amber-500 text-white'
+                                                    : 'bg-slate-800 text-slate-400'
+                                            }`}
+                                        >
+                                            <Wrench size={16} />
+                                            Travail
+                                        </button>
+                                        <button
+                                            onClick={() => setPointageType('trajet')}
+                                            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                                                pointageType === 'trajet'
+                                                    ? 'bg-amber-500 text-white'
+                                                    : 'bg-slate-800 text-slate-400'
+                                            }`}
+                                        >
+                                            <Car size={16} />
+                                            Trajet
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Période */}
+                                <div className="mb-4">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
+                                        Période
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={() => setPointagePeriode('matin')}
+                                            className={`py-2.5 rounded-xl font-bold text-sm transition-all ${
+                                                pointagePeriode === 'matin'
+                                                    ? 'bg-sky-500 text-white'
+                                                    : 'bg-slate-800 text-slate-400'
+                                            }`}
+                                        >
+                                            Matin
+                                        </button>
+                                        <button
+                                            onClick={() => setPointagePeriode('apres_midi')}
+                                            className={`py-2.5 rounded-xl font-bold text-sm transition-all ${
+                                                pointagePeriode === 'apres_midi'
+                                                    ? 'bg-sky-500 text-white'
+                                                    : 'bg-slate-800 text-slate-400'
+                                            }`}
+                                        >
+                                            Après-midi
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Durée */}
+                                <div className="mb-5">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
+                                        Durée (hh:mm)
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={pointageDuree}
+                                        onChange={(e) => setPointageDuree(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white text-center font-bold text-lg"
+                                    />
+                                </div>
+
+                                {/* Bouton Enregistrer */}
+                                <button
+                                    onClick={savePointage}
+                                    disabled={pointageSaving}
+                                    className="w-full py-3.5 bg-amber-500 text-white rounded-2xl font-black uppercase tracking-wider active:scale-95 transition-transform disabled:opacity-50"
+                                >
+                                    {pointageSaving ? 'Enregistrement...' : 'Enregistrer'}
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>

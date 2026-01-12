@@ -16,8 +16,8 @@ import { MobileChantierDetail } from './pages/mobile/MobileChantierDetail';
 import { MobileReserveForm } from './pages/mobile/MobileReserveForm';
 import { MobileRapportForm } from './pages/mobile/MobileRapportForm';
 import { MobileNoteForm } from './pages/mobile/MobileNoteForm';
-import { MobilePointagePage } from './pages/mobile/MobilePointagePage';
 import { MobilePointageWeek } from './pages/mobile/MobilePointageWeek';
+import { MobileFeuillePointage } from './pages/mobile/MobileFeuillePointage';
 import { MobileProfilPage } from './pages/mobile/MobileProfilPage';
 import { useMobileMode } from './hooks/useMobileMode';
 import { useUserRole } from './hooks/useUserRole';
@@ -131,7 +131,7 @@ function App() {
                     <Route path="/m/chantier/:id/note" element={<MobileNoteForm />} />
                     <Route path="/m/chantier/:id/rapport" element={<MobileRapportForm />} />
                     {/* Pointage */}
-                    <Route path="/m/pointage" element={<MobilePointagePage />} />
+                    <Route path="/m/pointage" element={<MobileFeuillePointage />} />
                     <Route path="/m/pointage/semaine" element={<MobilePointageWeek />} />
                     {/* Profil */}
                     <Route path="/m/profil" element={<MobileProfilPage />} />
@@ -165,7 +165,7 @@ function App() {
                     <Route path="/m/chantier/:id/reserve" element={<MobileReserveForm />} />
                     <Route path="/m/chantier/:id/note" element={<MobileNoteForm />} />
                     <Route path="/m/chantier/:id/rapport" element={<MobileRapportForm />} />
-                    <Route path="/m/pointage" element={<MobilePointagePage />} />
+                    <Route path="/m/pointage" element={<MobileFeuillePointage />} />
                     <Route path="/m/pointage/semaine" element={<MobilePointageWeek />} />
                     <Route path="/m/profil" element={<MobileProfilPage />} />
                     <Route path="/*" element={<DashboardPage />} />

@@ -748,6 +748,8 @@ src/
         ├── MobileChantiersList.tsx  # Liste chantiers CA
         ├── MobileChantierDetail.tsx # Fiche chantier mobile (v2.6.0+)
         ├── MobilePlanningV2.tsx     # Planning poseur vue jour/semaine (v2.6.0+)
+        ├── MobileFeuillePointage.tsx # ⏱️ Feuille pointage hebdo (v2.6.12+)
+        ├── MobilePointageWeek.tsx   # Récap pointage semaine
         ├── MobileRapportForm.tsx    # Formulaire rapport journalier
         ├── MobileReserveForm.tsx    # Formulaire réserve
         └── MobileNoteForm.tsx       # Formulaire note/information
@@ -799,10 +801,101 @@ src/
 | `/m/chantier/:id/rapport` | `MobileRapportForm.tsx` | Formulaire rapport journalier |
 | `/m/chantier/:id/reserve` | `MobileReserveForm.tsx` | Formulaire réserve |
 | `/m/chantier/:id/note` | `MobileNoteForm.tsx` | Formulaire note/information |
+| `/m/pointage` | `MobileFeuillePointage.tsx` | Feuille de pointage hebdomadaire |
+| `/m/pointage/semaine` | `MobilePointageWeek.tsx` | Récapitulatif pointage semaine |
+
+---
+
+## ⏱️ Page Pointage Mobile (v2.6.12+)
+
+### MobileFeuillePointage.tsx
+
+```
+┌──────────────────────────────────────┐
+│ ◀ │ FEUILLE POINTAGE    │ S3 - 8 RDV │  ← Semaine + Nb RDV
+├──────────────────────────────────────┤
+│  ◀   Semaine 3 • 13-17 jan 2026  ▶   │  ← Navigation semaine
+├──────────────────────────────────────┤
+│  ┌────────────────────────────────┐  │
+│  │ 🔧 12h   🚗 3h30   │ TOTAL 15h30│  │  ← Totaux semaine
+│  └────────────────────────────────┘  │
+├──────────────────────────────────────┤
+│ ┌────────────────────────────────────┐│
+│ │ 13    │ 1240730 - CMP         [+] ││  ← Jour + Chantier + Ajouter
+│ │ Lundi │────────────────────────────││
+│ │       │ 🚗 Matin: 1h36     ✏️ 🗑️  ││  ← Trajet Matin
+│ │       │ 🔧 Matin: 4h       ✏️ 🗑️  ││  ← Travail Matin
+│ │       │ 🔧 PM: 4h          ✏️ 🗑️  ││  ← Travail PM
+│ │       │ 🚗 PM: 0h45        ✏️ 🗑️  ││  ← Trajet PM
+│ │       │────────────────────────────││
+│ │       │ 1240731 - Lycée      [+]  ││  ← Autre chantier même jour
+│ │       │ Aucun pointage            ││
+│ └────────────────────────────────────┘│
+│                                      │
+│ ┌────────────────────────────────────┐│
+│ │ 14    │ 1240730 - CMP         [+] ││
+│ │ Mardi │ 🔧 Matin: 4h       ✏️ 🗑️  ││
+│ │       │ 🔧 PM: 4h          ✏️ 🗑️  ││
+│ └────────────────────────────────────┘│
+└──────────────────────────────────────┘
+
+Ordre d'affichage pointages :
+1. 🚗 Trajet Matin
+2. 🔧 Travail Matin
+3. 🔧 Travail PM
+4. 🚗 Trajet PM
+
+Actions :
+- [+] : Ajouter un pointage pour ce chantier/jour
+- ✏️ : Modifier un pointage existant
+- 🗑️ : Supprimer un pointage (avec confirmation)
+```
+
+### Modal Pointage (centré, compact)
+
+```
+┌──────────────────────────────────────┐
+│         ╔════════════════════╗       │
+│         ║ Pointage / Modifier║       │
+│         ║ 1240730            ║       │
+│         ║ Lun 13             ║       │
+│         ╠════════════════════╣       │
+│         ║ TYPE               ║       │
+│         ║ ┌────────┐┌───────┐║       │
+│         ║ │Travail ││Trajet │║       │
+│         ║ └────────┘└───────┘║       │
+│         ║────────────────────║       │
+│         ║ PÉRIODE            ║       │
+│         ║ ┌────────┐┌───────┐║       │
+│         ║ │ Matin  ││  PM   │║       │
+│         ║ └────────┘└───────┘║       │
+│         ║────────────────────║       │
+│         ║ DURÉE (hh:mm)      ║       │
+│         ║ ┌──────────────┐   ║       │
+│         ║ │    04:00     │   ║       │
+│         ║ └──────────────┘   ║       │
+│         ║────────────────────║       │
+│         ║ [  ENREGISTRER   ] ║       │
+│         ╚════════════════════╝       │
+└──────────────────────────────────────┘
+
+- Modal centré sur l'écran (items-center)
+- Titre "Modifier" en mode édition
+- Champ durée au format hh:mm (input type="time")
+```
 
 ---
 
 ## 🔄 Changelog Zones UI
+
+### v2.6.12
+- **MobileFeuillePointage** : Nouvelle page feuille de pointage hebdomadaire
+- **Pointage** : Affichage par jour avec chantiers de la semaine (même que planning)
+- **Pointage** : Ordre d'affichage : Trajet Matin → Travail Matin → Travail PM → Trajet PM
+- **Pointage** : Boutons modifier (✏️) et supprimer (🗑️) par pointage
+- **Pointage** : Modal centré avec champ durée (hh:mm)
+- **MobileChantierDetail** : Bouton pointage avec modal intégré
+- **Routes** : `/m/pointage` pointe vers MobileFeuillePointage (ancien formulaire supprimé)
 
 ### v2.6.11
 - **MobileChantierDetail** : Suppression header chantier (icône, nom, client, statut)

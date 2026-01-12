@@ -1,8 +1,8 @@
 # Context Backup - MyDelagrave
 
-**Date de sauvegarde** : 2026-01-11
+**Date de sauvegarde** : 2026-01-12
 **Branche** : main
-**Version** : 2.6.11
+**Version** : 2.6.12
 
 ---
 

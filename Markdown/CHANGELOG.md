@@ -2,6 +2,20 @@
 
 Toutes les modifications notables de ce projet sont documentées dans ce fichier.
 
+## [2.6.12] - 2026-01-12
+
+### Feuille de pointage mobile avec CRUD
+
+### Nouveautés
+- ⏱️ Nouvelle page MobileFeuillePointage (remplace l'ancien formulaire)
+- 📅 Affichage par jour avec mêmes RDV que le planning
+- ✏️ Modifier/Supprimer pointages existants
+- 🚗🔧 Ordre d'affichage : Trajet Matin → Travail Matin → Travail PM → Trajet PM
+- 📱 Modal pointage centré avec champ durée hh:mm
+- 🗺️ Documentation ZONES.md mise à jour
+
+---
+
 ## [2.6.11] - 2026-01-11
 
 ### Fix planning tournée mobile - phases multi-jours

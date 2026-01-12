@@ -3,10 +3,10 @@
 Instructions pour les agents IA travaillant sur ce projet.
 
 ## VERSION_ACTUELLE
-**2.6.11**
+**2.6.12**
 
 ## ÉTAT DU SYSTÈME
-MyDelagrave v2.6.11 - Améliorations mobile planning et documents
+MyDelagrave v2.6.12 - Feuille de pointage mobile avec CRUD
 
 ## Mode d'Exécution
 
@@ -55,6 +55,7 @@ Lors d'un bump de version, mettre à jour :
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.6.12 | 2026-01-12 | Feuille de pointage mobile avec CRUD |
 | 2.6.4 | 2026-01-10 | Dashboard Poseur et Viewer PDF Mobile |
 | 2.6.0 | 2026-01-10 | Réserves poseurs et Notifications |
 | 2.5.4 | 2026-01-10 | Tests E2E FloatingBurgerMenu et StatusTimeline |
